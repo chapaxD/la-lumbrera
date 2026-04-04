@@ -30,7 +30,7 @@ $tablas = [
         stock        DECIMAL(10,2) NOT NULL DEFAULT 0,
         stockMinimo  DECIMAL(10,2) NOT NULL DEFAULT 0,
         stockMateria DECIMAL(10,2) NOT NULL DEFAULT 0,
-        tipoCorte    TINYINT      NOT NULL DEFAULT 0
+        tipoCorte    INT          NOT NULL DEFAULT 0
     ) ENGINE=InnoDB;",
 
     "informacion_negocio" => "CREATE TABLE IF NOT EXISTS informacion_negocio(

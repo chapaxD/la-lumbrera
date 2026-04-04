@@ -1,5 +1,9 @@
 {
+  "outputDirectory": "dist",
+  "buildCommand": "npm run build",
+  "version": 2,
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://la-lumbrera.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

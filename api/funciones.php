@@ -48,7 +48,7 @@ function obtenerInsumosMasVendidos($limite){
 	FROM insumos_venta 
 	INNER JOIN insumos ON insumos.id = insumos_venta.idInsumo 
 	LEFT JOIN categorias ON categorias.id = insumos.categoria
-	GROUP BY insumos_venta.idInsumo 
+	GROUP BY insumos_venta.idInsumo, insumos.nombre, insumos.tipo, categoria 
 	ORDER BY total DESC 
 	LIMIT ?");
 	$sentencia->execute([$limite]);
@@ -111,7 +111,7 @@ function obtenerVentasUsuario($fechaInicio, $fechaFin){
 	FROM ventas
 	INNER JOIN usuarios ON usuarios.id = ventas.idUsuario
 	WHERE (DATE(fecha) >= ? AND DATE(fecha) <= ?)
-	GROUP BY ventas.idUsuario");
+	GROUP BY ventas.idUsuario, usuarios.nombre");
 	$sentencia->execute([$fechaInicio, $fechaFin]);
 	return $sentencia->fetchAll();
 }
@@ -165,7 +165,7 @@ function obtenerTopInsumosPorPeriodo($fechaInicio, $fechaFin, $limite = 5) {
                                INNER JOIN insumos ON insumos.id = insumos_venta.idInsumo
                                LEFT JOIN categorias ON categorias.id = insumos.categoria
                                WHERE DATE(ventas.fecha) >= ? AND DATE(ventas.fecha) <= ?
-                               GROUP BY insumos_venta.idInsumo
+                               GROUP BY insumos_venta.idInsumo, insumos.nombre, categoria
                                ORDER BY totalVendidos DESC
                                LIMIT ?");
     $sentencia->execute([$fechaInicio, $fechaFin, (int)$limite]);
@@ -179,7 +179,7 @@ function obtenerVentasPorUsuario($fechaInicio, $fechaFin){
 	FROM ventas
 	INNER JOIN usuarios ON usuarios.id = ventas.idUsuario
 	WHERE (DATE(ventas.fecha) >= ? AND DATE(ventas.fecha) <= ?)
-	GROUP BY ventas.idUsuario");
+	GROUP BY ventas.idUsuario, usuarios.nombre");
 	$sentencia->execute([$fechaInicio, $fechaFin]);
 	return $sentencia->fetchAll();
 }

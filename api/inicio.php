@@ -10,17 +10,17 @@ include_once "funciones.php";
 
 $filtros = json_decode(file_get_contents("php://input"));
 
-$fechaInicioHora = ($filtros->hora->inicio !== "") ? $filtros->hora->inicio : date("Y-m-d");
-$fechaFinHora = ($filtros->hora->fin !== "") ? $filtros->hora->fin : date("Y-m-d");
+$fechaInicioHora = (!empty($filtros->hora->inicio)) ? $filtros->hora->inicio : date("Y-m-d");
+$fechaFinHora = (!empty($filtros->hora->fin)) ? $filtros->hora->fin : date("Y-m-d");
 
-$fechaInicioUsuarios = ($filtros->usuarios->inicio !== "") ? $filtros->usuarios->inicio : date("Y-m-d");
-$fechaFinUsuarios = ($filtros->usuarios->fin !== "") ? $filtros->usuarios->fin : date("Y-m-d");
+$fechaInicioUsuarios = (!empty($filtros->usuarios->inicio)) ? $filtros->usuarios->inicio : date("Y-m-d");
+$fechaFinUsuarios = (!empty($filtros->usuarios->fin)) ? $filtros->usuarios->fin : date("Y-m-d");
 
 $ventasDiasSemana = obtenerVentasDiasSemana();
 $ventasPorHora = obtenerVentasPorHora($fechaInicioHora, $fechaFinHora);
-$ventasMeses = obtenerVentasPorMeses($filtros->anio);
+$ventasMeses = obtenerVentasPorMeses($filtros->anio ?? date('Y'));
 $ventasUsuario = obtenerVentasUsuario($fechaInicioUsuarios, $fechaFinUsuarios);
-$insumosMasVendidos = obtenerInsumosMasVendidos($filtros->limite);
+$insumosMasVendidos = obtenerInsumosMasVendidos($filtros->limite ?? 5);
 $totalesPorMesa = obtenerTotalesPorMesa();
 $alertasStock = obtenerInsumosBajoStock();
 

@@ -55,6 +55,11 @@ const HttpService = {
             body: JSON.stringify(datos),
         });
         if (respuesta.status === 401) { manejar401(); return null; }
+        if (!respuesta.ok) {
+            const texto = await respuesta.text();
+            console.error(`[API ERROR ${respuesta.status}] ${ruta}:`, texto);
+            throw new Error(`Error ${respuesta.status} en ${ruta}: ${texto.substring(0, 200)}`);
+        }
         let resultado = await respuesta.json()
         return resultado
     },
@@ -65,6 +70,11 @@ const HttpService = {
             headers: getAuthHeaders(),
         });
         if (respuesta.status === 401) { manejar401(); return null; }
+        if (!respuesta.ok) {
+            const texto = await respuesta.text();
+            console.error(`[API ERROR ${respuesta.status}] ${ruta}:`, texto);
+            throw new Error(`Error ${respuesta.status} en ${ruta}: ${texto.substring(0, 200)}`);
+        }
         let datos = await respuesta.json()
         return datos
     },

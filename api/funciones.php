@@ -169,7 +169,10 @@ function obtenerTopInsumosPorPeriodo($fechaInicio, $fechaFin, $limite = 5) {
                                GROUP BY insumos_venta.idInsumo, insumos.nombre, categoria
                                ORDER BY totalVendidos DESC
                                LIMIT ?");
-    $sentencia->execute([$fechaInicio, $fechaFin, (int)$limite]);
+    $sentencia->bindValue(1, $fechaInicio);
+    $sentencia->bindValue(2, $fechaFin);
+    $sentencia->bindValue(3, (int)$limite, \PDO::PARAM_INT);
+    $sentencia->execute();
     return $sentencia->fetchAll();
 }
 
@@ -200,10 +203,15 @@ function obtenerVentas($fechaInicio, $fechaFin, $idUsuario, $limite = 20, $offse
 	}
 
 	$sql .= " ORDER BY ventas.id DESC LIMIT ? OFFSET ?";
-	array_push($valoresAEjecutar, (int)$limite, (int)$offset);
 
 	$sentencia = $bd->prepare($sql);
-	$sentencia->execute($valoresAEjecutar);
+	$pos = 1;
+	foreach ($valoresAEjecutar as $val) {
+		$sentencia->bindValue($pos++, $val);
+	}
+	$sentencia->bindValue($pos++, (int)$limite, \PDO::PARAM_INT);
+	$sentencia->bindValue($pos,   (int)$offset, \PDO::PARAM_INT);
+	$sentencia->execute();
 	return $sentencia->fetchAll();
 }
 

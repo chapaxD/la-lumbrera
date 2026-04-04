@@ -22,7 +22,7 @@ function obtenerVentasPorDiaMes($mes, $anio, $idUsuario){
 	$sentencia = $bd->prepare("SELECT DAY(fecha) AS dia, SUM(total) AS totalVentas
 	FROM ventas
 	WHERE MONTH(fecha) = ? AND YEAR(fecha) = ? AND idUsuario = ?
-	GROUP BY dia
+	GROUP BY DAY(fecha)
 	ORDER BY dia ASC");
 	$sentencia->execute([$mes, $anio, $idUsuario]);
 	return $sentencia->fetchAll();
@@ -34,8 +34,8 @@ function obtenerVentasSemanaDeUsuario($idUsuario) {
 	 SUM(total) AS totalVentas FROM ventas
      WHERE YEARWEEK(fecha)=YEARWEEK(CURDATE())
 	 AND idUsuario = ?
-     GROUP BY dia 
-     ORDER BY fecha ASC");
+     GROUP BY dia, numeroDia 
+     ORDER BY numeroDia ASC");
 	 $sentencia->execute([$idUsuario]);
     return $sentencia->fetchAll();
 

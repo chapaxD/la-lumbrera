@@ -1,6 +1,7 @@
 FROM php:8.1-apache
 
-# Instalar extensiones necesarias
+# Instalar ca-certificates y extensiones necesarias
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN docker-php-ext-install pdo pdo_mysql
 
 # Habilitar mod_rewrite y mod_headers para Apache

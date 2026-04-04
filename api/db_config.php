@@ -4,8 +4,11 @@
 //  Detecta automaticamente si es local o produccion (TiDB Cloud)
 // ============================================================
 
-$esLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', ''])
-        || str_starts_with($_SERVER['SERVER_NAME'] ?? '', '192.168.');
+$serverName = $_SERVER['SERVER_NAME'] ?? '';
+$esLocal = in_array($serverName, ['localhost', '127.0.0.1'])
+        || str_starts_with($serverName, '192.168.')
+        || str_starts_with($serverName, '10.')
+        || (getenv('APP_ENV') === 'local');
 
 if ($esLocal) {
     // WAMP / Laragon local

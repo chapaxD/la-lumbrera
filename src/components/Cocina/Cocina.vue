@@ -280,6 +280,8 @@ export default {
 
         async marcarListo(orden, insumo) {
             insumo.cargando = true
+            // Pausar polling para evitar que revierta el cambio visual
+            clearInterval(this.intervaloPolling)
             const ok = await HttpService.registrar({
                 tipo: orden.tipo,
                 id: orden.id,
@@ -291,11 +293,19 @@ export default {
                 orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => i.estado === 'listo')
             }
             insumo.cargando = false
+            // Recargar desde BD después de un momento y reanudar polling
+            setTimeout(() => {
+                this.cargarOrdenes()
+                this.intervaloPolling = setInterval(() => {
+                    this.ahora = Date.now()
+                    this.cargarOrdenes()
+                }, 6000)
+            }, 1500)
         },
 
         minutosEspera(horaInicio) {
             if (!horaInicio) return 0
-            const inicio = new Date(horaInicio.replace(' ', 'T')).getTime()
+            const inicio = new Date(horaInicio.replace(' ', 'T') + 'Z').getTime()
             return Math.floor((this.ahora - inicio) / 60000)
         },
 

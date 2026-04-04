@@ -1,28 +1,13 @@
 <?php
 include_once "encabezado.php";
+include_once "funciones.php";
 require_once __DIR__ . '/db_config.php';
 
-$host     = DB_HOST;
-$usuario  = DB_USER;
-$password = DB_PASS;
 $resultados = [];
+$resultados[] = "Usando base de datos existente: " . DB_NAME;
 
-// 1. Crear la base de datos si no existe (omitido en hosting compartido donde la BD ya existe)
-try {
-    $conexion = new PDO("mysql:host=$host", $usuario, $password);
-    $conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $creada = $conexion->exec("CREATE DATABASE IF NOT EXISTS " . DB_NAME . " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    if ($creada) $resultados[] = "Base de datos creada correctamente";
-    $conexion = null;
-} catch (PDOException $e) {
-    // En hosting compartido (InfinityFree) la BD ya existe, se continua
-    $resultados[] = "Usando base de datos existente: " . DB_NAME;
-}
-
-// 2. Conectar a la base de datos
-$bd = new PDO("mysql:host=$host;dbname=" . DB_NAME . ";charset=utf8mb4", $usuario, $password);
-$bd->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$bd->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+// Conectar usando funciones.php (soporta SSL para TiDB Cloud)
+$bd = conectarBaseDatos();
 
 // 3. Crear todas las tablas
 $tablas = [

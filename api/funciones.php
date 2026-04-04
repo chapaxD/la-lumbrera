@@ -862,6 +862,7 @@ function conectarBaseDatos() {
 	$db   = DB_NAME;
 	$user = DB_USER;
 	$pass = DB_PASS;
+	$port = DB_PORT;
 	$charset = DB_CHARSET;
 
 	$options = [
@@ -869,7 +870,12 @@ function conectarBaseDatos() {
 	    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ,
 	    \PDO::ATTR_EMULATE_PREPARES   => false,
 	];
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+
+	if (DB_SSL) {
+		$options[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+	}
+
+	$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
 	try {
 	     $pdo = new \PDO($dsn, $user, $pass, $options);
 	     return $pdo;

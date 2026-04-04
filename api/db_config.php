@@ -1,7 +1,7 @@
 <?php
 // ============================================================
 //  CONFIGURACION DE BASE DE DATOS
-//  Detecta automaticamente si es local o produccion
+//  Detecta automaticamente si es local o produccion (TiDB Cloud)
 // ============================================================
 
 $esLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', ''])
@@ -13,12 +13,16 @@ if ($esLocal) {
     define('DB_NAME', 'botanero_ventas');
     define('DB_USER', 'root');
     define('DB_PASS', '');
+    define('DB_PORT', '3306');
+    define('DB_SSL',  false);
 } else {
-    // InfinityFree produccion
-    define('DB_HOST', 'sql105.infinityfree.com');
-    define('DB_NAME', 'if0_41574140_la_lumbrera');
-    define('DB_USER', 'if0_41574140');
-    define('DB_PASS', 'gONN7GH7aH');
+    // TiDB Cloud produccion
+    define('DB_HOST', 'gateway01.us-east-1.prod.aws.tidbcloud.com');
+    define('DB_NAME', 'botanero_ventas');
+    define('DB_USER', '2QmBXDx15RoezTK.root');
+    define('DB_PASS', '1uiSTs5CZmPUjA46');
+    define('DB_PORT', '4000');
+    define('DB_SSL',  true);
 }
 
 define('DB_CHARSET', 'utf8mb4');

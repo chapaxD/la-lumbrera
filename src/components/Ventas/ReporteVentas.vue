@@ -307,6 +307,7 @@ export default {
         fecha: venta.fecha,
         pagado: venta.pagado,
         total: venta.total,
+        mesa: parseInt(venta.idMesa) > 0 ? parseInt(venta.idMesa) : null,
       };
 
       this.insumosSeleccionados = venta.insumos;
@@ -319,9 +320,15 @@ export default {
     },
 
     buscarEnFecha() {
+      const toFecha = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dia}`;
+      };
       this.filtros = {
-        inicio: this.fechasSeleccionadas[0].toISOString().substring(0, 10),
-        fin: this.fechasSeleccionadas[1].toISOString().substring(0, 10),
+        inicio: toFecha(this.fechasSeleccionadas[0]),
+        fin: toFecha(this.fechasSeleccionadas[1]),
         idUsuario: this.usuarioSeleccionado,
       };
       this.currentPage = 1;

@@ -368,8 +368,9 @@ export default {
   <meta charset="UTF-8">
   <title>Comanda</title>
   <style>
+    @page { size: 80mm auto; margin: 3mm 2mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 80mm; padding: 5mm 4mm; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 76mm; }
     h2 { text-align: center; font-size: 17px; letter-spacing: 2px; margin-bottom: 3px; }
     .linea { border-top: 1px dashed #000; margin: 6px 0; }
     .tipo { text-align: center; font-size: 20px; font-weight: bold; margin: 5px 0 3px; }
@@ -377,10 +378,8 @@ export default {
     .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 4px; }
     .item { font-size: 15px; margin: 5px 0 2px; }
     .cant { font-weight: bold; }
-    .nombre { }
     .carac { font-size: 12px; margin-left: 24px; font-style: italic; margin-bottom: 3px; color: #333; }
     .pie { text-align: center; font-size: 11px; margin-top: 8px; color: #777; }
-    @media print { body { margin: 0; } }
   </style>
 </head>
 <body>

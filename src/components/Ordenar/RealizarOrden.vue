@@ -637,6 +637,7 @@ export default {
                 montoEfectivo: venta.montoEfectivo || 0,
                 montoTarjeta: venta.montoTarjeta || 0,
                 montoQR: venta.montoQR || 0,
+                mesa: parseInt(venta.idMesa) > 0 ? parseInt(venta.idMesa) : null,
             }
 
             this.insumosSeleccionados = venta.insumos

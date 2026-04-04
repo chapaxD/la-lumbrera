@@ -2,8 +2,8 @@
   <section style="display:none">
     <div id="comprobante">
       <h2>{{ datosLocal.nombre }}</h2>
-      <img v-if="logo" :src="logo" class="logo-ticket" alt="logo">
-      
+      <div v-if="venta.mesa" class="num-mesa">MESA #{{ venta.mesa }}</div>
+
       <div class="separador"></div>
 
       <div class="datos-venta">
@@ -24,10 +24,7 @@
         </thead>
         <tbody>
           <tr v-for="(insumo, index) in insumos" :key="index">
-            <td>
-              {{ insumo.nombre }}<br>
-              <small class="precio-unit">${{ formatNum(insumo.precio) }} c/u</small>
-            </td>
+            <td>{{ insumo.nombre }}</td>
             <td class="col-cant">{{ insumo.cantidad }}</td>
             <td class="col-sub">${{ formatNum(insumo.cantidad * insumo.precio) }}</td>
           </tr>
@@ -41,10 +38,6 @@
           <span>TOTAL</span>
           <span>${{ formatNum(venta.total) }}</span>
         </div>
-        <div class="fila-total" v-if="venta.metodoPago">
-          <span>Metodo</span>
-          <span>{{ venta.metodoPago }}</span>
-        </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
           <span>Efectivo</span><span>${{ formatNum(venta.montoEfectivo) }}</span>
         </div>
@@ -54,18 +47,9 @@
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
           <span>QR</span><span>${{ formatNum(venta.montoQR) }}</span>
         </div>
-        <div class="fila-total" v-if="venta.metodoPago !== 'MIXTO'">
-          <span>PAGO</span>
-          <span>${{ formatNum(venta.pagado) }}</span>
-        </div>
-        <div class="fila-total" v-if="!venta.metodoPago || venta.metodoPago === 'EFECTIVO'">
-          <span>CAMBIO</span>
-          <span>${{ formatNum(cambio) }}</span>
-        </div>
       </div>
 
       <div class="separador"></div>
-      <div class="pie">Gracias por su visita!</div>
     </div>
   </section>
 </template>
@@ -95,28 +79,26 @@ export default {
         width: 72mm;
         margin: 0 auto;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 10px;
+        font-size: 12px;
         text-align: center;
       }
-      h2 { font-size: 13px; font-weight: bold; margin: 2px 0; }
-      .logo-ticket { width: 55px; height: 55px; display: block; margin: 3px auto; }
-      .info { font-size: 9px; margin: 1px 0; }
+      h2 { font-size: 15px; font-weight: bold; margin: 2px 0; }
+      .num-mesa { font-size: 22px; font-weight: bold; margin: 4px 0; }
+      .info { font-size: 11px; margin: 1px 0; }
       .separador { border-top: 1px dashed #000; margin: 4px 0; }
-      .datos-venta { text-align: left; font-size: 9px; line-height: 1.5; }
-      table { width: 100%; border-collapse: collapse; font-size: 9px; margin: 2px 0; }
+      .datos-venta { text-align: left; font-size: 11px; line-height: 1.5; }
+      table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 2px 0; }
       th { border-bottom: 1px solid #000; padding: 2px 3px; text-align: left; }
-      td { padding: 2px 3px; vertical-align: top; text-align: left; }
+      td { padding: 2px 3px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; }
       .col-cant { text-align: center; width: 10mm; }
       .col-sub  { text-align: right;  width: 16mm; }
-      .precio-unit { font-size: 8px; color: #555; }
-      .totales { text-align: left; font-size: 10px; line-height: 1.7; }
+      .totales { text-align: left; font-size: 12px; line-height: 1.7; }
       .fila-total { display: flex; justify-content: space-between; padding: 0; }
       .fila-total.grande {
         font-size: 14px; font-weight: bold;
         border-top: 1px solid #000; border-bottom: 1px solid #000;
         padding: 2px 0; margin: 2px 0;
       }
-      .pie { text-align: center; font-size: 9px; margin-top: 6px; }
     `,
   }),
 

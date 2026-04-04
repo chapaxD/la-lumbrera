@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+# SSE: deshabilitar gzip/buffering de Apache para cocina_sse.php
+<FilesMatch "cocina_sse\.php">
+    SetEnv no-gzip 1
+    SetEnv dont-vary 1
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set X-Accel-Buffering "no"
+    </IfModule>
+</FilesMatch>

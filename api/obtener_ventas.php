@@ -34,8 +34,8 @@ try {
         "topInsumos" => $topInsumos,
         "usuarios" => $usuarios
     ]);
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(["error" => $e->getMessage()]);
+    echo json_encode(["error" => $e->getMessage(), "archivo" => basename($e->getFile()), "linea" => $e->getLine()]);
 }
 

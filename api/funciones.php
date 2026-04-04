@@ -1559,7 +1559,9 @@ function marcarItemListoCocina($payload) {
 
     // Obtener el ítem en la posición indicada (orden de inserción)
     $stmt = $bd->prepare("SELECT id, estado FROM items_orden WHERE idOrden=? ORDER BY id ASC LIMIT 1 OFFSET ?");
-    $stmt->execute([$idOrden, $indiceInsumo]);
+    $stmt->bindValue(1, (int)$idOrden, \PDO::PARAM_INT);
+    $stmt->bindValue(2, (int)$indiceInsumo, \PDO::PARAM_INT);
+    $stmt->execute();
     $item = $stmt->fetch();
 
     if (!$item || $item->estado !== 'pendiente') return false;

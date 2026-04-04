@@ -872,6 +872,11 @@ function conectarBaseDatos() {
 	];
 
 	if (DB_SSL) {
+		// Buscar el bundle CA del sistema (Debian/Ubuntu en Docker)
+		$caBundle = '/etc/ssl/certs/ca-certificates.crt';
+		if (file_exists($caBundle)) {
+			$options[\PDO::MYSQL_ATTR_SSL_CA] = $caBundle;
+		}
 		$options[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
 	}
 

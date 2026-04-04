@@ -884,6 +884,7 @@ function conectarBaseDatos() {
 	$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
 	try {
 	     $pdo = new \PDO($dsn, $user, $pass, $options);
+	     $pdo->exec("SET time_zone = '+00:00'");
 	     return $pdo;
 	} catch (\PDOException $e) {
 	     throw new \PDOException($e->getMessage(), (int)$e->getCode());

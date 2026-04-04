@@ -51,7 +51,8 @@ function obtenerInsumosMasVendidos($limite){
 	GROUP BY insumos_venta.idInsumo, insumos.nombre, insumos.tipo, categoria 
 	ORDER BY total DESC 
 	LIMIT ?");
-	$sentencia->execute([$limite]);
+	$sentencia->bindValue(1, (int)$limite, \PDO::PARAM_INT);
+	$sentencia->execute();
 	return $sentencia->fetchAll();
 }
 

@@ -183,6 +183,48 @@ $tablas = [
         resuelto     TINYINT(1)  NOT NULL DEFAULT 0
     ) ENGINE=InnoDB;",
 
+    "clientes" => "CREATE TABLE IF NOT EXISTS clientes(
+        id         INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        nombre     VARCHAR(150) NOT NULL,
+        apellido   VARCHAR(150) DEFAULT NULL,
+        telefono   VARCHAR(30)  DEFAULT NULL,
+        email      VARCHAR(150) DEFAULT NULL,
+        nit        VARCHAR(30)  DEFAULT NULL,
+        direccion  VARCHAR(255) DEFAULT NULL,
+        notas      TEXT,
+        created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;",
+
+    "facturas" => "CREATE TABLE IF NOT EXISTS facturas(
+        id               BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        numero           INT UNSIGNED    NOT NULL,
+        fechaHora        DATETIME        NOT NULL,
+        nitComprador     VARCHAR(20)     NOT NULL DEFAULT '99001',
+        nombreComprador  VARCHAR(150)    NOT NULL DEFAULT 'SIN NOMBRE',
+        codigoControl    VARCHAR(100)    DEFAULT NULL,
+        subtotal         DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        descuentos       DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        baseCredito      DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        iva              DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        total            DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        nota             TEXT,
+        idVenta          BIGINT UNSIGNED DEFAULT NULL,
+        idUsuario        BIGINT UNSIGNED NOT NULL,
+        estado           ENUM('EMITIDA','ANULADA') NOT NULL DEFAULT 'EMITIDA',
+        createdAt        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_numero_factura (numero)
+    ) ENGINE=InnoDB;",
+
+    "factura_items" => "CREATE TABLE IF NOT EXISTS factura_items(
+        id              BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        idFactura       BIGINT UNSIGNED NOT NULL,
+        cantidad        INT UNSIGNED    NOT NULL DEFAULT 1,
+        descripcion     VARCHAR(255)    NOT NULL,
+        precioUnitario  DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        descuento       DECIMAL(10,2)   NOT NULL DEFAULT 0,
+        subtotal        DECIMAL(10,2)   NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB;",
+
 ];
 
 foreach ($tablas as $nombre => $sql) {

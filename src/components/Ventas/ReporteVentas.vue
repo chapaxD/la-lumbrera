@@ -81,6 +81,25 @@
       </div>
     </div>
 
+    <!-- Resumen por día -->
+    <div class="box mb-4" v-if="resumenPorDia && resumenPorDia.length > 0">
+      <p class="title is-5 has-text-weight-bold has-text-grey mb-3">
+        <b-icon icon="calendar-today" type="is-info"></b-icon>
+        Ventas por día
+      </p>
+      <b-table :data="resumenPorDia" bordered striped hoverable narrowed>
+        <b-table-column field="fecha" label="Fecha" v-slot="props">
+          {{ props.row.fecha }}
+        </b-table-column>
+        <b-table-column field="numVentas" label="N° Ventas" v-slot="props">
+          {{ props.row.numVentas }}
+        </b-table-column>
+        <b-table-column field="totalVentas" label="Total vendido" v-slot="props">
+          ${{ props.row.totalVentas }}
+        </b-table-column>
+      </b-table>
+    </div>
+
     <!-- Tabla principal -->
     <div class="box">
     <b-table
@@ -246,6 +265,7 @@ export default {
     topInsumos: [],
     totalVentas: 0,
     totalRegistros: 0,
+    resumenPorDia: [],
     mostrarTicket: false,
     isPaginationSimple: false,
     isPaginationRounded: true,
@@ -349,6 +369,7 @@ export default {
           this.totalVentas = resultado.totalPeriodo || 0;
           this.topInsumos = resultado.topInsumos || [];
           this.usuarios = resultado.usuarios;
+          this.resumenPorDia = resultado.resumenPorDia || [];
           this.cargando = false;
         }
       );

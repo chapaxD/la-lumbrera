@@ -128,6 +128,7 @@ $tablas = [
         personas       TINYINT,
         idMesa         TINYINT,
         notas          VARCHAR(255),
+        adelanto       DECIMAL(8,2) NOT NULL DEFAULT 0,
         idUsuario      BIGINT UNSIGNED,
         estado         ENUM('PENDIENTE','CONFIRMADA','CANCELADA','COMPLETADA') NOT NULL DEFAULT 'PENDIENTE'
     ) ENGINE=InnoDB;",
@@ -234,7 +235,9 @@ foreach ($tablas as $nombre => $sql) {
 
 // Migraciones: ampliar enums y columnas sin romper datos existentes
 $migraciones = [
-    "reservas_estado_enum" => "ALTER TABLE reservas MODIFY estado ENUM('PENDIENTE','CONFIRMADA','CANCELADA','COMPLETADA','SENTADA','NO-SHOW') DEFAULT 'PENDIENTE'",
+    "reservas_estado_enum"  => "ALTER TABLE reservas MODIFY estado ENUM('PENDIENTE','CONFIRMADA','CANCELADA','COMPLETADA','SENTADA','NO-SHOW') DEFAULT 'PENDIENTE'",
+    "reservas_adelanto_col" => "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS adelanto DECIMAL(8,2) NOT NULL DEFAULT 0",
+    "items_orden_acompanamiento_col" => "ALTER TABLE items_orden ADD COLUMN IF NOT EXISTS acompanamiento_listo TINYINT(1) NOT NULL DEFAULT 0",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

@@ -8,7 +8,16 @@ if (!$venta) {
 
 include_once "funciones.php";
 
-$resultado = registrarVenta($venta);
-echo json_encode($resultado);
+try {
+    $resultado = registrarVenta($venta);
+    echo json_encode($resultado);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        "error" => $e->getMessage(),
+        "archivo" => basename($e->getFile()),
+        "linea" => $e->getLine()
+    ]);
+}
 
 

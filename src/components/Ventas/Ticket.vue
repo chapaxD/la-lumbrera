@@ -10,6 +10,7 @@
         <div>Fecha: {{ venta.fecha | formatFecha }}</div>
         <div>Atiende: {{ venta.atendio }}</div>
         <div>Cliente: {{ venta.cliente || 'MOSTRADOR' }}</div>
+        <div v-if="venta.adelanto && venta.adelanto > 0" class="has-text-info" style="font-weight:bold;">RESERVA</div>
       </div>
 
       <div class="separador"></div>
@@ -36,6 +37,18 @@
       <div class="totales">
         <div class="fila-total grande">
           <span>TOTAL</span>
+          <span>${{ formatNum(venta.total + (venta.adelanto || 0)) }}</span>
+        </div>
+        <div class="fila-total" v-if="venta.adelanto">
+          <span>Adelanto aplicado</span>
+          <span>- ${{ formatNum(venta.adelanto) }}</span>
+        </div>
+        <div class="fila-total" v-if="venta.total === 0 && venta.adelanto && venta.adelanto > (venta.total + (venta.adelanto || 0))">
+          <span class="has-text-success">A devolver al cliente</span>
+          <span class="has-text-success">${{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
+        </div>
+        <div class="fila-total" v-if="venta.total > 0">
+          <span>Total a pagar</span>
           <span>${{ formatNum(venta.total) }}</span>
         </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">

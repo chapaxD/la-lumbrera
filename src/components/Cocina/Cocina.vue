@@ -1,5 +1,5 @@
-﻿<template>
-    <section class="section">
+<template>
+    <section class="section" style="min-height: 70vh;">
         <div class="columns is-vcentered mb-4">
             <div class="column">
                 <p class="title is-1 has-text-weight-bold">
@@ -27,9 +27,7 @@
 
         <!-- Tarjetas de órdenes -->
         <div class="columns is-multiline">
-            <div
-                class="column is-4-widescreen is-6-tablet is-12-mobile"
-                v-for="orden in ordenes"
+            <div class="column is-4-widescreen is-6-tablet is-12-mobile" v-for="orden in ordenes"
                 :key="orden.tipo + '-' + orden.id">
                 <div class="card cocina-card" :class="[
                     orden.todoListo ? 'cocina-pagada-lista' : 'has-background-warning-light'
@@ -40,8 +38,7 @@
                         <div class="cocina-card-titulo">
                             <b-icon
                                 :icon="orden.tipo === 'LOCAL' ? 'table-chair' : orden.tipo === 'LLEVAR' ? 'walk' : 'moped'"
-                                size="is-medium"
-                                class="mr-2 cocina-icono-tipo">
+                                size="is-medium" class="mr-2 cocina-icono-tipo">
                             </b-icon>
                             <div class="cocina-titulo-texto">
                                 <span class="is-size-5 has-text-weight-bold">
@@ -49,30 +46,23 @@
                                     <span v-else-if="orden.tipo === 'LLEVAR'">Para llevar #{{ orden.id }}</span>
                                     <span v-else>Delivery #{{ orden.id }}</span>
                                 </span>
-                                <span class="is-size-6 has-text-grey cocina-cliente" v-if="orden.cliente && orden.cliente !== 'S/N'">
+                                <span class="is-size-6 has-text-grey cocina-cliente"
+                                    v-if="orden.cliente && orden.cliente !== 'S/N'">
                                     {{ orden.cliente }}
                                 </span>
                             </div>
                         </div>
                         <!-- Fila 2: tags de estado -->
                         <div class="cocina-card-tags">
-                            <b-tag
-                                v-if="orden.pagada"
-                                type="is-success"
-                                rounded>
+                            <b-tag v-if="orden.pagada" type="is-success" rounded>
                                 <b-icon icon="cash-check" size="is-small" class="mr-1"></b-icon>
                                 COBRADO
                             </b-tag>
-                            <b-tag
-                                v-if="orden.horaInicio"
-                                :type="colorEspera(minutosEspera(orden.horaInicio))"
-                                rounded>
+                            <b-tag v-if="orden.horaInicio" :type="colorEspera(minutosEspera(orden.horaInicio))" rounded>
                                 <b-icon icon="clock-outline" size="is-small" class="mr-1"></b-icon>
                                 {{ minutosEspera(orden.horaInicio) }}m
                             </b-tag>
-                            <b-tag
-                                :type="orden.todoListo ? 'is-success' : 'is-danger'"
-                                rounded>
+                            <b-tag :type="orden.todoListo ? 'is-success' : 'is-danger'" rounded>
                                 {{ orden.pendientes }} pendiente{{ orden.pendientes !== 1 ? 's' : '' }}
                             </b-tag>
                         </div>
@@ -80,39 +70,46 @@
 
                     <!-- Ítems de la orden -->
                     <div class="card-content p-3">
-                        <div
-                            v-for="insumo in orden.insumos"
-                            :key="insumo._originalIndex"
-                            class="box p-3 mb-2"
-                            :class="{
-                                'has-background-danger-light': insumo.estado === 'pendiente',
-                                'has-background-success-light': insumo.estado === 'listo'
-                            }">
-                            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
-                                <b-icon
-                                    :icon="insumo.estado === 'listo' ? 'check-circle' : 'clock-alert-outline'"
-                                    :type="insumo.estado === 'listo' ? 'is-success' : 'is-danger'"
+                        <div v-for="insumo in orden.insumos" :key="insumo._originalIndex" class="box p-3 mb-2" :class="{
+                            'has-background-danger-light': (insumo.categoria || '').toLowerCase() !== 'carnes' ? insumo.estado === 'pendiente' : insumo.acompanamiento_listo === 0,
+                            'has-background-success-light': (insumo.categoria || '').toLowerCase() !== 'carnes' ? insumo.estado === 'listo' : insumo.acompanamiento_listo === 1,
+                            'has-background-info-light': (insumo.categoria || '').toLowerCase() === 'carnes' && insumo.acompanamiento_listo === 0
+                        }">
+                            <div
+                                style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
+                                <b-icon :icon="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'check-circle' : 'clock-alert-outline'"
+                                    :type="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'is-success' : (insumo.categoria || '').toLowerCase() === 'carnes' ? 'is-info' : 'is-danger'"
                                     style="flex-shrink:0;">
                                 </b-icon>
-                                <span class="has-text-weight-bold is-size-5" style="flex:1; min-width:0; word-break:break-word;">
+                                <span class="has-text-weight-bold is-size-5"
+                                    style="flex:1; min-width:0; word-break:break-word;">
                                     {{ insumo.cantidad }}x {{ insumo.nombre }}
+                                    <b-tag v-if="(insumo.categoria || '').toLowerCase() === 'carnes'" type="is-info"
+                                        size="is-small" class="ml-1" rounded>
+                                        ACOMPAÑAMIENTO / PARRILLA
+                                    </b-tag>
                                 </span>
                                 <div style="flex-shrink:0; margin-left:4px;">
-                                    <b-button
-                                        v-if="insumo.estado === 'pendiente'"
-                                        type="is-success"
-                                        size="is-small"
-                                        icon-left="check"
-                                        :loading="insumo.cargando"
-                                        @click="marcarListo(orden, insumo)">
-                                        Listo
-                                    </b-button>
-                                    <b-tag v-else type="is-success is-light">Listo ✓</b-tag>
+                                    <template v-if="(insumo.categoria || '').toLowerCase() === 'carnes'">
+                                        <b-button v-if="insumo.acompanamiento_listo === 0" type="is-success" size="is-small"
+                                            icon-left="check" :loading="insumo.cargando"
+                                            @click="marcarListo(orden, insumo)">
+                                            Acomp. Listo
+                                        </b-button>
+                                        <b-tag v-else type="is-success is-light">Acomp. Listo ✓</b-tag>
+                                    </template>
+                                    <template v-else>
+                                        <b-button v-if="insumo.estado === 'pendiente'" type="is-success" size="is-small"
+                                            icon-left="check" :loading="insumo.cargando"
+                                            @click="marcarListo(orden, insumo)">
+                                            Listo
+                                        </b-button>
+                                        <b-tag v-else type="is-success is-light">Listo ✓</b-tag>
+                                    </template>
                                 </div>
                             </div>
                             <!-- Características / instrucciones especiales -->
-                            <p
-                                v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
+                            <p v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
                                 class="is-size-6 has-text-dark ml-5 mt-1"
                                 style="border-left: 3px solid #f5a623; padding-left: 8px;">
                                 <b-icon icon="note-text-outline" size="is-small"></b-icon>
@@ -144,13 +141,8 @@
                 </header>
                 <section class="modal-card-body">
                     <b-field label="Insumo (opcional — escribí el nombre)">
-                        <b-autocomplete
-                            v-model="reporte.nombreInsumo"
-                            :data="insumosFiltrados"
-                            field="nombre"
-                            placeholder="Ej: Queso mozzarella..."
-                            @typing="buscarInsumo"
-                            @select="seleccionarInsumo"
+                        <b-autocomplete v-model="reporte.nombreInsumo" :data="insumosFiltrados" field="nombre"
+                            placeholder="Ej: Queso mozzarella..." @typing="buscarInsumo" @select="seleccionarInsumo"
                             clearable>
                         </b-autocomplete>
                     </b-field>
@@ -163,20 +155,13 @@
                         </b-select>
                     </b-field>
                     <b-field label="Nota adicional">
-                        <b-input
-                            v-model="reporte.nota"
-                            type="textarea"
-                            rows="3"
+                        <b-input v-model="reporte.nota" type="textarea" rows="3"
                             placeholder="Ej: Se terminó el aceite, no alcanza para la noche...">
                         </b-input>
                     </b-field>
                 </section>
                 <footer class="modal-card-foot">
-                    <b-button
-                        type="is-warning"
-                        icon-left="send"
-                        @click="enviarReporte"
-                        :loading="enviandoReporte">
+                    <b-button type="is-warning" icon-left="send" @click="enviarReporte" :loading="enviandoReporte">
                         Enviar reporte
                     </b-button>
                     <b-button type="is-dark" @click="modalReporte = false">Cancelar</b-button>
@@ -243,7 +228,10 @@ export default {
                 .map(m => {
                     const insumos = (m.insumos || [])
                         .map((insumo, idx) => ({ ...insumo, _originalIndex: idx, cargando: false }))
-                        .filter(i => i.estado !== 'entregado' && (i.tipo || '').toUpperCase() !== 'BEBIDA')
+                        .filter(i =>
+                            i.estado !== 'entregado' &&
+                            (i.tipo || '').toUpperCase() !== 'BEBIDA'
+                        )
                     return {
                         id: m.mesa.idMesa,
                         tipo: 'LOCAL',
@@ -260,7 +248,11 @@ export default {
             const ordenesDelivery = (deliveries || []).map(d => {
                 const insumos = (d.insumos || [])
                     .map((insumo, idx) => ({ ...insumo, _originalIndex: idx, cargando: false }))
-                    .filter(i => i.estado !== 'entregado' && (i.tipo || '').toUpperCase() !== 'BEBIDA')
+                    // para filtrar que mostrar en cocina
+                    .filter(i =>
+                        i.estado !== 'entregado' &&
+                        (i.tipo || '').toUpperCase() !== 'BEBIDA'
+                    )
                 return {
                     id: d.delivery.idDelivery,
                     tipo: d.delivery.tipo_orden || 'DELIVERY',
@@ -282,15 +274,23 @@ export default {
             insumo.cargando = true
             // Pausar polling para evitar que revierta el cambio visual
             clearInterval(this.intervaloPolling)
+            const esCarnes = (insumo.categoria || '').toLowerCase() === 'carnes'
             const ok = await HttpService.registrar({
                 tipo: orden.tipo,
                 id: orden.id,
-                indiceInsumo: insumo._originalIndex
+                indiceInsumo: insumo._originalIndex,
+                soloAcompanamiento: esCarnes
             }, 'marcar_listo_cocina.php')
             if (ok) {
-                insumo.estado = 'listo'
-                orden.pendientes = orden.insumos.filter(i => i.estado === 'pendiente').length
-                orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => i.estado === 'listo')
+                if (esCarnes) insumo.acompanamiento_listo = 1
+                else insumo.estado = 'listo'
+                
+                orden.pendientes = orden.insumos.filter(i => 
+                    (i.categoria || '').toLowerCase() === 'carnes' ? i.acompanamiento_listo === 0 : i.estado === 'pendiente'
+                ).length
+                orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => 
+                    (i.categoria || '').toLowerCase() === 'carnes' ? i.acompanamiento_listo === 1 : i.estado === 'listo'
+                )
             }
             insumo.cargando = false
             // Recargar desde BD después de un momento y reanudar polling
@@ -305,8 +305,19 @@ export default {
 
         minutosEspera(horaInicio) {
             if (!horaInicio) return 0
-            const inicio = new Date(horaInicio.replace(' ', 'T') + 'Z').getTime()
-            return Math.floor((this.ahora - inicio) / 60000)
+            // Normalizamos el formato para evitar problemas de interpretación UTC vs Local
+            let fechaStr = horaInicio.replace(' ', 'T')
+            const inicio = new Date(fechaStr).getTime()
+            let minutos = Math.floor((this.ahora - inicio) / 60000)
+
+            // Si la diferencia es muy grande o negativa (ej. -240 min), compensamos zona horaria
+            if (minutos < -5 || minutos > 720) {
+                const offsetMin = new Date().getTimezoneOffset()
+                // Intentamos corregir el desfase restando el offset del navegador
+                minutos = Math.floor((this.ahora - (inicio - offsetMin * 60000)) / 60000)
+            }
+
+            return minutos < 0 ? 0 : minutos
         },
 
         colorEspera(mins) {
@@ -421,14 +432,23 @@ export default {
 </script>
 <style>
 @keyframes pulso-pagada {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(72, 199, 142, 0); }
-    50%       { box-shadow: 0 0 0 10px rgba(72, 199, 142, 0.5); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(72, 199, 142, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(72, 199, 142, 0.5);
+    }
 }
+
 .cocina-pagada-lista {
     background-color: #effaf3 !important;
     border: 2px solid #48c78e !important;
     animation: pulso-pagada 1.2s ease-in-out infinite;
 }
+
 .cocina-pagada-lista.cobrado {
     border-color: #257942 !important;
 }
@@ -439,36 +459,43 @@ export default {
     flex-direction: column;
     height: 100%;
 }
+
 .cocina-card-header {
     padding: 10px 14px 8px;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
+
 .cocina-card-titulo {
     display: flex;
     align-items: center;
     min-width: 0;
 }
+
 .cocina-icono-tipo {
     flex-shrink: 0;
 }
+
 .cocina-titulo-texto {
     display: flex;
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
 }
+
 .cocina-titulo-texto span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .cocina-cliente {
     font-style: italic;
     line-height: 1.2;
 }
+
 .cocina-card-tags {
     display: flex;
     flex-wrap: wrap;

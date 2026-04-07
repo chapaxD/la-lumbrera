@@ -79,6 +79,15 @@
             <b-icon icon="account-group"
                     size="is-small"></b-icon> {{ props.row.personas }}
           </b-table-column>
+          <b-table-column field="adelanto"
+                          label="Adelanto"
+                          v-slot="props"
+                          centered>
+            <b-tag v-if="props.row.adelanto > 0"
+                   type="is-success"
+                   size="is-small">Bs. {{ parseFloat(props.row.adelanto).toFixed(2) }}</b-tag>
+            <span v-else class="has-text-grey-light">—</span>
+          </b-table-column>
           <b-table-column field="estado"
                           label="Estado"
                           v-slot="props"
@@ -164,6 +173,7 @@
             <p v-if="reservaASentar.telefono"><b>Teléfono:</b> {{ reservaASentar.telefono }}</p>
             <p><b>Mesa:</b> {{ reservaASentar.idMesa ? 'Mesa #' + reservaASentar.idMesa : 'Restaurante completo' }}</p>
             <p><b>Personas:</b> {{ reservaASentar.personas }}</p>
+            <p v-if="reservaASentar.adelanto > 0"><b>Adelanto:</b> <b-tag type="is-success">Bs. {{ parseFloat(reservaASentar.adelanto).toFixed(2) }}</b-tag></p>
             <p v-if="reservaASentar.notas"><b>Notas:</b> {{ reservaASentar.notas }}</p>
           </div>
           <b-field label="Asignar mesero">
@@ -275,6 +285,14 @@
                      v-model="form.notas"
                      placeholder="Ej: Cumpleaños, alérgenos, etc."></b-input>
           </b-field>
+          <b-field label="Adelanto (Bs.)">
+            <b-input v-model="form.adelanto"
+                     type="number"
+                     min="0"
+                     step="0.01"
+                     placeholder="0.00"
+                     icon="cash"></b-input>
+          </b-field>
         </section>
         <footer class="modal-card-foot">
           <b-button label="Cancelar"
@@ -314,7 +332,8 @@ export default {
       hora_obj: new Date(),
       personas: 2,
       idMesa: null,
-      notas: ""
+      notas: "",
+      adelanto: 0
     }
   }),
   mounted() {
@@ -360,7 +379,8 @@ export default {
         hora_obj: new Date(),
         personas: 2,
         idMesa: null,
-        notas: ""
+        notas: "",
+        adelanto: 0
       };
       this.sugerenciasClientes = [];
       this.esEventoTotal = false;

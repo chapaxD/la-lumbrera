@@ -24,6 +24,7 @@ import ReporteCancelaciones from '../components/Ventas/ReporteCancelaciones'
 import Factura from '../components/Ventas/Factura'
 import HistorialFacturas from '../components/Ventas/HistorialFacturas'
 import Clientes from '../components/Clientes/Clientes'
+import Parrilla from '../components/Parrilla/Parrilla.vue'
 
 Vue.use(Router)
 
@@ -150,6 +151,11 @@ const router = new Router({
       path: '/cocina',
       name: 'Cocina',
       component: Cocina
+    },
+    {
+      path: '/parrilla',
+      name: 'Parrilla',
+      component: Parrilla
     }
   ]
 })

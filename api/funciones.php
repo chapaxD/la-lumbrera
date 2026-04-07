@@ -2,13 +2,15 @@
 date_default_timezone_set('America/La_Paz');
 define('DIRECTORIO', './fotos/');
 
-function verificarTablas() {
+function verificarTablas()
+{
     $bd = conectarBaseDatos();
     $sentencia  = $bd->query("SELECT COUNT(*) AS resultado FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'botanero_ventas'");
     return $sentencia->fetchAll();
 }
 
-function obtenerVentasPorMesesDeUsuario($anio, $idUsuario) {
+function obtenerVentasPorMesesDeUsuario($anio, $idUsuario)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT MONTH(fecha) AS mes, SUM(total) AS totalVentas FROM ventas 
         WHERE YEAR(fecha) = ? AND idUsuario = ?
@@ -17,18 +19,20 @@ function obtenerVentasPorMesesDeUsuario($anio, $idUsuario) {
     return $sentencia->fetchAll();
 }
 
-function obtenerVentasPorDiaMes($mes, $anio, $idUsuario){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT DAY(fecha) AS dia, SUM(total) AS totalVentas
+function obtenerVentasPorDiaMes($mes, $anio, $idUsuario)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT DAY(fecha) AS dia, SUM(total) AS totalVentas
 	FROM ventas
 	WHERE MONTH(fecha) = ? AND YEAR(fecha) = ? AND idUsuario = ?
 	GROUP BY DAY(fecha)
 	ORDER BY dia ASC");
-	$sentencia->execute([$mes, $anio, $idUsuario]);
-	return $sentencia->fetchAll();
+    $sentencia->execute([$mes, $anio, $idUsuario]);
+    return $sentencia->fetchAll();
 }
 
-function obtenerVentasSemanaDeUsuario($idUsuario) {
+function obtenerVentasSemanaDeUsuario($idUsuario)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT DAYNAME(fecha) AS dia, DAYOFWEEK(fecha) AS numeroDia, 
 	 SUM(total) AS totalVentas FROM ventas
@@ -36,14 +40,14 @@ function obtenerVentasSemanaDeUsuario($idUsuario) {
 	 AND idUsuario = ?
      GROUP BY dia, numeroDia 
      ORDER BY numeroDia ASC");
-	 $sentencia->execute([$idUsuario]);
+    $sentencia->execute([$idUsuario]);
     return $sentencia->fetchAll();
-
 }
 
-function obtenerInsumosMasVendidos($limite){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT SUM(insumos_venta.precio * insumos_venta.cantidad ) 
+function obtenerInsumosMasVendidos($limite)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT SUM(insumos_venta.precio * insumos_venta.cantidad ) 
 	AS total, insumos.nombre, insumos.tipo, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria 
 	FROM insumos_venta 
 	INNER JOIN insumos ON insumos.id = insumos_venta.idInsumo 
@@ -51,73 +55,82 @@ function obtenerInsumosMasVendidos($limite){
 	GROUP BY insumos_venta.idInsumo, insumos.nombre, insumos.tipo, categoria 
 	ORDER BY total DESC 
 	LIMIT ?");
-	$sentencia->bindValue(1, (int)$limite, \PDO::PARAM_INT);
-	$sentencia->execute();
-	return $sentencia->fetchAll();
+    $sentencia->bindValue(1, (int)$limite, \PDO::PARAM_INT);
+    $sentencia->execute();
+    return $sentencia->fetchAll();
 }
 
-function obtenerTotalesPorMesa(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT SUM(total) AS total, idMesa
+function obtenerTotalesPorMesa()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT SUM(total) AS total, idMesa
 	FROM ventas 
 	GROUP BY idMesa
 	ORDER BY total DESC");
-	return $sentencia->fetchAll();
+    return $sentencia->fetchAll();
 }
 
-function obtenerVentasDelDia(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT IFNULL(SUM(total),0) AS totalVentasHoy
+function obtenerVentasDelDia()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT IFNULL(SUM(total),0) AS totalVentasHoy
 	FROM ventas
 	WHERE DATE(fecha) = CURDATE()");
-	return $sentencia->fetchObject()->totalVentasHoy;
+    return $sentencia->fetchObject()->totalVentasHoy;
 }
 
-function obtenerNumeroUsuarios(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT COUNT(*) AS numeroUsuarios
+function obtenerNumeroUsuarios()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT COUNT(*) AS numeroUsuarios
 	FROM usuarios");
-	return $sentencia->fetchObject()->numeroUsuarios;
+    return $sentencia->fetchObject()->numeroUsuarios;
 }
 
-function obtenerNumeroInsumos(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT COUNT(*) AS numeroInsumos
+function obtenerNumeroInsumos()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT COUNT(*) AS numeroInsumos
 	FROM insumos");
-	return $sentencia->fetchObject()->numeroInsumos;
+    return $sentencia->fetchObject()->numeroInsumos;
 }
 
-function obtenerTotalVentas(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT IFNULL(SUM(total),0) AS totalVentas
+function obtenerTotalVentas()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT IFNULL(SUM(total),0) AS totalVentas
 	FROM ventas");
-	return $sentencia->fetchObject()->totalVentas;
+    return $sentencia->fetchObject()->totalVentas;
 }
 
-function cantidadVentasDia(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT COUNT(*) AS cantidad FROM ventas WHERE DATE(fecha) = CURDATE()");
-	return (int)$sentencia->fetchObject()->cantidad;
+function cantidadVentasDia()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT COUNT(*) AS cantidad FROM ventas WHERE DATE(fecha) = CURDATE()");
+    return (int)$sentencia->fetchObject()->cantidad;
 }
 
-function obtenerNumeroMesasOcupadas(){
-	$bd = conectarBaseDatos();
-	$stmt = $bd->query("SELECT COUNT(*) AS total FROM ordenes_activas WHERE tipo='LOCAL'");
-	return (int)$stmt->fetchObject()->total;
+function obtenerNumeroMesasOcupadas()
+{
+    $bd = conectarBaseDatos();
+    $stmt = $bd->query("SELECT COUNT(*) AS total FROM ordenes_activas WHERE tipo='LOCAL'");
+    return (int)$stmt->fetchObject()->total;
 }
 
-function obtenerVentasUsuario($fechaInicio, $fechaFin){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT usuarios.nombre, SUM(ventas.total) AS totalVentas
+function obtenerVentasUsuario($fechaInicio, $fechaFin)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT usuarios.nombre, SUM(ventas.total) AS totalVentas
 	FROM ventas
 	INNER JOIN usuarios ON usuarios.id = ventas.idUsuario
 	WHERE (DATE(fecha) >= ? AND DATE(fecha) <= ?)
 	GROUP BY ventas.idUsuario, usuarios.nombre");
-	$sentencia->execute([$fechaInicio, $fechaFin]);
-	return $sentencia->fetchAll();
+    $sentencia->execute([$fechaInicio, $fechaFin]);
+    return $sentencia->fetchAll();
 }
 
-function obtenerVentasPorHora($fechaInicio, $fechaFin) {
+function obtenerVentasPorHora($fechaInicio, $fechaFin)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT DATE_FORMAT(fecha,'%H') AS hora, 
    	SUM(total) as totalVentas FROM ventas 
@@ -125,11 +138,12 @@ function obtenerVentasPorHora($fechaInicio, $fechaFin) {
     GROUP BY DATE_FORMAT(fecha,'%H') 
     ORDER BY hora ASC
     ");
-	$sentencia->execute([$fechaInicio, $fechaFin]);
+    $sentencia->execute([$fechaInicio, $fechaFin]);
     return $sentencia->fetchAll();
 }
 
-function obtenerVentasPorMeses($anio) {
+function obtenerVentasPorMeses($anio)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT MONTH(fecha) AS mes, SUM(total) AS totalVentas FROM ventas 
         WHERE YEAR(fecha) = ?
@@ -138,7 +152,8 @@ function obtenerVentasPorMeses($anio) {
     return $sentencia->fetchAll();
 }
 
-function obtenerVentasDiasSemana() {
+function obtenerVentasDiasSemana()
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->query("SELECT DAYNAME(fecha) AS dia, DAYOFWEEK(fecha) AS numeroDia, SUM(total) AS totalVentas FROM ventas
      WHERE YEARWEEK(fecha, 1)=YEARWEEK(CURDATE(), 1)
@@ -147,7 +162,8 @@ function obtenerVentasDiasSemana() {
     return $sentencia->fetchAll();
 }
 
-function obtenerResumenVentasPorDia($fechaInicio, $fechaFin) {
+function obtenerResumenVentasPorDia($fechaInicio, $fechaFin)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT DATE(fecha) as fecha, COUNT(*) as numVentas, SUM(total) as totalVentas 
                                FROM ventas 
@@ -158,7 +174,8 @@ function obtenerResumenVentasPorDia($fechaInicio, $fechaFin) {
     return $sentencia->fetchAll();
 }
 
-function obtenerTopInsumosPorPeriodo($fechaInicio, $fechaFin, $limite = 5) {
+function obtenerTopInsumosPorPeriodo($fechaInicio, $fechaFin, $limite = 5)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT insumos.nombre, SUM(insumos_venta.cantidad) as totalVendidos, SUM(insumos_venta.cantidad * insumos_venta.precio) as totalDinero, IFNULL(categorias.nombre, 'NO DEFINIDA') as categoria
                                FROM insumos_venta
@@ -176,75 +193,82 @@ function obtenerTopInsumosPorPeriodo($fechaInicio, $fechaFin, $limite = 5) {
     return $sentencia->fetchAll();
 }
 
-function obtenerVentasPorUsuario($fechaInicio, $fechaFin){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT IFNULL(SUM(ventas.total), 0) AS total,
+function obtenerVentasPorUsuario($fechaInicio, $fechaFin)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT IFNULL(SUM(ventas.total), 0) AS total,
 	usuarios.nombre 
 	FROM ventas
 	INNER JOIN usuarios ON usuarios.id = ventas.idUsuario
 	WHERE (DATE(ventas.fecha) >= ? AND DATE(ventas.fecha) <= ?)
 	GROUP BY ventas.idUsuario, usuarios.nombre");
-	$sentencia->execute([$fechaInicio, $fechaFin]);
-	return $sentencia->fetchAll();
+    $sentencia->execute([$fechaInicio, $fechaFin]);
+    return $sentencia->fetchAll();
 }
 
-function obtenerVentas($fechaInicio, $fechaFin, $idUsuario, $limite = 20, $offset = 0){
-	$bd = conectarBaseDatos();
-	$valoresAEjecutar = [$fechaInicio, $fechaFin];
-	
-	$sql = "SELECT ventas.*, IFNULL(usuarios.nombre, 'NO ENCONTRADO') AS atendio 
+function obtenerVentas($fechaInicio, $fechaFin, $idUsuario, $limite = 20, $offset = 0)
+{
+    $bd = conectarBaseDatos();
+    $valoresAEjecutar = [$fechaInicio, $fechaFin];
+
+    $sql = "SELECT ventas.*, IFNULL(usuarios.nombre, 'NO ENCONTRADO') AS atendio 
 	FROM ventas
 	LEFT JOIN usuarios ON ventas.idUsuario = usuarios.id
 	WHERE (DATE(ventas.fecha) >= ? AND DATE(ventas.fecha) <= ?)";
 
-	if($idUsuario !== "") {
-		$sql .= " AND ventas.idUsuario = ?";
-		array_push($valoresAEjecutar, $idUsuario);
-	}
+    if ($idUsuario !== "") {
+        $sql .= " AND ventas.idUsuario = ?";
+        array_push($valoresAEjecutar, $idUsuario);
+    }
 
-	$sql .= " ORDER BY ventas.id DESC LIMIT ? OFFSET ?";
+    $sql .= " ORDER BY ventas.id DESC LIMIT ? OFFSET ?";
 
-	$sentencia = $bd->prepare($sql);
-	$pos = 1;
-	foreach ($valoresAEjecutar as $val) {
-		$sentencia->bindValue($pos++, $val);
-	}
-	$sentencia->bindValue($pos++, (int)$limite, \PDO::PARAM_INT);
-	$sentencia->bindValue($pos,   (int)$offset, \PDO::PARAM_INT);
-	$sentencia->execute();
-	return $sentencia->fetchAll();
+    $sentencia = $bd->prepare($sql);
+    $pos = 1;
+    foreach ($valoresAEjecutar as $val) {
+        $sentencia->bindValue($pos++, $val);
+    }
+    $sentencia->bindValue($pos++, (int)$limite, \PDO::PARAM_INT);
+    $sentencia->bindValue($pos,   (int)$offset, \PDO::PARAM_INT);
+    $sentencia->execute();
+    return $sentencia->fetchAll();
 }
 
-function contarVentas($fechaInicio, $fechaFin, $idUsuario){
-	$bd = conectarBaseDatos();
-	$valoresAEjecutar = [$fechaInicio, $fechaFin];
+function contarVentas($fechaInicio, $fechaFin, $idUsuario)
+{
+    $bd = conectarBaseDatos();
+    $valoresAEjecutar = [$fechaInicio, $fechaFin];
 
-	$sql = "SELECT COUNT(*) AS total, IFNULL(SUM(ventas.total), 0) AS totalDinero
+    $sql = "SELECT COUNT(*) AS total, IFNULL(SUM(ventas.total), 0) AS totalDinero
 	FROM ventas
 	WHERE (DATE(ventas.fecha) >= ? AND DATE(ventas.fecha) <= ?)";
 
-	if($idUsuario !== "") {
-		$sql .= " AND ventas.idUsuario = ?";
-		array_push($valoresAEjecutar, $idUsuario);
-	}
+    if ($idUsuario !== "") {
+        $sql .= " AND ventas.idUsuario = ?";
+        array_push($valoresAEjecutar, $idUsuario);
+    }
 
-	$sentencia = $bd->prepare($sql);
-	$sentencia->execute($valoresAEjecutar);
-	return $sentencia->fetch();
+    $sentencia = $bd->prepare($sql);
+    $sentencia->execute($valoresAEjecutar);
+    return $sentencia->fetch();
 }
 
-function obtenerInsumosVenta($idVenta){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT insumos_venta.*, insumos.nombre, insumos.codigo
-	 FROM insumos_venta 
-	 LEFT JOIN insumos ON insumos.id = insumos_venta.idInsumo
-	 WHERE idVenta = ?");
-	$sentencia->execute([$idVenta]);
-	return $sentencia->fetchAll(); 
+function obtenerInsumosVenta($idVenta)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT insumos_venta.*, insumos.nombre, insumos.codigo, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
+FROM insumos_venta 
+LEFT JOIN insumos ON insumos.id = insumos_venta.idInsumo
+LEFT JOIN categorias ON categorias.id = insumos.categoria
+WHERE idVenta = ?");
+    $sentencia->execute([$idVenta]);
+    return $sentencia->fetchAll();
 }
 
-function registrarVenta($venta){
-	$bd = conectarBaseDatos();
+function registrarVenta($venta)
+{
+    $bd = conectarBaseDatos();
+
 
     $metodoPago = isset($venta->metodoPago) ? $venta->metodoPago : 'EFECTIVO';
     $montoEfectivo = isset($venta->montoEfectivo) ? $venta->montoEfectivo : 0;
@@ -256,11 +280,38 @@ function registrarVenta($venta){
     $telefono = isset($venta->telefono) ? $venta->telefono : NULL;
     $estado_delivery = ($tipo_orden === 'DELIVERY') ? 'ENTREGADO' : NULL;
 
-	$sentencia = $bd->prepare("INSERT INTO ventas (idMesa, cliente, fecha, total, pagado, idUsuario, metodoPago, montoEfectivo, montoTarjeta, montoQR, tipo_orden, direccion, telefono, estado_delivery) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-	$sentencia->execute([$venta->idMesa, $venta->cliente, date("Y-m-d H:i:s"), $venta->total, $venta->pagado,  $venta->idUsuario, $metodoPago, $montoEfectivo, $montoTarjeta, $montoQR, $tipo_orden, $direccion, $telefono, $estado_delivery]);
-	$idVenta = $bd->lastInsertId();
+    // Descontar adelanto si hay reserva completada
+    $adelanto = 0;
+    $saldo_a_favor = 0;
+    if ($tipo_orden === 'LOCAL' && isset($venta->idMesa) && $venta->idMesa) {
+        $hoy = date('Y-m-d');
+        $stmtReserva = $bd->prepare("SELECT adelanto FROM reservas WHERE idMesa = ? AND fecha = ? AND estado = 'COMPLETADA' AND adelanto > 0 ORDER BY id DESC LIMIT 1");
+        $stmtReserva->execute([$venta->idMesa, $hoy]);
+        $reserva = $stmtReserva->fetch();
+        if ($reserva && $reserva->adelanto > 0) {
+            $adelanto = (float)$reserva->adelanto;
+            // Si adelanto > total, saldo a favor
+            if ($adelanto >= $venta->total) {
+                $saldo_a_favor = $adelanto - $venta->total;
+                $venta->total = 0;
+            } else {
+                $venta->total = $venta->total - $adelanto;
+            }
+        }
+    }
 
-	$insumosRegistrados = registrarInsumosVenta($venta->insumos, $idVenta, $venta->idUsuario);
+    $idUsuario = (int)($venta->idUsuario ?? 0);
+    if ($idUsuario === 0) {
+        $idUsuario = 1; // Fallback hardcoded id if somehow not present
+    }
+
+    $sentencia = $bd->prepare("INSERT INTO ventas (idMesa, cliente, fecha, total, pagado, idUsuario, metodoPago, montoEfectivo, montoTarjeta, montoQR, tipo_orden, direccion, telefono, estado_delivery) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    $exitoVenta = $sentencia->execute([$venta->idMesa, $venta->cliente, date("Y-m-d H:i:s"), $venta->total, $venta->pagado,  $idUsuario, $metodoPago, $montoEfectivo, $montoTarjeta, $montoQR, $tipo_orden, $direccion, $telefono, $estado_delivery]);
+    
+    if (!$exitoVenta) return false;
+
+    $idVenta = $bd->lastInsertId();
+    $insumosRegistrados = registrarInsumosVenta($venta->insumos, $idVenta, $idUsuario);
 
     // Eliminar orden activa — o marcarla 'pagada' si cocina aún tiene ítems pendientes
     $tipoDb = ($tipo_orden === 'LOCAL') ? 'LOCAL' : 'DELIVERY';
@@ -277,10 +328,10 @@ function registrarVenta($venta){
         if ($hayPendientes > 0) {
             // Cocina aún prepara ítems → mantener orden visible para cocina como 'pagada'
             $bd->prepare("UPDATE ordenes_activas SET estado='pagada' WHERE id=?")
-               ->execute([$ordenActiva->id]);
+                ->execute([$ordenActiva->id]);
             // Marcar todos los ítems actuales como pagados
             $bd->prepare("UPDATE items_orden SET pagado=1 WHERE idOrden=?")
-               ->execute([$ordenActiva->id]);
+                ->execute([$ordenActiva->id]);
         } else {
             // Todo listo → eliminar normalmente
             $bd->prepare("DELETE FROM ordenes_activas WHERE id=?")->execute([$ordenActiva->id]);
@@ -288,14 +339,15 @@ function registrarVenta($venta){
     }
 
     // Automatización: Completar reserva si existe una para esta mesa hoy
-    if($tipo_orden === 'LOCAL') {
+    if ($tipo_orden === 'LOCAL') {
         completarReservaPorMesa($venta->idMesa);
     }
 
-	if($sentencia && count($insumosRegistrados) > 0) return true;
+    return true;
 }
 
-function completarReservaPorMesa($idMesa) {
+function completarReservaPorMesa($idMesa)
+{
     $bd = conectarBaseDatos();
     $hoy = date("Y-m-d");
     // Marcamos como COMPLETADA cualquier reserva activa (incluye SENTADA) para esta mesa hoy
@@ -303,45 +355,47 @@ function completarReservaPorMesa($idMesa) {
     return $sentencia->execute([$idMesa, $hoy]);
 }
 
-function registrarInsumosVenta($insumos, $idVenta, $idUsuario){
-	$resultados = [];
-	$bd = conectarBaseDatos();
-	foreach($insumos as $insumo){
-		// Registrar insumo en la venta
-		$sentencia = $bd->prepare("INSERT INTO insumos_venta(idInsumo, precio, cantidad, idVenta) VALUES(?,?,?,?)");
-		$sentencia->execute([$insumo->id, $insumo->precio, $insumo->cantidad, $idVenta]);
-		if($sentencia) array_push($resultados, $sentencia);
+function registrarInsumosVenta($insumos, $idVenta, $idUsuario)
+{
+    $resultados = [];
+    $bd = conectarBaseDatos();
+    foreach ($insumos as $insumo) {
+        // Registrar insumo en la venta
+        $sentencia = $bd->prepare("INSERT INTO insumos_venta(idInsumo, precio, cantidad, idVenta) VALUES(?,?,?,?)");
+        $sentencia->execute([$insumo->id, $insumo->precio, $insumo->cantidad, $idVenta]);
+        if ($sentencia) array_push($resultados, $sentencia);
 
-		// Descontar stock automáticamente (nunca queda negativo)
-		$descuento = $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id = ?");
-		$descuento->execute([$insumo->cantidad, $insumo->id]);
+        // Descontar stock automáticamente (nunca queda negativo)
+        $descuento = $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id = ?");
+        $descuento->execute([$insumo->cantidad, $insumo->id]);
 
-		$movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'VENTA', ?)");
-		$movimiento->execute([$insumo->id, $idUsuario, -$insumo->cantidad, date("Y-m-d H:i:s")]);
-	}
-	return $resultados;
+        $movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'VENTA', ?)");
+        $movimiento->execute([$insumo->id, $idUsuario, -$insumo->cantidad, date("Y-m-d H:i:s")]);
+    }
+    return $resultados;
 }
 
-function obtenerMesas($idUsuario = null, $rol = null){
-	$mesas = [];
+function obtenerMesas($idUsuario = null, $rol = null)
+{
+    $mesas = [];
     $hoy = date("Y-m-d");
     $reservasHoy = obtenerReservasDelDia($hoy);
 
-	$numeroMesas = (int)(obtenerInformacionLocal()[0]->numeroMesas ?? 0);
-	for($i = 1; $i <= $numeroMesas; $i++){
+    $numeroMesas = (int)(obtenerInformacionLocal()[0]->numeroMesas ?? 0);
+    for ($i = 1; $i <= $numeroMesas; $i++) {
         $mesaData = leerArchivo($i, $idUsuario, $rol);
-        
+
         // Buscar si esta mesa tiene reserva hoy
         $reservaEncontrada = null;
-        foreach($reservasHoy as $reserva) {
-            if($reserva->idMesa == $i || $reserva->idMesa === null) {
+        foreach ($reservasHoy as $reserva) {
+            if ($reserva->idMesa == $i || $reserva->idMesa === null) {
                 $reservaEncontrada = $reserva;
                 break;
             }
         }
         $mesaData["mesa"]["reserva"] = $reservaEncontrada;
-		array_push($mesas, $mesaData); 
-	}
+        array_push($mesas, $mesaData);
+    }
 
     // Agregar órdenes activas con número de mesa fuera del rango configurado
     // (evita que una mesa ocupada desaparezca si numeroMesas fue reducido)
@@ -357,30 +411,34 @@ function obtenerMesas($idUsuario = null, $rol = null){
         }
     }
 
-	return $mesas;
+    return $mesas;
 }
 
-function _rolEsMeseroConFiltro($idUsuario, $rol) {
+function _rolEsMeseroConFiltro($idUsuario, $rol)
+{
     return $rol === 'mesero' && $idUsuario !== null && $idUsuario !== '';
 }
 
-function obtenerReservasDelDia($fecha) {
+function obtenerReservasDelDia($fecha)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT idMesa, hora, nombre_cliente, estado FROM reservas WHERE fecha = ? AND estado IN ('PENDIENTE', 'CONFIRMADA')");
     $sentencia->execute([$fecha]);
     return $sentencia->fetchAll();
 }
 
-function leerArchivo($numeroMesa, $idUsuario = null, $rol = null){
-	_asegurarCreatedAtOrdenes();
-	_asegurarTipoItemsOrden();
-	_asegurarPagadoItemsOrden();
-	$bd = conectarBaseDatos();
-	$stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
-	$stmt->execute([(string)$numeroMesa]);
-	$orden = $stmt->fetch();
+function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
+{
+    _asegurarCreatedAtOrdenes();
+    _asegurarTipoItemsOrden();
+    _asegurarPagadoItemsOrden();
+    _asegurarAcompanamientoItemsOrden();
+    $bd = conectarBaseDatos();
+    $stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
+    $stmt->execute([(string)$numeroMesa]);
+    $orden = $stmt->fetch();
 
-	if ($orden) {
+    if ($orden) {
         // Si es mesero, ocultar detalles de órdenes de otros usuarios
         if (_rolEsMeseroConFiltro($idUsuario, $rol) && (string)$orden->idUsuario !== (string)$idUsuario) {
             $mesa = [
@@ -394,92 +452,105 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null){
             return ["mesa" => $mesa, "insumos" => []];
         }
 
-		$mesa = [
-			"idMesa"    => $orden->referencia,
-			"atiende"   => $orden->atiende,
-			"idUsuario" => $orden->idUsuario,
-			"total"     => $orden->total,
-			"estado"    => $orden->estado,
-			"cliente"   => $orden->cliente,
-			"created_at"=> $orden->created_at ?? null,
-		];
-		$stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? ORDER BY id ASC");
-		$stmtItems->execute([$orden->id]);
-		$insumos = array_map(function($item) {
-			return [
-				"itemId"          => $item->id,
-				"id"              => $item->idInsumo,
-				"codigo"          => $item->codigo,
-				"nombre"          => $item->nombre,
-				"precio"          => $item->precio,
-				"caracteristicas" => $item->caracteristicas,
-				"cantidad"        => $item->cantidad,
-				"estado"          => $item->estado,
-				"pagado"          => (int)($item->pagado ?? 0),
-			];
-		}, $stmtItems->fetchAll());
-		return ["mesa" => $mesa, "insumos" => $insumos];
-	} else {
-		$mesa = [
-			"idMesa"    => $numeroMesa,
-			"atiende"   => "",
-			"idUsuario" => "",
-			"total"     => "",
-			"estado"    => "libre",
-		];
-		return ["mesa" => $mesa, "insumos" => []];
-	}
+        $mesa = [
+            "idMesa"    => $orden->referencia,
+            "atiende"   => $orden->atiende,
+            "idUsuario" => $orden->idUsuario,
+            "total"     => $orden->total,
+            "estado"    => $orden->estado,
+            "cliente"   => $orden->cliente,
+            "created_at" => $orden->created_at ?? null,
+        ];
+        $stmtItems = $bd->prepare("
+            SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
+            FROM items_orden io
+            LEFT JOIN insumos i ON i.id = io.idInsumo
+            LEFT JOIN categorias c ON c.id = i.categoria
+            WHERE io.idOrden=? ORDER BY io.id ASC
+        ");
+        $stmtItems->execute([$orden->id]);
+        $insumosArr = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+        
+        $insumos = array_map(function ($item) {
+            return [
+                "itemId"          => $item['id'],
+                "id"              => $item['idInsumo'],
+                "codigo"          => $item['codigo'],
+                "nombre"          => $item['nombre'],
+                "precio"          => $item['precio'],
+                "caracteristicas" => $item['caracteristicas'],
+                "cantidad"        => $item['cantidad'],
+                "estado"          => $item['estado'],
+                "pagado"          => (int)($item['pagado'] ?? 0),
+                "acompanamiento_listo" => (int)($item['acompanamiento_listo'] ?? 0),
+                "categoria"       => $item['nombreCategoria'] ?? 'NO DEFINIDA',
+            ];
+        }, $insumosArr);
+        return ["mesa" => $mesa, "insumos" => $insumos];
+    } else {
+        $mesa = [
+            "idMesa"    => $numeroMesa,
+            "atiende"   => "",
+            "idUsuario" => "",
+            "total"     => "",
+            "estado"    => "libre",
+        ];
+        return ["mesa" => $mesa, "insumos" => []];
+    }
 }
 
 // crearInsumosMesa ya no se usa — reemplazada por consulta directa a items_orden en leerArchivo()
 
-function cancelarMesa($id, $idUsuario = null, $motivo = null){
-	$bd = conectarBaseDatos();
+function cancelarMesa($id, $idUsuario = null, $motivo = null)
+{
+    $bd = conectarBaseDatos();
 
-	// Obtener orden e items antes de eliminar
-	$stmtOrden = $bd->prepare("SELECT id FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
-	$stmtOrden->execute([(string)$id]);
-	$orden = $stmtOrden->fetch();
+    // Obtener orden e items antes de eliminar
+    $stmtOrden = $bd->prepare("SELECT id FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
+    $stmtOrden->execute([(string)$id]);
+    $orden = $stmtOrden->fetch();
 
-	if ($orden) {
-		$idOrden = $orden->id;
+    if ($orden) {
+        $idOrden = $orden->id;
 
-		// Registrar en tabla cancelaciones
-		$bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('LOCAL', ?, ?, ?, ?, ?)") 
-		   ->execute([(string)$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
+        // Registrar en tabla cancelaciones
+        $bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('LOCAL', ?, ?, ?, ?, ?)")
+            ->execute([(string)$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
-		// Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
-		// Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
-		$stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? AND estado IN ('listo','entregado')");
-		$stmtItems->execute([$idOrden]);
-		$items = $stmtItems->fetchAll();
-		foreach ($items as $item) {
-			if ($item->idInsumo) {
-				// Descontar stock (pérdida — ingredientes usados pero no cobrados)
-				$bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id=?")
-				   ->execute([$item->cantidad, $item->idInsumo]);
-				$bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'CANCELACION', ?, ?)")
-				   ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
-			}
-		}
-	}
+        // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
+        // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
+        $stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? AND estado IN ('listo','entregado')");
+        $stmtItems->execute([$idOrden]);
+        $items = $stmtItems->fetchAll();
+        foreach ($items as $item) {
+            if ($item->idInsumo) {
+                // Descontar stock (pérdida — ingredientes usados pero no cobrados)
+                $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id=?")
+                    ->execute([$item->cantidad, $item->idInsumo]);
+                $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'CANCELACION', ?, ?)")
+                    ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
+            }
+        }
+    }
 
-	$stmt = $bd->prepare("DELETE FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
-	$resultado = $stmt->execute([(string)$id]);
-	// Limpiar items huérfanos (ya fueron contabilizados en cancelaciones/stock)
-	if ($orden) {
-		$bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$orden->id]);
-	}
-	return $resultado;
+    $stmt = $bd->prepare("DELETE FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
+    $resultado = $stmt->execute([(string)$id]);
+    // Limpiar items huérfanos (ya fueron contabilizados en cancelaciones/stock)
+    if ($orden) {
+        $bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$orden->id]);
+    }
+    return $resultado;
 }
 
-function editarMesa($mesa){
-	return ocuparMesa($mesa);
+function editarMesa($mesa)
+{
+    return ocuparMesa($mesa);
 }
 
-function ocuparMesa($mesa){
-	$bd = conectarBaseDatos();
-	$cliente = ($mesa->cliente === "" || $mesa->cliente === null) ? "MOSTRADOR" : $mesa->cliente;
+function ocuparMesa($mesa)
+{
+    $bd = conectarBaseDatos();
+    $cliente = ($mesa->cliente === "" || $mesa->cliente === null) ? "MOSTRADOR" : $mesa->cliente;
 
     $rolSolicitante = isset($mesa->rolSolicitante) ? $mesa->rolSolicitante : null;
     $idUsuarioSolicitante = isset($mesa->idUsuarioSolicitante) ? $mesa->idUsuarioSolicitante : null;
@@ -495,163 +566,184 @@ function ocuparMesa($mesa){
         }
     }
 
-	$stmt = $bd->prepare("SELECT id, idUsuario FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
-	$stmt->execute([(string)$mesa->id]);
-	$existing = $stmt->fetch();
+    $stmt = $bd->prepare("SELECT id, idUsuario FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
+    $stmt->execute([(string)$mesa->id]);
+    $existing = $stmt->fetch();
 
-	if ($existing) {
+    if ($existing) {
         $owner = (string)($existing->idUsuario ?? '');
         $solicitante = (string)($idUsuarioSolicitante ?? '');
         if ($owner !== '' && $solicitante !== '' && $rolSolicitante !== 'admin' && $owner !== $solicitante) {
             return false;
         }
 
-		$idOrden = $existing->id;
-		$bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='ocupada', cliente=? WHERE id=?")
-		   ->execute([$mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente, $idOrden]);
-		$bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$idOrden]);
-	} else {
-		$bd->prepare("INSERT INTO ordenes_activas (tipo, referencia, atiende, idUsuario, total, estado, cliente) VALUES ('LOCAL',?,?,?,?,'ocupada',?)")
-		   ->execute([(string)$mesa->id, $mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente]);
-		$idOrden = $bd->lastInsertId();
-	}
+        $idOrden = $existing->id;
+        $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='ocupada', cliente=? WHERE id=?")
+            ->execute([$mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente, $idOrden]);
+        $bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$idOrden]);
+    } else {
+        $bd->prepare("INSERT INTO ordenes_activas (tipo, referencia, atiende, idUsuario, total, estado, cliente) VALUES ('LOCAL',?,?,?,?,'ocupada',?)")
+            ->execute([(string)$mesa->id, $mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente]);
+        $idOrden = $bd->lastInsertId();
+    }
 
-	foreach ($mesa->insumos as $insumo) {
-		$i = is_object($insumo) ? get_object_vars($insumo) : (array)$insumo;
-		$tipoInsumo = isset($i['tipo']) ? strtoupper($i['tipo']) : 'PLATILLO';
-		// Bebidas no pasan por cocina: nacen como 'listo' para que el mesero las entregue directamente
-		$estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
-		$pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
-		$bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado) VALUES (?,?,?,?,?,?,?,?,?,?)")
-		   ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
-	}
-	return true;
+    foreach ($mesa->insumos as $insumo) {
+        $i = is_object($insumo) ? get_object_vars($insumo) : (array)$insumo;
+        $tipoInsumo = isset($i['tipo']) ? strtoupper($i['tipo']) : 'PLATILLO';
+        // Bebidas no pasan por cocina: nacen como 'listo' para que el mesero las entregue directamente
+        $estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
+        $pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
+        $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado) VALUES (?,?,?,?,?,?,?,?,?,?)")
+            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
+    }
+    return true;
 }
 
-function cambiarPassword($idUsuario, $password) {
+function cambiarPassword($idUsuario, $password)
+{
     $bd = conectarBaseDatos();
     $passwordCod = password_hash($password, PASSWORD_DEFAULT);
     $sentencia = $bd->prepare("UPDATE usuarios SET password = ? WHERE id = ?");
     return $sentencia->execute([$passwordCod, $idUsuario]);
 }
 
-function verificarPassword($password, $idUsuario){
+function verificarPassword($password, $idUsuario)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT password FROM usuarios  WHERE id = ?");
     $sentencia->execute([$idUsuario]);
     $usuario = $sentencia->fetchObject();
     if ($usuario === FALSE) return false;
-    elseif($sentencia->rowCount() == 1) {
+    elseif ($sentencia->rowCount() == 1) {
         $passwordVerifica = password_verify($password, $usuario->password);
-        if($usuario && $passwordVerifica) {return true;}
-        else{return false;}
-    } 
+        if ($usuario && $passwordVerifica) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
-function iniciarSesion($correo, $password) {
+function iniciarSesion($correo, $password)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT * FROM usuarios WHERE correo = ?");
     $sentencia->execute([$correo]);
     $usuario = $sentencia->fetchObject();
     if ($usuario === FALSE) return false;
-    elseif($sentencia->rowCount() == 1) {
+    elseif ($sentencia->rowCount() == 1) {
         $passwordVerifica = password_verify($password, $usuario->password);
-        if($usuario && $passwordVerifica) {return $usuario;}
-        else{return false;}
+        if ($usuario && $passwordVerifica) {
+            return $usuario;
+        } else {
+            return false;
+        }
     }
 }
 
-function eliminarUsuario($idUsuario){
-	$bd = conectarBaseDatos();
+function eliminarUsuario($idUsuario)
+{
+    $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("DELETE FROM usuarios WHERE id = ?");
-	return $sentencia->execute([$idUsuario]);
+    return $sentencia->execute([$idUsuario]);
 }
 
-function editarUsuario($usuario){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("UPDATE usuarios SET correo = ?, nombre = ?, telefono = ?, rol = ? WHERE id = ?");
-	return $sentencia->execute([$usuario->correo, $usuario->nombre, $usuario->telefono, $usuario->rol ?? 'mesero', $usuario->id]);	
+function editarUsuario($usuario)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("UPDATE usuarios SET correo = ?, nombre = ?, telefono = ?, rol = ? WHERE id = ?");
+    return $sentencia->execute([$usuario->correo, $usuario->nombre, $usuario->telefono, $usuario->rol ?? 'mesero', $usuario->id]);
 }
 
-function obtenerUsuarioPorId($idUsuario){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT id, correo, nombre, telefono, rol FROM usuarios WHERE id = ?");
-	$sentencia->execute([$idUsuario]);
-	return $sentencia->fetchObject();
+function obtenerUsuarioPorId($idUsuario)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT id, correo, nombre, telefono, rol FROM usuarios WHERE id = ?");
+    $sentencia->execute([$idUsuario]);
+    return $sentencia->fetchObject();
 }
 
-function obtenerUsuarios(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT id, correo, nombre, telefono, rol FROM usuarios");
-	return $sentencia->fetchAll();
+function obtenerUsuarios()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT id, correo, nombre, telefono, rol FROM usuarios");
+    return $sentencia->fetchAll();
 }
 
-function registrarUsuario($usuario){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("INSERT INTO usuarios (correo, nombre, telefono, password, rol) VALUES(?,?,?,?,?)");
-	return $sentencia->execute([$usuario->correo, $usuario->nombre, $usuario->telefono, $usuario->password, $usuario->rol ?? 'mesero']);	
+function registrarUsuario($usuario)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("INSERT INTO usuarios (correo, nombre, telefono, password, rol) VALUES(?,?,?,?,?)");
+    return $sentencia->execute([$usuario->correo, $usuario->nombre, $usuario->telefono, $usuario->password, $usuario->rol ?? 'mesero']);
 }
 
-function obtenerInsumosPorNombre($insumo){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
+function obtenerInsumosPorNombre($insumo)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
 	FROM insumos
 	LEFT JOIN categorias ON categorias.id = insumos.categoria 
 	WHERE insumos.nombre LIKE ? ");
-	$sentencia->execute(['%'.$insumo.'%']);
-	return $sentencia->fetchAll();
+    $sentencia->execute(['%' . $insumo . '%']);
+    return $sentencia->fetchAll();
 }
 
-function actualizarInformacionLocal($datos){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("UPDATE informacion_negocio SET nombre = ?, telefono = ?, numeroMesas = ?, logo = ?, direccion = ?, nit_emisor = ?, razon_social = ?, actividad = ?, ciudad = ?, num_autorizacion = ?, fecha_limite_emision = ?");
-	return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
+function actualizarInformacionLocal($datos)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("UPDATE informacion_negocio SET nombre = ?, telefono = ?, numeroMesas = ?, logo = ?, direccion = ?, nit_emisor = ?, razon_social = ?, actividad = ?, ciudad = ?, num_autorizacion = ?, fecha_limite_emision = ?");
+    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
 }
 
-function registrarInformacionLocal($datos){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("INSERT INTO informacion_negocio (nombre, telefono, numeroMesas, logo, direccion, nit_emisor, razon_social, actividad, ciudad, num_autorizacion, fecha_limite_emision) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-	return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
+function registrarInformacionLocal($datos)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("INSERT INTO informacion_negocio (nombre, telefono, numeroMesas, logo, direccion, nit_emisor, razon_social, actividad, ciudad, num_autorizacion, fecha_limite_emision) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
 }
 
-function obtenerInformacionLocal(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT * FROM informacion_negocio");
-	return $sentencia->fetchAll();
+function obtenerInformacionLocal()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT * FROM informacion_negocio");
+    return $sentencia->fetchAll();
 }
 
-function obtenerImagen($imagen){
+function obtenerImagen($imagen)
+{
     $imagen = str_replace('data:image/png;base64,', '', $imagen);
     $imagen = str_replace('data:image/jpeg;base64,', '', $imagen);
     $imagen = str_replace(' ', '+', $imagen);
     $data = base64_decode($imagen);
-    $file = DIRECTORIO. uniqid() . '.png';
-            
-            
+    $file = DIRECTORIO . uniqid() . '.png';
+
+
     $insertar = file_put_contents($file, $data);
     return $file;
 }
 
-function eliminarInsumo($idInsumo){
-	$bd = conectarBaseDatos();
+function eliminarInsumo($idInsumo)
+{
+    $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("DELETE FROM insumos WHERE id = ?");
-	return $sentencia->execute([$idInsumo]);
+    return $sentencia->execute([$idInsumo]);
 }
 
-function editarInsumo($insumo){
-	$bd = conectarBaseDatos();
-    
+function editarInsumo($insumo)
+{
+    $bd = conectarBaseDatos();
+
     $antiguo = $bd->prepare("SELECT stock FROM insumos WHERE id = ?");
     $antiguo->execute([$insumo->id]);
     $viejo = $antiguo->fetch();
     $stockViejo = $viejo ? $viejo->stock : 0;
 
-	$sentencia = $bd->prepare("UPDATE insumos SET tipo = ?, codigo = ?, nombre = ?, descripcion = ?, categoria = ?, precio = ?, stock = ?, stockMinimo = ?, stockMateria = ?, tipoCorte = ? WHERE id = ?");
-	$resultado = $sentencia->execute([$insumo->tipo, $insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->categoria, $insumo->precio, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0, $insumo->id]);	
-	
-    if($resultado && isset($insumo->idUsuario)){
+    $sentencia = $bd->prepare("UPDATE insumos SET tipo = ?, codigo = ?, nombre = ?, descripcion = ?, categoria = ?, precio = ?, stock = ?, stockMinimo = ?, stockMateria = ?, tipoCorte = ? WHERE id = ?");
+    $resultado = $sentencia->execute([$insumo->tipo, $insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->categoria, $insumo->precio, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0, $insumo->id]);
+
+    if ($resultado && isset($insumo->idUsuario)) {
         $diferencia = ($insumo->stock ?? 0) - $stockViejo;
-        if($diferencia != 0){
+        if ($diferencia != 0) {
             $movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'AJUSTE', ?)");
             $movimiento->execute([$insumo->id, $insumo->idUsuario, $diferencia, date("Y-m-d H:i:s")]);
         }
@@ -659,80 +751,89 @@ function editarInsumo($insumo){
     return $resultado;
 }
 
-function obtenerInsumoPorId($idInsumo){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT * FROM insumos WHERE id = ?");
-	$sentencia->execute([$idInsumo]);
-	return $sentencia->fetchObject();
+function obtenerInsumoPorId($idInsumo)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT * FROM insumos WHERE id = ?");
+    $sentencia->execute([$idInsumo]);
+    return $sentencia->fetchObject();
 }
 
-function obtenerInsumos($filtros){
-	$bd = conectarBaseDatos();
-	$valoresAEjecutar = [];
-	$sql = "SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
+function obtenerInsumos($filtros)
+{
+    $bd = conectarBaseDatos();
+    $valoresAEjecutar = [];
+    $sql = "SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
 	FROM insumos
 	LEFT JOIN categorias ON categorias.id = insumos.categoria WHERE 1 ";
 
-	if($filtros->tipo != "") {
-		$sql .= " AND  insumos.tipo = ?";
-		array_push($valoresAEjecutar, $filtros->tipo);
-	}
+    if ($filtros->tipo != "") {
+        $sql .= " AND  insumos.tipo = ?";
+        array_push($valoresAEjecutar, $filtros->tipo);
+    }
 
-	if($filtros->categoria != "") {
-		$sql .= " AND  insumos.categoria = ?";
-		array_push($valoresAEjecutar, $filtros->categoria);
-	}
+    if ($filtros->categoria != "") {
+        $sql .= " AND  insumos.categoria = ?";
+        array_push($valoresAEjecutar, $filtros->categoria);
+    }
 
-	if($filtros->nombre != "") {
-		$sql .= " AND  insumos.nombre LIKE ? OR insumos.codigo LIKE ?";
-		array_push($valoresAEjecutar, '%'.$filtros->nombre.'%');
-		array_push($valoresAEjecutar, '%'.$filtros->nombre.'%');
-	}
+    if ($filtros->nombre != "") {
+        $sql .= " AND  insumos.nombre LIKE ? OR insumos.codigo LIKE ?";
+        array_push($valoresAEjecutar, '%' . $filtros->nombre . '%');
+        array_push($valoresAEjecutar, '%' . $filtros->nombre . '%');
+    }
 
-	$sentencia = $bd->prepare($sql);
-	$sentencia->execute($valoresAEjecutar);
-	return $sentencia->fetchAll();
+    $sentencia = $bd->prepare($sql);
+    $sentencia->execute($valoresAEjecutar);
+    return $sentencia->fetchAll();
 }
 
-function registrarInsumo($insumo){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("INSERT INTO insumos (codigo, nombre, descripcion, precio, tipo, categoria, stock, stockMinimo, stockMateria, tipoCorte) VALUES (?,?,?,?,?,?,?,?,?,?)");
-	return $sentencia->execute([$insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->precio, $insumo->tipo, $insumo->categoria, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0]);
+function registrarInsumo($insumo)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("INSERT INTO insumos (codigo, nombre, descripcion, precio, tipo, categoria, stock, stockMinimo, stockMateria, tipoCorte) VALUES (?,?,?,?,?,?,?,?,?,?)");
+    return $sentencia->execute([$insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->precio, $insumo->tipo, $insumo->categoria, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0]);
 }
 
-function obtenerCategoriasPorTipo($tipo){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("SELECT * FROM categorias WHERE tipo = ?");
-	$sentencia->execute([$tipo]);
-	return $sentencia->fetchAll();
+function obtenerCategoriasPorTipo($tipo)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("SELECT * FROM categorias WHERE tipo = ?");
+    $sentencia->execute([$tipo]);
+    return $sentencia->fetchAll();
 }
 
 
-function eliminarCategoria($idCategoria) {
+function eliminarCategoria($idCategoria)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("DELETE FROM categorias WHERE id = ?");
-	return $sentencia->execute([$idCategoria]);
+    return $sentencia->execute([$idCategoria]);
 }
 
-function editarCategoria($categoria) {
+function editarCategoria($categoria)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE categorias SET tipo = ?, nombre = ?, descripcion = ? WHERE id = ?");
-	return $sentencia->execute([$categoria->tipo, $categoria->nombre, $categoria->descripcion, $categoria->id]);
+    return $sentencia->execute([$categoria->tipo, $categoria->nombre, $categoria->descripcion, $categoria->id]);
 }
 
-function registrarCategoria($categoria){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->prepare("INSERT INTO categorias (tipo, nombre, descripcion) VALUES (?,?,?)");
-	return $sentencia->execute([$categoria->tipo, $categoria->nombre, $categoria->descripcion]);
+function registrarCategoria($categoria)
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->prepare("INSERT INTO categorias (tipo, nombre, descripcion) VALUES (?,?,?)");
+    return $sentencia->execute([$categoria->tipo, $categoria->nombre, $categoria->descripcion]);
 }
 
-function obtenerCategorias(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT * FROM categorias ORDER BY id DESC");
-	return $sentencia->fetchAll();
+function obtenerCategorias()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT * FROM categorias ORDER BY id DESC");
+    return $sentencia->fetchAll();
 }
 
-function _asegurarCreatedAtOrdenes() {
+function _asegurarCreatedAtOrdenes()
+{
     static $verificado = false;
     if ($verificado) return;
     $verificado = true;
@@ -742,10 +843,12 @@ function _asegurarCreatedAtOrdenes() {
         if (!$existe) {
             $bd->exec("ALTER TABLE ordenes_activas ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
         }
-    } catch (\Exception $e) { /* silencioso */ }
+    } catch (\Exception $e) { /* silencioso */
+    }
 }
 
-function _asegurarTipoOrdenOrdenes() {
+function _asegurarTipoOrdenOrdenes()
+{
     static $verificado = false;
     if ($verificado) return;
     $verificado = true;
@@ -756,10 +859,12 @@ function _asegurarTipoOrdenOrdenes() {
             $bd->exec("ALTER TABLE ordenes_activas ADD COLUMN tipo_orden VARCHAR(20) NOT NULL DEFAULT 'LOCAL'");
             $bd->exec("UPDATE ordenes_activas SET tipo_orden = 'DELIVERY' WHERE tipo = 'DELIVERY'");
         }
-    } catch (\Exception $e) { /* silencioso */ }
+    } catch (\Exception $e) { /* silencioso */
+    }
 }
 
-function _asegurarTipoItemsOrden() {
+function _asegurarTipoItemsOrden()
+{
     static $verificado = false;
     if ($verificado) return;
     $verificado = true;
@@ -769,10 +874,12 @@ function _asegurarTipoItemsOrden() {
         if (!$existe) {
             $bd->exec("ALTER TABLE items_orden ADD COLUMN tipo VARCHAR(30) NOT NULL DEFAULT 'PLATILLO'");
         }
-    } catch (\Exception $e) { /* silencioso */ }
+    } catch (\Exception $e) { /* silencioso */
+    }
 }
 
-function _asegurarPagadoItemsOrden() {
+function _asegurarPagadoItemsOrden()
+{
     static $verificado = false;
     if ($verificado) return;
     $verificado = true;
@@ -782,18 +889,36 @@ function _asegurarPagadoItemsOrden() {
         if (!$existe) {
             $bd->exec("ALTER TABLE items_orden ADD COLUMN pagado TINYINT(1) NOT NULL DEFAULT 0");
         }
-    } catch (\Exception $e) { /* silencioso */ }
+    } catch (\Exception $e) { /* silencioso */
+    }
+}
+
+function _asegurarAcompanamientoItemsOrden()
+{
+    static $verificado = false;
+    if ($verificado) return;
+    $verificado = true;
+    try {
+        $bd = conectarBaseDatos();
+        $existe = $bd->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='items_orden' AND COLUMN_NAME='acompanamiento_listo'")->fetchColumn();
+        if (!$existe) {
+            $bd->exec("ALTER TABLE items_orden ADD COLUMN acompanamiento_listo TINYINT(1) NOT NULL DEFAULT 0");
+        }
+    } catch (\Exception $e) { /* silencioso */
+    }
 }
 
 // ─── CLIENTES ─────────────────────────────────────────────────────────────────
 $NOMBRES_GENERICOS = ['mostrador', 'sin nombre', 'sin nombr', 's/n', '99001', 'consumidor final', 'cf', ''];
 
-function esNombreGenerico($nombre) {
+function esNombreGenerico($nombre)
+{
     global $NOMBRES_GENERICOS;
     return in_array(strtolower(trim($nombre)), $NOMBRES_GENERICOS);
 }
 
-function obtenerClientes($q = '') {
+function obtenerClientes($q = '')
+{
     $bd = conectarBaseDatos();
     if ($q !== '') {
         $like = '%' . $q . '%';
@@ -814,7 +939,8 @@ function obtenerClientes($q = '') {
     return $stmt->fetchAll();
 }
 
-function registrarCliente($data) {
+function registrarCliente($data)
+{
     if (esNombreGenerico($data->nombre ?? '')) {
         return ['ok' => false, 'error' => 'Nombre genérico no permitido'];
     }
@@ -835,7 +961,8 @@ function registrarCliente($data) {
     return ['ok' => true, 'id' => $bd->lastInsertId()];
 }
 
-function editarCliente($data) {
+function editarCliente($data)
+{
     if (esNombreGenerico($data->nombre ?? '')) {
         return ['ok' => false, 'error' => 'Nombre genérico no permitido'];
     }
@@ -857,7 +984,8 @@ function editarCliente($data) {
     return ['ok' => true];
 }
 
-function eliminarCliente($id) {
+function eliminarCliente($id)
+{
     $bd = conectarBaseDatos();
     $stmt = $bd->prepare("DELETE FROM clientes WHERE id = ?");
     $stmt->execute([$id]);
@@ -865,72 +993,76 @@ function eliminarCliente($id) {
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
-function conectarBaseDatos() {
-	require_once __DIR__ . '/db_config.php';
-	$host = DB_HOST;
-	$db   = DB_NAME;
-	$user = DB_USER;
-	$pass = DB_PASS;
-	$port = DB_PORT;
-	$charset = DB_CHARSET;
+function conectarBaseDatos()
+{
+    require_once __DIR__ . '/db_config.php';
+    $host = DB_HOST;
+    $db   = DB_NAME;
+    $user = DB_USER;
+    $pass = DB_PASS;
+    $port = DB_PORT;
+    $charset = DB_CHARSET;
 
-	$options = [
-	    \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-	    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ,
-	    \PDO::ATTR_EMULATE_PREPARES   => false,
-	];
+    $options = [
+        \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+        \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ,
+        \PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
 
-	if (DB_SSL) {
-		// Buscar el bundle CA del sistema (Debian/Ubuntu en Docker)
-		$caBundle = '/etc/ssl/certs/ca-certificates.crt';
-		if (file_exists($caBundle)) {
-			$options[\PDO::MYSQL_ATTR_SSL_CA] = $caBundle;
-		}
-		$options[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
-	}
+    if (DB_SSL) {
+        // Buscar el bundle CA del sistema (Debian/Ubuntu en Docker)
+        $caBundle = '/etc/ssl/certs/ca-certificates.crt';
+        if (file_exists($caBundle)) {
+            $options[\PDO::MYSQL_ATTR_SSL_CA] = $caBundle;
+        }
+        $options[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
 
-	$dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
-	try {
-	     $pdo = new \PDO($dsn, $user, $pass, $options);
-	     $pdo->exec("SET time_zone = '+00:00'");
-	     return $pdo;
-	} catch (\PDOException $e) {
-	     throw new \PDOException($e->getMessage(), (int)$e->getCode());
-	}
+    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
+    try {
+        $pdo = new \PDO($dsn, $user, $pass, $options);
+        $pdo->exec("SET time_zone = '+00:00'");
+        return $pdo;
+    } catch (\PDOException $e) {
+        die('Error de conexión: ' . $e->getMessage());
+    }
 }
 
-function obtenerInsumosBajoStock(){
-	$bd = conectarBaseDatos();
-	$sentencia = $bd->query("SELECT * FROM insumos WHERE stock <= stockMinimo AND stockMinimo > 0 ORDER BY stock ASC");
-	return $sentencia->fetchAll();
+function obtenerInsumosBajoStock()
+{
+    $bd = conectarBaseDatos();
+    $sentencia = $bd->query("SELECT * FROM insumos WHERE stock <= stockMinimo AND stockMinimo > 0 ORDER BY stock ASC");
+    return $sentencia->fetchAll();
 }
 
-function registrarCompra($payload){
-	$resultados = [];
-	$bd = conectarBaseDatos();
+function registrarCompra($payload)
+{
+    $resultados = [];
+    $bd = conectarBaseDatos();
     $insumos = $payload->insumos;
     $idUsuario = $payload->idUsuario;
-    
-	foreach($insumos as $insumo){
-		$sentencia = $bd->prepare("UPDATE insumos SET stock = stock + ? WHERE id = ?");
-		$sentencia->execute([$insumo->cantidad, $insumo->id]);
-		if($sentencia) array_push($resultados, $sentencia);
+
+    foreach ($insumos as $insumo) {
+        $sentencia = $bd->prepare("UPDATE insumos SET stock = stock + ? WHERE id = ?");
+        $sentencia->execute([$insumo->cantidad, $insumo->id]);
+        if ($sentencia) array_push($resultados, $sentencia);
 
         $movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'COMPRA', ?)");
-		$movimiento->execute([$insumo->id, $idUsuario, $insumo->cantidad, date("Y-m-d H:i:s")]);
-	}
-	return $resultados;
+        $movimiento->execute([$insumo->id, $idUsuario, $insumo->cantidad, date("Y-m-d H:i:s")]);
+    }
+    return $resultados;
 }
 
-function obtenerHistorialStock($fechaInicio = null, $fechaFin = null){
-	$bd = conectarBaseDatos();
-	$valores = [];
-	$where = '';
-	if($fechaInicio && $fechaFin) {
-		$where = 'WHERE DATE(h.fecha) BETWEEN ? AND ?';
-		$valores = [$fechaInicio, $fechaFin];
-	}
-	$sentencia = $bd->prepare("
+function obtenerHistorialStock($fechaInicio = null, $fechaFin = null)
+{
+    $bd = conectarBaseDatos();
+    $valores = [];
+    $where = '';
+    if ($fechaInicio && $fechaFin) {
+        $where = 'WHERE DATE(h.fecha) BETWEEN ? AND ?';
+        $valores = [$fechaInicio, $fechaFin];
+    }
+    $sentencia = $bd->prepare("
         SELECT h.*, i.nombre as insumoNombre, u.nombre as usuarioNombre 
         FROM historial_stock h 
         LEFT JOIN insumos i ON h.idInsumo = i.id 
@@ -938,11 +1070,12 @@ function obtenerHistorialStock($fechaInicio = null, $fechaFin = null){
 		$where
         ORDER BY h.fecha DESC
     ");
-	$sentencia->execute($valores);
-	return $sentencia->fetchAll();
+    $sentencia->execute($valores);
+    return $sentencia->fetchAll();
 }
 
-function registrarMerma($payload){
+function registrarMerma($payload)
+{
     $bd = conectarBaseDatos();
     $idInsumo = $payload->idInsumo;
     $cantidad = $payload->cantidad;
@@ -951,7 +1084,7 @@ function registrarMerma($payload){
     $descuento = $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id = ?");
     $resultado = $descuento->execute([$cantidad, $idInsumo]);
 
-    if($resultado){
+    if ($resultado) {
         $movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'MERMA', ?)");
         $movimiento->execute([$idInsumo, $idUsuario, -$cantidad, date("Y-m-d H:i:s")]);
     }
@@ -959,7 +1092,8 @@ function registrarMerma($payload){
     return $resultado;
 }
 
-function producirDesdeMateria($payload){
+function producirDesdeMateria($payload)
+{
     $bd = conectarBaseDatos();
     $idInsumo   = $payload->idInsumo;
     $usoMateria = $payload->usoMateria;   // gramos/unidades de materia a usar
@@ -988,8 +1122,13 @@ function producirDesdeMateria($payload){
     if ($ok) {
         // Registrar en historial: entrada de porciones producidas
         $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'PRODUCCION', ?, ?)")
-           ->execute([$idInsumo, $idUsuario, $porcionesNuevas,
-                      "Producidas desde {$usoMateria} kg de materia prima", $fecha]);
+            ->execute([
+                $idInsumo,
+                $idUsuario,
+                $porcionesNuevas,
+                "Producidas desde {$usoMateria} kg de materia prima",
+                $fecha
+            ]);
     }
 
     return [
@@ -1000,12 +1139,13 @@ function producirDesdeMateria($payload){
     ];
 }
 
-function obtenerEstadoCaja(){
+function obtenerEstadoCaja()
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->query("SELECT * FROM caja_diaria WHERE estado = 'ABIERTA' ORDER BY id DESC LIMIT 1");
     $caja = $sentencia->fetchObject();
-    
-    if($caja) {
+
+    if ($caja) {
         $sqlVentas = "SELECT 
             IFNULL(SUM(total), 0) as totalVentas, 
             IFNULL(SUM(CASE WHEN metodoPago = 'EFECTIVO' AND montoEfectivo = 0 THEN total ELSE montoEfectivo END), 0) as ventasEfectivo, 
@@ -1031,16 +1171,18 @@ function obtenerEstadoCaja(){
     return false;
 }
 
-function abrirCaja($payload){
+function abrirCaja($payload)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("INSERT INTO caja_diaria (idUsuarioApertura, montoApertura, fechaApertura, estado) VALUES (?, ?, ?, 'ABIERTA')");
     return $sentencia->execute([$payload->idUsuario, $payload->montoApertura, date("Y-m-d H:i:s")]);
 }
 
-function cerrarCaja($payload){
+function cerrarCaja($payload)
+{
     $bd = conectarBaseDatos();
     $caja = obtenerEstadoCaja();
-    if(!$caja) return false;
+    if (!$caja) return false;
 
     $fechaCierre = date("Y-m-d H:i:s");
     $sentencia = $bd->prepare("UPDATE caja_diaria SET idUsuarioCierre = ?, montoCierre = ?, ventasTotales = ?, gastosTotales = ?, ventasTarjeta = ?, ventasQR = ?, fechaCierre = ?, estado = 'CERRADA' WHERE id = ?");
@@ -1082,7 +1224,8 @@ function cerrarCaja($payload){
     ];
 }
 
-function registrarGastoCaja($payload) {
+function registrarGastoCaja($payload)
+{
     $bd = conectarBaseDatos();
     $idCaja = $payload->idCaja;
     $concepto = $payload->concepto;
@@ -1094,14 +1237,16 @@ function registrarGastoCaja($payload) {
     return $sentencia->execute([$idCaja, $concepto, $monto, $fecha, $idUsuario]);
 }
 
-function obtenerGastosDeCaja($idCaja) {
+function obtenerGastosDeCaja($idCaja)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT concepto, monto, fecha FROM gastos_caja WHERE idCaja = ? ORDER BY fecha ASC");
     $sentencia->execute([$idCaja]);
     return $sentencia->fetchAll();
 }
 
-function guardarFactura($datos) {
+function guardarFactura($datos)
+{
     $bd = conectarBaseDatos();
 
     // Verificar que el número no esté ya usado
@@ -1161,7 +1306,8 @@ function guardarFactura($datos) {
     }
 }
 
-function obtenerFacturas($filtros) {
+function obtenerFacturas($filtros)
+{
     $bd = conectarBaseDatos();
 
     $condiciones = [];
@@ -1204,13 +1350,15 @@ function obtenerFacturas($filtros) {
     return $facturas;
 }
 
-function anularFactura($id) {
+function anularFactura($id)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE facturas SET estado = 'ANULADA' WHERE id = ?");
     return $sentencia->execute([$id]);
 }
 
-function obtenerCancelaciones($filtros) {
+function obtenerCancelaciones($filtros)
+{
     $bd = conectarBaseDatos();
 
     $condiciones = [];
@@ -1243,7 +1391,8 @@ function obtenerCancelaciones($filtros) {
     return $sentencia->fetchAll();
 }
 
-function obtenerHistorialCajas() {
+function obtenerHistorialCajas()
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->query("
         SELECT c.*, ua.nombre as usuarioApertura, uc.nombre as usuarioCierre 
@@ -1255,7 +1404,8 @@ function obtenerHistorialCajas() {
     return $sentencia->fetchAll();
 }
 
-function obtenerMenuDia($dia) {
+function obtenerMenuDia($dia)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("
         SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
@@ -1268,18 +1418,20 @@ function obtenerMenuDia($dia) {
     return $sentencia->fetchAll();
 }
 
-function guardarMenuDia($idInsumo, $dia) {
+function guardarMenuDia($idInsumo, $dia)
+{
     $bd = conectarBaseDatos();
     // Verificar si ya existe para ese día
     $check = $bd->prepare("SELECT id FROM menu_dia WHERE idInsumo = ? AND diaSemana = ?");
     $check->execute([$idInsumo, $dia]);
-    if($check->fetch()) return true; // Ya está en el menú
+    if ($check->fetch()) return true; // Ya está en el menú
 
     $sentencia = $bd->prepare("INSERT INTO menu_dia (idInsumo, diaSemana) VALUES (?, ?)");
     return $sentencia->execute([$idInsumo, $dia]);
 }
 
-function registrarReserva($reserva) {
+function registrarReserva($reserva)
+{
     $bd = conectarBaseDatos();
 
     $fecha   = $reserva->fecha;
@@ -1324,7 +1476,7 @@ function registrarReserva($reserva) {
         ];
     }
 
-    $sentencia = $bd->prepare("INSERT INTO reservas (nombre_cliente, telefono, fecha, hora, personas, idMesa, notas, idUsuario, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')");
+    $sentencia = $bd->prepare("INSERT INTO reservas (nombre_cliente, telefono, fecha, hora, personas, idMesa, notas, adelanto, idUsuario, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')");
     $ok = $sentencia->execute([
         $reserva->nombre_cliente,
         $reserva->telefono,
@@ -1333,12 +1485,14 @@ function registrarReserva($reserva) {
         $reserva->personas,
         $esEvento ? null : $idMesa,
         $reserva->notas,
+        isset($reserva->adelanto) ? (float)$reserva->adelanto : 0,
         $reserva->idUsuario
     ]);
     return ['ok' => $ok];
 }
 
-function obtenerReservas() {
+function obtenerReservas()
+{
     $bd = conectarBaseDatos();
     // JOIN con usuarios para traer el nombre de quien registró
     $sentencia = $bd->query("
@@ -1350,25 +1504,29 @@ function obtenerReservas() {
     return $sentencia->fetchAll();
 }
 
-function eliminarReserva($id) {
+function eliminarReserva($id)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("DELETE FROM reservas WHERE id = ?");
     return $sentencia->execute([$id]);
 }
 
-function cambiarEstadoReserva($id, $estado) {
+function cambiarEstadoReserva($id, $estado)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE reservas SET estado = ? WHERE id = ?");
     return $sentencia->execute([$estado, $id]);
 }
 
-function eliminarDelMenuDia($idInsumo, $dia) {
+function eliminarDelMenuDia($idInsumo, $dia)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("DELETE FROM menu_dia WHERE idInsumo = ? AND diaSemana = ?");
     return $sentencia->execute([$idInsumo, $dia]);
 }
 
-function obtenerDeliveries($idUsuario = null, $rol = null) {
+function obtenerDeliveries($idUsuario = null, $rol = null)
+{
     $bd = conectarBaseDatos();
     if (_rolEsMeseroConFiltro($idUsuario, $rol)) {
         $stmt = $bd->prepare("SELECT referencia FROM ordenes_activas WHERE tipo='DELIVERY' AND idUsuario=?");
@@ -1384,7 +1542,8 @@ function obtenerDeliveries($idUsuario = null, $rol = null) {
     return $deliveries;
 }
 
-function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null) {
+function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
+{
     _asegurarTipoOrdenOrdenes();
     $bd = conectarBaseDatos();
     $stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='DELIVERY' AND referencia=?");
@@ -1400,7 +1559,7 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null) {
             "atiende"     => $orden->atiende,
             "idUsuario"   => $orden->idUsuario,
             "total"       => "",
-            "estado_orden"=> $orden->estado,
+            "estado_orden" => $orden->estado,
             "cliente"     => "",
             "direccion"   => "",
             "telefono"    => "",
@@ -1414,7 +1573,7 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null) {
         "atiende"     => $orden->atiende,
         "idUsuario"   => $orden->idUsuario,
         "total"       => $orden->total,
-        "estado_orden"=> $orden->estado,
+        "estado_orden" => $orden->estado,
         "cliente"     => $orden->cliente,
         "direccion"   => $orden->direccion ?? '',
         "telefono"    => $orden->telefono ?? '',
@@ -1423,26 +1582,38 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null) {
     ];
 
     _asegurarPagadoItemsOrden();
-    $stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? ORDER BY id ASC");
+    _asegurarAcompanamientoItemsOrden();
+    $stmtItems = $bd->prepare("
+        SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
+        FROM items_orden io
+        LEFT JOIN insumos i ON i.id = io.idInsumo
+        LEFT JOIN categorias c ON c.id = i.categoria
+        WHERE io.idOrden=? ORDER BY io.id ASC
+    ");
     $stmtItems->execute([$orden->id]);
-    $insumos = array_map(function($item) {
+    $rawItems = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+    $insumos = array_map(function ($item) {
         return [
-            "itemId"          => $item->id,
-            "id"              => $item->idInsumo,
-            "codigo"          => $item->codigo,
-            "nombre"          => $item->nombre,
-            "precio"          => $item->precio,
-            "caracteristicas" => $item->caracteristicas,
-            "cantidad"        => $item->cantidad,
-            "estado"          => $item->estado,
-            "pagado"          => (int)($item->pagado ?? 0),
+            "itemId"          => $item['id'] ?? null,
+            "id"              => $item['idInsumo'] ?? null,
+            "codigo"          => $item['codigo'] ?? '',
+            "nombre"          => $item['nombre'] ?? '',
+            "precio"          => $item['precio'] ?? 0,
+            "caracteristicas" => $item['caracteristicas'] ?? '',
+            "cantidad"        => $item['cantidad'] ?? 1,
+            "estado"          => $item['estado'] ?? 'pendiente',
+            "pagado"          => (int)($item['pagado'] ?? 0),
+            "acompanamiento_listo" => (int)($item['acompanamiento_listo'] ?? 0),
+            "categoria"       => $item['nombreCategoria'] ?? 'NO DEFINIDA',
         ];
-    }, $stmtItems->fetchAll());
+    }, $rawItems);
 
     return ["delivery" => $delivery, "insumos" => $insumos];
 }
 
-function ocuparDelivery($delivery) {
+function ocuparDelivery($delivery)
+{
     _asegurarCreatedAtOrdenes();
     _asegurarTipoOrdenOrdenes();
     $bd = conectarBaseDatos();
@@ -1474,11 +1645,11 @@ function ocuparDelivery($delivery) {
 
         $idOrden = $existing->id;
         $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='pendiente', cliente=?, direccion=?, telefono=?, tipo_orden=? WHERE id=?")
-           ->execute([$delivery->atiende, $delivery->idUsuario, $delivery->total, $cliente, $direccion, $telefono, $tipo_orden, $idOrden]);
+            ->execute([$delivery->atiende, $delivery->idUsuario, $delivery->total, $cliente, $direccion, $telefono, $tipo_orden, $idOrden]);
         $bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$idOrden]);
     } else {
         $bd->prepare("INSERT INTO ordenes_activas (tipo, referencia, atiende, idUsuario, total, estado, cliente, direccion, telefono, tipo_orden) VALUES ('DELIVERY',?,?,?,?,'pendiente',?,?,?,?)")
-           ->execute([$delivery->idDelivery, $delivery->atiende, $delivery->idUsuario, $delivery->total, $cliente, $direccion, $telefono, $tipo_orden]);
+            ->execute([$delivery->idDelivery, $delivery->atiende, $delivery->idUsuario, $delivery->total, $cliente, $direccion, $telefono, $tipo_orden]);
         $idOrden = $bd->lastInsertId();
     }
 
@@ -1489,13 +1660,14 @@ function ocuparDelivery($delivery) {
         $estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
         $pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
         $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado) VALUES (?,?,?,?,?,?,?,?,?,?)")
-           ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
+            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
     }
 
     return ["status" => true, "idDelivery" => $delivery->idDelivery];
 }
 
-function cancelarDelivery($id, $idUsuario = null, $motivo = null) {
+function cancelarDelivery($id, $idUsuario = null, $motivo = null)
+{
     $bd = conectarBaseDatos();
 
     // Obtener orden e items antes de eliminar
@@ -1508,7 +1680,7 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null) {
 
         // Registrar en tabla cancelaciones
         $bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('DELIVERY', ?, ?, ?, ?, ?)")
-           ->execute([$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
+            ->execute([$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
         // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
         // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
@@ -1519,9 +1691,9 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null) {
             if ($item->idInsumo) {
                 // Descontar stock (pérdida — ingredientes usados pero no cobrados)
                 $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id=?")
-                   ->execute([$item->cantidad, $item->idInsumo]);
+                    ->execute([$item->cantidad, $item->idInsumo]);
                 $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'CANCELACION', ?, ?)")
-                   ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
+                    ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
             }
         }
     }
@@ -1535,24 +1707,24 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null) {
     return $resultado;
 }
 
-function editarDelivery($delivery) {
+function editarDelivery($delivery)
+{
     return ocuparDelivery($delivery);
 }
 
-function actualizarEstadoDelivery($idVenta, $estado) {
+function actualizarEstadoDelivery($idVenta, $estado)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE ventas SET estado_delivery = ? WHERE id = ?");
     return $sentencia->execute([$estado, $idVenta]);
 }
 
-// ============================================================
-// COCINA
-// ============================================================
-
-function marcarItemListoCocina($payload) {
+function marcarItemListoCocina($payload)
+{
     $tipo = $payload->tipo;
     $id   = $payload->id;
     $indiceInsumo = (int)$payload->indiceInsumo;
+    $soloAcompanamiento = isset($payload->soloAcompanamiento) ? $payload->soloAcompanamiento : false;
 
     // LLEVAR se almacena con tipo='DELIVERY' en ordenes_activas
     $tipoDb = ($tipo === 'LLEVAR') ? 'DELIVERY' : $tipo;
@@ -1572,15 +1744,20 @@ function marcarItemListoCocina($payload) {
     $stmt->execute();
     $item = $stmt->fetch();
 
-    if (!$item || $item->estado !== 'pendiente') return false;
+    if (!$item) return false;
 
-    $bd->prepare("UPDATE items_orden SET estado='listo' WHERE id=?")->execute([$item->id]);
+    if ($soloAcompanamiento) {
+        return $bd->prepare("UPDATE items_orden SET acompanamiento_listo=1 WHERE id=?")->execute([$item->id]);
+    } else {
+        $bd->prepare("UPDATE items_orden SET estado='listo' WHERE id=?")->execute([$item->id]);
+    }
 
     // Las órdenes pagadas se mantienen visibles hasta que alguien las marque como entregadas
     return true;
 }
 
-function registrarReporteCocina($payload) {
+function registrarReporteCocina($payload)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare(
         "INSERT INTO reportes_cocina (idInsumo, nombreInsumo, tipo, nota, idUsuario, fecha) VALUES (?, ?, ?, ?, ?, ?)"
@@ -1595,7 +1772,8 @@ function registrarReporteCocina($payload) {
     ]);
 }
 
-function obtenerReportesCocina() {
+function obtenerReportesCocina()
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->query(
         "SELECT r.*, u.nombre AS usuarioNombre 
@@ -1607,7 +1785,8 @@ function obtenerReportesCocina() {
     return $sentencia->fetchAll();
 }
 
-function resolverReporteCocina($id) {
+function resolverReporteCocina($id)
+{
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE reportes_cocina SET resuelto = 1 WHERE id = ?");
     return $sentencia->execute([(int)$id]);

@@ -1,0 +1,290 @@
+<template>
+  <section class="section" style="min-height: 70vh;">
+    <div class="columns is-vcentered mb-4">
+      <div class="column">
+        <p class="title is-1 has-text-weight-bold">
+          <b-icon icon="fire" size="is-large" type="is-danger"></b-icon>
+          Pantalla Parrilla
+        </p>
+      </div>
+      <div class="column is-narrow has-text-right">
+        <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
+          Reportar faltante
+        </b-button>
+      </div>
+
+    </div>
+    <div v-if="!cargando && ordenes.length === 0" class="has-text-centered py-6">
+      <b-icon icon="check-circle-outline" type="is-success" size="is-large"></b-icon>
+      <p class="title is-4 mt-3 has-text-success">Sin órdenes pendientes</p>
+      <p class="has-text-grey">Aquí aparecerán las órdenes para la parrilla.</p>
+    </div>
+    <div class="columns is-multiline">
+      <div class="column is-4-widescreen is-6-tablet is-12-mobile" v-for="orden in ordenes"
+        :key="orden.tipo + '-' + orden.id">
+        <div class="card cocina-card" :class="[
+          orden.todoListo ? 'cocina-pagada-lista' : 'has-background-warning-light'
+        ]">
+          <div class="cocina-card-header">
+            <div class="cocina-card-titulo">
+              <b-icon :icon="orden.tipo === 'LOCAL' ? 'table-chair' : orden.tipo === 'LLEVAR' ? 'walk' : 'moped'"
+                size="is-medium" class="mr-2 cocina-icono-tipo">
+              </b-icon>
+              <div class="cocina-titulo-texto">
+                <span class="is-size-5 has-text-weight-bold">
+                  <span v-if="orden.tipo === 'LOCAL'">Mesa {{ orden.id }}</span>
+                  <span v-else-if="orden.tipo === 'LLEVAR'">Para llevar #{{ orden.id }}</span>
+                  <span v-else>Delivery #{{ orden.id }}</span>
+                </span>
+                <span class="is-size-6 has-text-grey cocina-cliente" v-if="orden.cliente && orden.cliente !== 'S/N'">
+                  {{ orden.cliente }}
+                </span>
+              </div>
+            </div>
+            <div class="cocina-card-tags">
+              <b-tag v-if="orden.horaInicio" :type="colorEspera(minutosEspera(orden.horaInicio))" rounded>
+                <b-icon icon="clock-outline" size="is-small" class="mr-1"></b-icon>
+                {{ minutosEspera(orden.horaInicio) }}m
+              </b-tag>
+              <b-tag :type="orden.todoListo ? 'is-success' : 'is-danger'" rounded>
+                {{ orden.pendientes }} pendiente{{ orden.pendientes !== 1 ? 's' : '' }}
+              </b-tag>
+            </div>
+          </div>
+          <div class="card-content p-3">
+            <div v-for="insumo in orden.insumos" :key="insumo._originalIndex" class="box p-3 mb-2" :class="{
+              'has-background-danger-light': insumo.estado === 'pendiente',
+              'has-background-success-light': insumo.estado === 'listo'
+            }">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
+                <b-icon :icon="insumo.estado === 'listo' ? 'check-circle' : 'clock-alert-outline'"
+                  :type="insumo.estado === 'listo' ? 'is-success' : 'is-danger'" style="flex-shrink:0;">
+                </b-icon>
+                <span class="has-text-weight-bold is-size-5" style="flex:1; min-width:0; word-break:break-word;">
+                  {{ insumo.cantidad }}x {{ insumo.nombre }}
+                </span>
+                <div style="flex-shrink:0; margin-left:4px;">
+                  <b-button v-if="insumo.estado === 'pendiente'" type="is-success" size="is-small" icon-left="check"
+                    :loading="insumo.cargando" @click="marcarListo(orden, insumo)">
+                    Carne Lista
+                  </b-button>
+                  <b-tag v-else type="is-success is-light">Carne Lista ✓</b-tag>
+                </div>
+              </div>
+              <div v-if="insumo.acompanamiento_listo === 1" class="mb-2">
+                <b-tag type="is-info is-light" size="is-small" icon="silverware-fork-knife">
+                  Acompañamiento: LISTO
+                </b-tag>
+              </div>
+              <p v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
+                class="is-size-6 has-text-dark ml-5 mt-1" style="border-left: 3px solid #f5a623; padding-left: 8px;">
+                <b-icon icon="note-text-outline" size="is-small"></b-icon>
+                {{ insumo.caracteristicas }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Reportar faltante -->
+    <b-modal v-model="modalReporte" has-modal-card trap-focus :destroy-on-hide="false">
+      <div class="modal-card" style="min-width: 420px; max-width: 500px;">
+        <header class="modal-card-head">
+          <p class="modal-card-title">
+            <b-icon icon="alert-circle-outline" type="is-warning"></b-icon>
+            Reportar faltante o problema
+          </p>
+          <button class="delete" @click="modalReporte = false"></button>
+        </header>
+        <section class="modal-card-body">
+          <b-field label="Insumo (opcional — escribí el nombre)">
+            <b-autocomplete v-model="reporte.nombreInsumo" :data="insumosFiltrados" field="nombre"
+              placeholder="Ej: Chorizo parrillero..." @typing="buscarInsumo" @select="seleccionarInsumo" clearable>
+            </b-autocomplete>
+          </b-field>
+          <b-field label="Tipo de problema">
+            <b-select v-model="reporte.tipo" expanded>
+              <option value="FALTANTE">Faltante — se agotó</option>
+              <option value="BAJO_STOCK">Bajo stock — queda poco</option>
+              <option value="VENCIDO">Vencido / en mal estado</option>
+              <option value="OTRO">Otro</option>
+            </b-select>
+          </b-field>
+          <b-field label="Nota adicional">
+            <b-input v-model="reporte.nota" type="textarea" rows="3"
+              placeholder="Ej: Se terminaron las brasas, reponer por favor...">
+            </b-input>
+          </b-field>
+        </section>
+        <footer class="modal-card-foot">
+          <b-button type="is-warning" icon-left="send" @click="enviarReporte" :loading="enviandoReporte">
+            Enviar reporte
+          </b-button>
+          <b-button type="is-dark" @click="modalReporte = false">Cancelar</b-button>
+        </footer>
+      </div>
+    </b-modal>
+  </section>
+</template>
+
+<script>
+import HttpService from '../../Servicios/HttpService'
+
+export default {
+  name: 'Parrilla',
+  data: () => ({
+    ordenes: [],
+    cargando: true,
+    ahora: Date.now(),
+    intervaloPolling: null,
+    intervaloReloj: null,
+    modalReporte: false,
+    enviandoReporte: false,
+    insumosFiltrados: [],
+    reporte: {
+      idInsumo: null,
+      nombreInsumo: '',
+      tipo: 'FALTANTE',
+      nota: ''
+    }
+  }),
+  mounted() {
+    this.cargarOrdenes()
+    this.intervaloPolling = setInterval(() => {
+      this.ahora = Date.now()
+      this.cargarOrdenes()
+    }, 6000)
+    this.intervaloReloj = setInterval(() => { this.ahora = Date.now() }, 30000)
+  },
+  beforeDestroy() {
+    clearInterval(this.intervaloPolling)
+    clearInterval(this.intervaloReloj)
+  },
+  methods: {
+    async cargarOrdenes() {
+      try {
+        const [mesas, deliveries] = await Promise.all([
+          HttpService.obtener('obtener_mesas.php'),
+          HttpService.obtener('obtener_deliveries.php')
+        ])
+        this.ordenes = this.procesarDatos(mesas, deliveries)
+      } finally {
+        this.cargando = false
+      }
+    },
+    procesarDatos(mesas, deliveries) {
+      // Solo insumos de categoría Carnes
+      const filtrarCarnes = insumos => (insumos || []).filter(i => (i.categoria || '').toLowerCase() === 'carnes')
+      const ordenesLocales = (mesas || [])
+        .filter(m => m.mesa && (m.mesa.estado === 'ocupada' || m.mesa.estado === 'pagada'))
+        .map(m => {
+          // enviamos todos los insumos
+          const insumos = (m.insumos || [])
+            .map((insumo, idx) => ({ ...insumo, _originalIndex: idx, cargando: false }))
+            .filter(i => (i.categoria || '').toLowerCase() === 'carnes' && i.estado !== 'entregado')
+          return {
+            id: m.mesa.idMesa,
+            tipo: 'LOCAL',
+            cliente: m.mesa.cliente,
+            horaInicio: m.mesa.created_at || null,
+            pagada: m.mesa.estado === 'pagada',
+            insumos,
+            pendientes: insumos.filter(i => i.estado === 'pendiente').length,
+            todoListo: insumos.length > 0 && insumos.every(i => i.estado === 'listo')
+          }
+        })
+        .filter(o => o.insumos.length > 0)
+      const ordenesDelivery = (deliveries || []).map(d => {
+        const insumos = (d.insumos || [])
+          .map((insumo, idx) => ({ ...insumo, _originalIndex: idx, cargando: false }))
+          .filter(i => (i.categoria || '').toLowerCase() === 'carnes' && i.estado !== 'entregado')
+        return {
+          id: d.delivery.idDelivery,
+          tipo: 'DELIVERY',
+          cliente: d.delivery.cliente,
+          horaInicio: d.delivery.created_at || null,
+          pagada: d.delivery.estado_orden === 'pagada',
+          insumos,
+          pendientes: insumos.filter(i => i.estado === 'pendiente').length,
+          todoListo: insumos.length > 0 && insumos.every(i => i.estado === 'listo')
+        }
+      }).filter(o => o.insumos.length > 0)
+      return [...ordenesLocales, ...ordenesDelivery]
+    },
+    async marcarListo(orden, insumo) {
+      insumo.cargando = true
+      try {
+        await HttpService.registrar({
+          tipo: orden.tipo,
+          id: orden.id,
+          indiceInsumo: insumo._originalIndex,
+          soloAcompanamiento: false
+        }, 'marcar_listo_cocina.php')
+        insumo.estado = 'listo'
+        orden.pendientes = orden.insumos.filter(i => i.estado === 'pendiente').length
+        orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => i.estado === 'listo')
+      } finally {
+        insumo.cargando = false
+      }
+    },
+    minutosEspera(horaInicio) {
+      if (!horaInicio) return 0
+      // Normalizamos el formato para evitar problemas de interpretación UTC vs Local
+      let fechaStr = horaInicio.replace(' ', 'T')
+      const inicio = new Date(fechaStr).getTime()
+      let minutos = Math.floor((this.ahora - inicio) / 60000)
+
+      // Si la diferencia es muy grande o negativa (ej. -240 min), compensamos zona horaria
+      if (minutos < -5 || minutos > 720) {
+        const offsetMin = new Date().getTimezoneOffset()
+        // Intentamos corregir el desfase restando el offset del navegador
+        minutos = Math.floor((this.ahora - (inicio - offsetMin * 60000)) / 60000)
+      }
+
+      return minutos < 0 ? 0 : minutos
+    },
+    colorEspera(mins) {
+      if (mins < 10) return 'is-success'
+      if (mins < 20) return 'is-warning'
+      return 'is-danger'
+    },
+    abrirModalReporte() {
+      this.reporte = { idInsumo: null, nombreInsumo: '', tipo: 'FALTANTE', nota: '' }
+      this.insumosFiltrados = []
+      this.modalReporte = true
+    },
+    async buscarInsumo(texto) {
+      if (!texto || texto.length < 2) {
+        this.insumosFiltrados = []
+        return
+      }
+      const resultado = await HttpService.registrar({ insumo: texto }, 'obtener_insumo_nombre.php')
+      this.insumosFiltrados = resultado || []
+    },
+    seleccionarInsumo(insumo) {
+      if (insumo) {
+        this.reporte.idInsumo = insumo.id
+        this.reporte.nombreInsumo = insumo.nombre
+      }
+    },
+    async enviarReporte() {
+      if (!this.reporte.nombreInsumo.trim() && !this.reporte.nota.trim()) {
+        this.$buefy.toast.open({ message: 'Indicá el insumo o describí el problema', type: 'is-warning' })
+        return
+      }
+      this.enviandoReporte = true
+      try {
+        await HttpService.registrar({
+          ...this.reporte,
+          idUsuario: localStorage.getItem('idUsuario')
+        }, 'registrar_reporte_cocina.php')
+        this.$buefy.toast.open({ message: '✓ Reporte enviado al administrador', type: 'is-success', duration: 4000 })
+        this.modalReporte = false
+      } finally {
+        this.enviandoReporte = false
+      }
+    }
+  }
+}
+</script>

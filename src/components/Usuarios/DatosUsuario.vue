@@ -17,6 +17,7 @@
                 <option value="mesero">Mesero (Solo ver y ordenar)</option>
                 <option value="cocina">Cocina (Solo pantalla de comandas)</option>
                 <option value="admin">Administrador (Acceso total)</option>
+                <option value="parrillero">Parrillero (Acceso a la parrilla)</option>
             </b-select>
         </b-field>
 

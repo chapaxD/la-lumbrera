@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <section>
         <div class="level mb-4">
             <div class="level-left">
@@ -807,7 +807,7 @@ export default {
                 montoEfectivo: 0,
                 montoTarjeta: 0,
                 montoQR: 0,
-                idUsuario: this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.idUsuario : this.elementoCobro.delivery.idUsuario,
+                idUsuario: (this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.idUsuario : this.elementoCobro.delivery.idUsuario) || this.idUsuarioActual,
                 insumos: insumosACobrar,
                 atiende: this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.atiende : this.elementoCobro.delivery.atiende
             };

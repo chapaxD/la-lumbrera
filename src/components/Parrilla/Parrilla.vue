@@ -20,17 +20,18 @@
       </div>
 
     </div>
-    <div v-if="!cargando && ordenes.length === 0" class="has-text-centered py-6">
-      <b-icon icon="check-circle-outline" type="is-success" size="is-large"></b-icon>
-      <p class="title is-4 mt-3 has-text-success">Sin órdenes pendientes</p>
-      <p class="has-text-grey">Aquí aparecerán las órdenes para la parrilla.</p>
+    <!-- Sin órdenes (Empty State) -->
+    <div v-if="!cargando && ordenes.length === 0" class="has-text-centered py-6 is-flex is-flex-direction-column is-align-items-center" style="animation: fadeIn 0.5s;">
+      <div class="mb-4 p-5" style="border-radius: 50%; background: rgba(255, 221, 87, 0.2); display: inline-block;">
+        <b-icon icon="grill" type="is-warning" custom-size="fa-5x" style="font-size: 5rem; opacity: 0.9;"></b-icon>
+      </div>
+      <p class="title is-3 mt-3 has-text-warning-dark">¡Parrilla despejada!</p>
+      <p class="subtitle is-5 has-text-grey mt-2">Aprovecha para avivar las brasas y cuchillos. 🔥<br><br><small>Esperando nuevas carnes...</small></p>
     </div>
     <div class="columns is-multiline">
       <div class="column is-4-widescreen is-6-tablet is-12-mobile" v-for="orden in ordenes"
         :key="orden.tipo + '-' + orden.id">
-        <div class="card cocina-card" :class="[
-          orden.todoListo ? 'cocina-pagada-lista' : 'has-background-warning-light'
-        ]">
+        <div class="card cocina-card" :class="claseUrgencia(minutosEspera(orden.horaInicio), orden.todoListo)">
           <div class="cocina-card-header">
             <div class="cocina-card-titulo">
               <b-icon :icon="orden.tipo === 'LOCAL' ? 'table-chair' : orden.tipo === 'LLEVAR' ? 'walk' : 'moped'"
@@ -149,6 +150,7 @@ export default {
     enviandoReporte: false,
     conectado: false,
     insumosFiltrados: [],
+    ultimoConteoPendientes: 0,
     reporte: {
       idInsumo: null,
       nombreInsumo: '',
@@ -169,6 +171,13 @@ export default {
     clearInterval(this.intervaloReloj)
   },
   methods: {
+    reproducirSonido() {
+      try {
+        const audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3');
+        audio.volume = 0.6;
+        audio.play().catch(e => console.warn('Sonido bloqueado por navegador:', e));
+      } catch(e) {}
+    },
     async cargarOrdenes() {
       try {
         const [mesas, deliveries] = await Promise.all([
@@ -177,6 +186,15 @@ export default {
         ])
         this.conectado = true
         this.ordenes = this.procesarDatos(mesas, deliveries)
+        
+        // Lógica de Sonido: Contar pendientes
+        let pendientesActuales = this.ordenes.reduce((total, orden) => total + orden.pendientes, 0)
+        if (this.ultimoConteoPendientes > 0 && pendientesActuales > this.ultimoConteoPendientes) {
+            this.reproducirSonido()
+        }
+        if (!this.cargando || this.ultimoConteoPendientes === 0) {
+            this.ultimoConteoPendientes = pendientesActuales
+        }
       } catch (e) {
         this.conectado = false
       } finally {
@@ -259,6 +277,13 @@ export default {
       if (mins < 20) return 'is-warning'
       return 'is-danger'
     },
+
+    claseUrgencia(mins, todoListo) {
+      if (todoListo) return 'cocina-pagada-lista'
+      if (mins >= 20) return 'urgencia-roja'
+      if (mins >= 10) return 'urgencia-naranja'
+      return 'urgencia-verde'
+    },
     abrirModalReporte() {
       this.reporte = { idInsumo: null, nombreInsumo: '', tipo: 'FALTANTE', nota: '' }
       this.insumosFiltrados = []
@@ -298,3 +323,24 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.urgencia-verde {
+    background-color: #f5fff5;
+    border-top: 5px solid #48c774;
+}
+.urgencia-naranja {
+    background-color: #fff9f0;
+    border-top: 5px solid #ffdd57;
+}
+.urgencia-roja {
+    background-color: #fff0f0;
+    border-top: 5px solid #f14668;
+    animation: pulso-rojo 2s infinite;
+}
+@keyframes pulso-rojo {
+    0% { box-shadow: 0 0 0 0 rgba(241, 70, 104, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(241, 70, 104, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(241, 70, 104, 0); }
+}
+</style>

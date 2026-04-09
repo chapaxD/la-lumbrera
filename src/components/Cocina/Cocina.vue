@@ -20,20 +20,20 @@
             </div>
         </div>
 
-        <!-- Sin órdenes -->
-        <div v-if="!cargando && ordenes.length === 0" class="has-text-centered py-6">
-            <b-icon icon="check-circle-outline" type="is-success" size="is-large"></b-icon>
-            <p class="title is-4 mt-3 has-text-success">Sin órdenes pendientes</p>
-            <p class="has-text-grey">Esperando nuevas comandas...</p>
+        <!-- Sin órdenes (Empty State) -->
+        <div v-if="!cargando && ordenes.length === 0" class="has-text-centered py-6 is-flex is-flex-direction-column is-align-items-center" style="animation: fadeIn 0.5s;">
+            <div class="mb-4 p-5" style="border-radius: 50%; background: rgba(0, 209, 178, 0.1); display: inline-block;">
+                <b-icon icon="silverware-clean" type="is-success" custom-size="fa-5x" style="font-size: 5rem; opacity: 0.9;"></b-icon>
+            </div>
+            <p class="title is-3 mt-3 has-text-success">¡Todo preparado y servido!</p>
+            <p class="subtitle is-5 has-text-grey mt-2">Tómense un buen respiro, equipo. La cocina brilla de limpia. ✨<br><br><small>Esperando nuevas comandas...</small></p>
         </div>
 
         <!-- Tarjetas de órdenes -->
         <div class="columns is-multiline">
             <div class="column is-4-widescreen is-6-tablet is-12-mobile" v-for="orden in ordenes"
                 :key="orden.tipo + '-' + orden.id">
-                <div class="card cocina-card" :class="[
-                    orden.todoListo ? 'cocina-pagada-lista' : 'has-background-warning-light'
-                ]">
+                <div class="card cocina-card" :class="claseUrgencia(minutosEspera(orden.horaInicio), orden.todoListo)">
                     <!-- Encabezado tarjeta -->
                     <div class="cocina-card-header">
                         <!-- Fila 1: tipo + id + cliente -->
@@ -188,6 +188,7 @@ export default {
         modalReporte: false,
         enviandoReporte: false,
         insumosFiltrados: [],
+        ultimoConteoPendientes: 0,
         reporte: {
             idInsumo: null,
             nombreInsumo: '',
@@ -269,7 +270,32 @@ export default {
             }).filter(o => o.insumos.length > 0)
 
             this.ordenes = [...ordenesLocales, ...ordenesDelivery]
+            
+            // Lógica de Sonido: Contar pendientes
+            let pendientesActuales = this.ordenes.reduce((total, orden) => total + orden.pendientes, 0)
+            
+            // Si el conteo actual es mayor al anterior y no es la primera carga (0), reproducir sonido
+            if (this.ultimoConteoPendientes > 0 && pendientesActuales > this.ultimoConteoPendientes) {
+                this.reproducirSonido()
+            }
+            // Evitar reproducir sonido al recién cargar la página
+            if (this.ultimoConteoPendientes === 0 && pendientesActuales > 0 && !this.cargando) {
+                 // No hacer nada en la primera carga
+            }
+            if (!this.cargando || this.ultimoConteoPendientes === 0) {
+                this.ultimoConteoPendientes = pendientesActuales
+            }
+
             this.cargando = false
+        },
+
+        reproducirSonido() {
+            try {
+                // Utilizando un sonido de campana de notificación corto y profesional
+                const audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3');
+                audio.volume = 0.6; // No tan fuerte
+                audio.play().catch(e => console.warn('Sonido bloqueado por navegador:', e));
+            } catch(e) {}
         },
 
         async marcarListo(orden, insumo) {
@@ -326,6 +352,13 @@ export default {
             if (mins < 10) return 'is-success'
             if (mins < 20) return 'is-warning'
             return 'is-danger'
+        },
+
+        claseUrgencia(mins, todoListo) {
+            if (todoListo) return 'cocina-pagada-lista'
+            if (mins >= 20) return 'urgencia-roja'
+            if (mins >= 10) return 'urgencia-naranja'
+            return 'urgencia-verde'
         },
 
         abrirModalReporte() {
@@ -432,3 +465,24 @@ export default {
     }
 }
 </script>
+
+<style scoped>
+.urgencia-verde {
+    background-color: #f5fff5;
+    border-top: 5px solid #48c774;
+}
+.urgencia-naranja {
+    background-color: #fff9f0;
+    border-top: 5px solid #ffdd57;
+}
+.urgencia-roja {
+    background-color: #fff0f0;
+    border-top: 5px solid #f14668;
+    animation: pulso-rojo 2s infinite;
+}
+@keyframes pulso-rojo {
+    0% { box-shadow: 0 0 0 0 rgba(241, 70, 104, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(241, 70, 104, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(241, 70, 104, 0); }
+}
+</style>

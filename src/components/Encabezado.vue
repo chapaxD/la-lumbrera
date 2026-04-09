@@ -1,5 +1,5 @@
 <template>
-    <b-navbar class="fondo is-primary">
+    <b-navbar class="fondo is-primary" :style="{ backgroundColor: 'var(--color-navbar) !important' }">
         <template #brand>
             <b-navbar-item>
                 <img :src="logo" alt="logo">

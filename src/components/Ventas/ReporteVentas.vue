@@ -51,27 +51,27 @@
     <!-- Estadísticas -->
     <div class="columns mb-2" v-if="totalRegistros > 0">
       <div class="column">
-        <div class="box has-text-centered py-3">
-          <p class="heading">Total ventas</p>
-          <p class="title is-4">{{ totalRegistros }}</p>
+        <div class="notification is-light py-4 has-text-centered">
+          <p class="heading has-text-grey">Total ventas</p>
+          <p class="title is-3">{{ totalRegistros }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification is-primary is-light py-4 has-text-centered">
           <p class="heading">Total recaudado</p>
-          <p class="title is-4 has-text-success">${{ totalVentas }}</p>
+          <p class="title is-3 has-text-primary-dark">${{ totalVentas }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification is-info is-light py-4 has-text-centered">
           <p class="heading">Ventas locales</p>
-          <p class="title is-4 has-text-info">{{ ventasLocales }}</p>
+          <p class="title is-3 has-text-info-dark">{{ ventasLocales }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification is-warning is-light py-4 has-text-centered">
           <p class="heading">Deliveries</p>
-          <p class="title is-4 has-text-warning">{{ ventasDelivery }}</p>
+          <p class="title is-3 has-text-warning-dark">{{ ventasDelivery }}</p>
         </div>
       </div>
     </div>
@@ -152,9 +152,10 @@
         </template>
 
         <template #empty>
-          <div class="has-text-centered py-5 has-text-grey">
-            <b-icon icon="cash-register" size="is-large"></b-icon>
-            <p class="mt-2">No se encontraron ventas para este período</p>
+          <div class="has-text-centered py-6 has-text-grey" style="opacity: 0.8;">
+            <b-icon icon="cash-register" custom-size="fa-4x" style="font-size: 4rem;"></b-icon>
+            <p class="title is-4 mt-4 has-text-grey-dark">Sin registros de venta</p>
+            <p class="subtitle is-6 mt-1">Acá aparecerá el dinero recaudado de las mesas pagadas o deliveries.</p>
           </div>
         </template>
       </b-table>

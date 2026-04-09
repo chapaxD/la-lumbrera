@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section>
     <!-- Encabezado -->
     <nav class="level mb-4">
@@ -57,27 +57,27 @@
     <!-- Estadísticas -->
     <div class="columns mb-2" v-if="insumos.length > 0">
       <div class="column">
-        <div class="box has-text-centered py-3">
-          <p class="heading">Total productos</p>
-          <p class="title is-4">{{ insumos.length }}</p>
+        <div class="notification is-light py-4 has-text-centered">
+          <p class="heading has-text-grey">Total productos</p>
+          <p class="title is-3">{{ insumos.length }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification is-warning is-light py-4 has-text-centered">
           <p class="heading">Platillos</p>
-          <p class="title is-4 has-text-warning">{{ totalPlatillos }}</p>
+          <p class="title is-3 has-text-warning-dark">{{ totalPlatillos }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification is-info is-light py-4 has-text-centered">
           <p class="heading">Bebidas</p>
-          <p class="title is-4 has-text-info">{{ totalBebidas }}</p>
+          <p class="title is-3 has-text-info-dark">{{ totalBebidas }}</p>
         </div>
       </div>
       <div class="column">
-        <div class="box has-text-centered py-3">
+        <div class="notification py-4 has-text-centered" :class="stockCritico > 0 ? 'is-danger is-light' : 'is-success is-light'">
           <p class="heading">Stock crítico</p>
-          <p class="title is-4" :class="stockCritico > 0 ? 'has-text-danger' : 'has-text-success'">{{ stockCritico }}</p>
+          <p class="title is-3">{{ stockCritico }}</p>
         </div>
       </div>
     </div>
@@ -166,9 +166,10 @@
       </b-table-column>
 
       <template #empty>
-        <div class="has-text-centered py-5 has-text-grey">
-          <b-icon icon="food-fork-drink" size="is-large"></b-icon>
-          <p class="mt-2">No se encontraron insumos</p>
+        <div class="has-text-centered py-6 has-text-grey" style="opacity: 0.8;">
+          <b-icon icon="food-apple-outline" custom-size="fa-4x" style="font-size: 4rem;"></b-icon>
+          <p class="mt-4 title is-4 has-text-grey-dark">El menú está vacío</p>
+          <p class="subtitle is-6">Sube tus recetas haciendo clic en "Añadir insumo".</p>
         </div>
       </template>
     </b-table>

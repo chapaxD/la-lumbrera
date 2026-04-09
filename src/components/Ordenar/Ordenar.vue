@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section>
     <p class="title is-1 has-text-weight-bold">
       <b-icon :icon="tipo_orden === 'DELIVERY' ? 'truck-delivery' : tipo_orden === 'LLEVAR' ? 'walk' : 'pen'" size="is-large" type="is-primary"> </b-icon>
@@ -219,9 +219,32 @@ export default {
         const input = document.querySelector("#busqueda");
         if(input) input.focus();
     }, 500);
+
+    window.addEventListener('keydown', this.manejarAtajos);
+  },
+
+  beforeDestroy() {
+    window.removeEventListener('keydown', this.manejarAtajos);
   },
 
   methods: {
+    manejarAtajos(e) {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const input = document.querySelector("#busqueda");
+        if(input) input.focus();
+      } else if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        if (this.insumosOrden.length === 0) return;
+        
+        if (this.estaAgregandoInsumos) {
+            this.editarOrden();
+        } else {
+            this.realizarOrden();
+        }
+      }
+    },
+
     buscarClienteOrden(q) {
       clearTimeout(this._timerCliente);
       if (!q || q.length < 2) { this.sugerenciasClientes = []; return; }

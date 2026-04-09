@@ -16,6 +16,22 @@
         </div>
 
         <div class="columns is-multiline">
+            <!-- Skeleton Screens para la primera carga -->
+            <template v-if="cargando">
+                <div class="column is-4-desktop is-6-tablet" v-for="i in 6" :key="'skel-mesa-'+i">
+                    <div class="box">
+                        <div class="is-flex is-justify-content-space-between mb-4">
+                            <b-skeleton width="45%" height="32px" animated></b-skeleton>
+                            <b-skeleton width="25%" height="32px" animated></b-skeleton>
+                        </div>
+                        <b-skeleton width="80%" animated></b-skeleton>
+                        <b-skeleton width="60%" animated></b-skeleton>
+                        <b-skeleton width="100%" height="45px" class="mt-4" animated></b-skeleton>
+                    </div>
+                </div>
+            </template>
+            
+            <template v-else>
             <!-- Mesas Locales -->
             <div class="column is-4-desktop is-6-tablet" 
             v-for="mesa in mesas" 
@@ -306,8 +322,8 @@
                     </div>
                 </div>
             </div>
+            </template>
         </div>
-        <b-loading :is-full-page="true" v-model="cargando" :can-cancel="false"></b-loading>
         <ticket @impreso="onImpreso" :venta="this.ventaSeleccionada" :insumos="insumosSeleccionados" :datosLocal="datos" :logo="logo" v-if="mostrarTicket"></ticket>
 
         <b-modal :active.sync="mostrarModalCobro" has-modal-card trap-focus>
@@ -516,13 +532,37 @@ export default {
             this.cargarDatos(true);
             this.verificarCaja();
         }, 3000);
+        window.addEventListener('keydown', this.manejarAtajos)
     },
 
     beforeDestroy() {
         if(this.timer) clearInterval(this.timer);
+        window.removeEventListener('keydown', this.manejarAtajos)
     },
 
     methods:{
+        manejarAtajos(e) {
+            if (e.key === 'F2') {
+                e.preventDefault()
+                // Si no hay modales abiertos, F2 abre "Nuevo para llevar" rápidamente
+                if (!this.mostrarModalCobro && !this.mostrarModalCliente && !this.mostrarModalMesero) {
+                    this.nuevoParaLlevar()
+                }
+            } else if (e.key === 'Enter') {
+                // Confirmaciones rápidas en modales con la tecla Enter
+                if (this.mostrarModalCliente) {
+                    e.preventDefault()
+                    this.confirmarClienteOrden()
+                } else if (this.mostrarModalCobro) {
+                    e.preventDefault()
+                    if (this.pagoValido) this.procesarCobro()
+                } else if (this.mostrarModalMesero) {
+                    e.preventDefault()
+                    if (this.meseroAsignadoId) this.confirmarAsignacionMesero()
+                }
+            }
+        },
+
         puedeAccederOrden(idUsuarioOrden) {
             if (this.rol !== 'mesero') return true;
             return String(idUsuarioOrden || '') === String(this.idUsuarioActual || '');

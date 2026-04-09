@@ -3,6 +3,23 @@
         <br>
         <widget-caja class="mb-5" v-if="rol === 'admin'"></widget-caja>
         <div class="columns is-multiline mb-4">
+            <!-- Skeletons para carga inicial -->
+            <template v-if="cargando">
+                <div class="column is-6-tablet is-4-desktop is-3-widescreen is-12-mobile" v-for="i in 4" :key="'skel-card-'+i">
+                    <div class="card is-card-widget h-100 glass-card">
+                        <div class="card-content widget-card-body">
+                            <div class="widget-icon-bubble">
+                                <b-skeleton circle width="28px" height="28px" animated></b-skeleton>
+                            </div>
+                            <p class="is-size-7 mt-3 mb-1"><b-skeleton width="60%" animated></b-skeleton></p>
+                            <h3 class="title is-3 mb-1"><b-skeleton width="80%" height="36px" animated></b-skeleton></h3>
+                            <div class="mt-auto"><b-skeleton width="40%" animated></b-skeleton></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <template v-else>
             <div class="column is-6-tablet is-4-desktop is-3-widescreen is-12-mobile" v-for="(carta, index) in cartas" :key="index">
                 <div class="card is-card-widget h-100 glass-card transition-card">
                     <div class="card-content widget-card-body">
@@ -20,6 +37,7 @@
                     </div>
                 </div>
             </div>
+            </template>
         </div>
             <div class="columns is-multiline">
                 <div class="column is-one-third">
@@ -218,7 +236,6 @@
                 </div>
             </div>
         <widget-caja v-if="rol === 'admin'"></widget-caja>
-        <b-loading :is-full-page="true" v-model="cargando" :can-cancel="false"></b-loading>
 
     </section>
 </template>
@@ -347,7 +364,7 @@ export default ({
                     {
                         encabezado: "Ventas del día",
                         titulo: "Ventas hoy",
-                        total: this.resultadoCartas.totalVentasDia > 0 ? "$" + this.resultadoCartas.totalVentasDia : "$0 hoy",
+                        total: this.resultadoCartas.totalVentasDia > 0 ? "$" + this.resultadoCartas.totalVentasDia : "$0 — ¡Vamos por esa primera venta! 💪",
                         icono: "cart-outline",
                         colorTexto: "has-text-info",
                         ruta: "/reporte-ventas"

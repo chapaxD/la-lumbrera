@@ -1,34 +1,21 @@
 <template>
-  <footer class="footer fondo">
-    <div class="content has-text-centered">
+  <footer class="footer-slim">
+    <div class="footer-inner">
+      <!-- Izquierda: logo + teléfono -->
+      <div class="footer-left">
+        <img src="@/assets/LA LUMBRERA B.png" alt="logo" class="footer-logo">
+        <span class="footer-phone">📞 {{ datosLocal.telefono || '+591 77376746' }}</span>
+      </div>
 
-      <!-- Logo -->
-      <img 
-        src="@/assets/LA LUMBRERA B.png" 
-        alt="logo" 
-        style="max-height: 80px;"
-      >
-
-      <!-- Nombre del negocio (dinámico) -->
-      <!-- <p class="has-text-white has-text-weight-bold mt-2">
-        {{ datosLocal.nombre || 'LA LUMBRERA' }}
-      </p> -->
-
-      <!-- Teléfono -->
-      <p class="has-text-white">
-        📞 {{ datosLocal.telefono || '+591 77376746' }} 
-      </p>
-
-      <!-- Sello del sistema -->
-      <div class="mt-3">
+      <!-- Centro: sello -->
+      <div class="footer-center">
         <span class="sello">⚙ Sistema Interno — Uso Confidencial</span>
       </div>
 
-      <!-- Autor -->
-      <p class="autor">
-        Desarrollado por <strong>RogerAndiaDev</strong> &copy; {{ new Date().getFullYear() }}
-      </p>
-
+      <!-- Derecha: autor -->
+      <div class="footer-right">
+        <span class="autor">Desarrollado por <strong>RogerAndiaDev</strong> &copy; {{ new Date().getFullYear() }}</span>
+      </div>
     </div>
   </footer>
 </template>
@@ -40,7 +27,6 @@ export default {
 
   data: () => ({
     datosLocal: {},
-    anio: new Date().getFullYear()
   }),
 
   mounted() {
@@ -61,30 +47,64 @@ export default {
 }
 </script>
 <style scoped>
-.fondo {
-  background-color: #1a1a1a;
-  padding: 1.5rem 1rem;
+.footer-slim {
+  background-color: var(--color-pie, #1a1a1a);
+  padding: 0.6rem 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Sello tipo confidencial */
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Izquierda */
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.footer-logo {
+  height: 32px;
+  object-fit: contain;
+}
+
+.footer-phone {
+  font-size: 12px;
+  color: #aaaaaa;
+}
+
+/* Centro */
+.footer-center {
+  text-align: center;
+}
+
 .sello {
   display: inline-block;
-  font-size: 11px;
+  font-size: 10px;
   color: #f0c040;
   border: 1px solid #f0c040;
   border-radius: 4px;
-  padding: 2px 10px;
-  margin-top: 12px;
-  letter-spacing: 1.5px;
+  padding: 2px 8px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
-/* Autor */
+/* Derecha */
+.footer-right {
+  text-align: right;
+}
+
 .autor {
-  font-size: 12px;
+  font-size: 11px;
   color: #aaaaaa;
-  margin-top: 8px;
 }
 
 .autor strong {

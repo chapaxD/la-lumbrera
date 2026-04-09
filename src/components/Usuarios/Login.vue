@@ -1,23 +1,54 @@
-﻿<template>
-    <section class="hero is-fullheight fondo">
-        <div class="hero-body">
-            <div class="container">
-                <div class="columns is-centered">
-                    <div class="column is-5-tablet is-5-desktop is-4-widescreen">
-                        <form action="" class="box" :class="{ 'shake': errorCredenciales }" @submit.prevent="ingresar">
-                            <img src="@/assets/LA LUMBRERA N.png" alt="Logo" height="150" width="150" style="display: block; margin: 0 auto 8px;">
-                            <!-- <p class="has-text-centered has-text-grey mb-4" style="font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase;"></p> -->
+<template>
+    <section class="split-login-container">
+        <div class="columns is-gapless mb-0" style="min-height: 100vh;">
+            
+            <!-- Panel Izquierdo: Información de la Empresa -->
+            <div class="column is-flex is-flex-direction-column is-justify-content-center is-align-items-center panel-info is-hidden-mobile">
+                <div class="info-content has-text-centered">
+                    <img src="@/assets/LA LUMBRERA B.png" alt="Logo" class="login-logo-blanco glass-effect p-4 mb-5 animate-fade-in-up">
+                    <h1 class="title is-2 has-text-white mb-3 animate-fade-in-up delay-1">La Lumbrera</h1>
+                    <h2 class="subtitle is-5 has-text-white mt-1 mb-5 animate-fade-in-up delay-2" style="opacity: 0.9;">
+                        Gestión Gastronómica Inteligente
+                    </h2>
+                    <div class="features-list animate-fade-in-up delay-3">
+                        <p><b-icon icon="point-of-sale" size="is-small"></b-icon> Control de Ventas</p>
+                        <p><b-icon icon="table-furniture" size="is-small"></b-icon> Gestión de Mesas</p>
+                        <p><b-icon icon="chef-hat" size="is-small"></b-icon> Administración de Cocina</p>
+                    </div>
+                </div>
+            </div>
 
-                            <b-field :type="errorCredenciales ? 'is-danger' : ''" >
+            <!-- Panel Derecho: Formulario de Login -->
+            <div class="column is-flex is-justify-content-center is-align-items-center panel-form">
+                <div class="form-wrapper">
+                    
+                    <!-- Logo para móviles (oculto en desktop) -->
+                    <div class="has-text-centered is-hidden-tablet mb-5 animate-fade-in-up">
+                        <img src="@/assets/LA LUMBRERA N.png" alt="Logo" class="login-logo-movil">
+                    </div>
+
+                    <form action="" class="box login-box animate-scale-in delay-1" :class="{ 'shake': errorCredenciales }" @submit.prevent="ingresar">
+                        
+                        <div class="has-text-centered mb-5 animate-fade-in-up delay-2">
+                            <h3 class="title is-4 has-text-weight-bold mb-2">¡Bienvenido de vuelta!</h3>
+                            <p class="has-text-grey is-size-6">Ingresa tus credenciales para acceder</p>
+                        </div>
+
+                        <div class="animate-fade-in-up delay-3 mb-4">
+                            <b-field :type="errorCredenciales ? 'is-danger' : (correo && correo.includes('@') ? 'is-success' : '')" >
                                 <b-input placeholder="Correo electrónico"
                                     type="email"
                                     icon="email"
+                                    ref="inputCorreo"
                                     v-model="correo"
                                     :disabled="cargando"
+                                    size="is-medium"
                                     @keyup.enter.native="ingresar">
                                 </b-input>
                             </b-field>
+                        </div>
 
+                        <div class="animate-fade-in-up delay-4 mb-4">
                             <b-field :type="errorCredenciales ? 'is-danger' : ''" :message="errorCredenciales ? 'Correo o contraseña incorrectos' : ''">
                                 <b-input type="password"
                                     placeholder="Contraseña"
@@ -25,27 +56,37 @@
                                     v-model="password"
                                     :disabled="cargando"
                                     password-reveal
+                                    size="is-medium"
                                     @keyup.enter.native="ingresar">
                                 </b-input>
                             </b-field>
+                        </div>
+                        
+                        <div class="animate-fade-in-up delay-5 mb-2 has-text-left mt-3">
+                            <b-checkbox v-model="recordarCorreo" size="is-small" type="is-primary" class="has-text-grey">
+                                Recordar mi correo
+                            </b-checkbox>
+                        </div>
 
-                            <div class="field has-text-centered mt-5">
-                                <b-button
-                                    icon-left="login"
-                                    type="is-primary"
-                                    size="is-large"
-                                    native-type="submit"
-                                    :loading="cargando"
-                                    :disabled="cargando"
-                                    @click="ingresar">
-                                    Ingresar
-                                </b-button>
-                            </div>
-                        </form>
-                    </div>
+                        <div class="field has-text-centered mt-4 pt-2 animate-fade-in-up delay-5">
+                            <b-button
+                                icon-left="login"
+                                type="is-primary"
+                                size="is-medium"
+                                native-type="submit"
+                                :loading="cargando"
+                                :disabled="cargando"
+                                expanded
+                                class="btn-login"
+                                @click="ingresar">
+                                Ingresar al Sistema
+                            </b-button>
+                        </div>
+                    </form>
                 </div>
-                <b-loading :is-full-page="true" v-model="cargando" :can-cancel="false"></b-loading>
+                <b-loading :is-full-page="false" v-model="cargando" :can-cancel="false"></b-loading>
             </div>
+            
         </div>
     </section>
 </template>
@@ -59,10 +100,24 @@ export default {
         correo: "", 
         password: "",
         cargando: false,
-        errorCredenciales: false
+        errorCredenciales: false,
+        recordarCorreo: false
     }),
 
     mounted() {
+        if (localStorage.getItem('correo_recordado')) {
+            this.correo = localStorage.getItem('correo_recordado');
+            this.recordarCorreo = true;
+            setTimeout(() => {
+                const passInput = this.$el.querySelector('input[type="password"]');
+                if(passInput) passInput.focus();
+            }, 800);
+        } else {
+            setTimeout(() => {
+                if(this.$refs.inputCorreo) this.$refs.inputCorreo.focus();
+            }, 800);
+        }
+
         if (localStorage.getItem('sesion_expirada')) {
             localStorage.removeItem('sesion_expirada');
             this.$toast({
@@ -98,6 +153,15 @@ export default {
 
             HttpService.obtenerConDatos(payload, "iniciar_sesion.php")
             .then(log => {
+                // Guardar correo si el usuario lo desea y el login es exitoso
+                if (log.resultado || log.resultado === "cambia") {
+                    if (this.recordarCorreo) {
+                        localStorage.setItem('correo_recordado', this.correo);
+                    } else {
+                        localStorage.removeItem('correo_recordado');
+                    }
+                }
+
                 if(log.resultado === "cambia"){
                    this.$toast({
                         message: 'Datos correctos. Debes cambiar tu contraseña',
@@ -122,7 +186,6 @@ export default {
                         type: 'is-danger'
                     })
                     this.cargando = false
-                    // Quitar efecto shake después de la animación
                     setTimeout(() => { this.errorCredenciales = false }, 600)
                 }
             })
@@ -139,19 +202,166 @@ export default {
 
 }
 </script>
-<style>
+<style scoped>
+@import url('https://fonts.googleapis.com/css?family=Amaranth');
 
- @import url('https://fonts.googleapis.com/css?family=Amaranth');
-.fondo {
-background-color: #54008C;
-background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 1000'%3E%3Cg fill-opacity='0.83'%3E%3Ccircle fill='%2354008C' cx='50' cy='0' r='50'/%3E%3Cg fill='%235b0092' %3E%3Ccircle cx='0' cy='50' r='50'/%3E%3Ccircle cx='100' cy='50' r='50'/%3E%3C/g%3E%3Ccircle fill='%23620098' cx='50' cy='100' r='50'/%3E%3Cg fill='%2369009d' %3E%3Ccircle cx='0' cy='150' r='50'/%3E%3Ccircle cx='100' cy='150' r='50'/%3E%3C/g%3E%3Ccircle fill='%236f00a3' cx='50' cy='200' r='50'/%3E%3Cg fill='%237600a9' %3E%3Ccircle cx='0' cy='250' r='50'/%3E%3Ccircle cx='100' cy='250' r='50'/%3E%3C/g%3E%3Ccircle fill='%237d00af' cx='50' cy='300' r='50'/%3E%3Cg fill='%238400b4' %3E%3Ccircle cx='0' cy='350' r='50'/%3E%3Ccircle cx='100' cy='350' r='50'/%3E%3C/g%3E%3Ccircle fill='%238b00ba' cx='50' cy='400' r='50'/%3E%3Cg fill='%239200c0' %3E%3Ccircle cx='0' cy='450' r='50'/%3E%3Ccircle cx='100' cy='450' r='50'/%3E%3C/g%3E%3Ccircle fill='%239900c6' cx='50' cy='500' r='50'/%3E%3Cg fill='%239f00cb' %3E%3Ccircle cx='0' cy='550' r='50'/%3E%3Ccircle cx='100' cy='550' r='50'/%3E%3C/g%3E%3Ccircle fill='%23a600d1' cx='50' cy='600' r='50'/%3E%3Cg fill='%23ad00d7' %3E%3Ccircle cx='0' cy='650' r='50'/%3E%3Ccircle cx='100' cy='650' r='50'/%3E%3C/g%3E%3Ccircle fill='%23b400dd' cx='50' cy='700' r='50'/%3E%3Cg fill='%23bb00e2' %3E%3Ccircle cx='0' cy='750' r='50'/%3E%3Ccircle cx='100' cy='750' r='50'/%3E%3C/g%3E%3Ccircle fill='%23c200e8' cx='50' cy='800' r='50'/%3E%3Cg fill='%23c800ee' %3E%3Ccircle cx='0' cy='850' r='50'/%3E%3Ccircle cx='100' cy='850' r='50'/%3E%3C/g%3E%3Ccircle fill='%23cf00f4' cx='50' cy='900' r='50'/%3E%3Cg fill='%23d600f9' %3E%3Ccircle cx='0' cy='950' r='50'/%3E%3Ccircle cx='100' cy='950' r='50'/%3E%3C/g%3E%3Ccircle fill='%23D0F' cx='50' cy='1000' r='50'/%3E%3C/g%3E%3C/svg%3E");
-background-attachment: fixed;
-background-size: contain;
+.split-login-container {
+    overflow: hidden;
 }
 
-.box {
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+/* Panel Izquierdo con imagen */
+.panel-info {
+    position: relative;
+    background-image: url('~@/assets/login_bg.png'); /* Carga la imagen generada */
+    background-size: cover;
+    background-position: center;
+}
+
+.panel-info::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    /* Gradiente oscuro para que resalte el texto */
+    background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%);
+    z-index: 1;
+}
+
+.info-content {
+    position: relative;
+    z-index: 2;
+    padding: 2rem;
+}
+
+.login-logo-blanco {
+    width: 220px;
+    height: auto;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.features-list {
+    text-align: left;
+    margin-top: 2rem;
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.features-list p {
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.features-list p:last-child { margin-bottom: 0; }
+
+/* Panel Derecho */
+.panel-form {
+    background-color: var(--color-fondo, #f8f9fa);
+    position: relative;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 550px; /* Más ancho */
+    padding: 2rem;
+    animation: float 6s ease-in-out infinite; /* Animación flotante continua */
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+.login-box {
+    margin: 2.5rem; /* Margen más notorio */
+    border-radius: 24px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.1);
+    padding: 3.5rem 3rem; /* Más grande internamente */
+    border: 1px solid rgba(255,255,255,0.3);
+    background: var(--color-primario-claro, rgba(255,255,255,0.85));
+    backdrop-filter: blur(16px);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.login-box:hover {
+    transform: scale(1.02); /* Se agranda un poco al pasar el mouse */
+    box-shadow: 0 25px 60px rgba(var(--color-primario-rgb, 0,0,0), 0.2);
+    border-color: rgba(255,255,255,0.8);
+}
+
+/* Ajustes responsivos para evitar que el formulario se vea alargado en celulares */
+@media (max-width: 768px) {
+    .form-wrapper {
+        padding: 0.5rem;
+    }
+    .login-box {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+    }
+    .login-logo-movil {
+        width: 120px;
+        margin-top: 1rem;
+    }
+}
+
+.login-logo-movil {
+    width: 160px;
+    height: auto;
+}
+
+.btn-login {
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================= */
+/* CLASES DE ANIMACIÓN                       */
+/* ========================================= */
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+/* Retrasos escalonados para efecto cascada */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.3s; }
+.delay-3 { animation-delay: 0.45s; }
+.delay-4 { animation-delay: 0.6s; }
+.delay-5 { animation-delay: 0.75s; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes shake {
@@ -161,6 +371,7 @@ background-size: contain;
   60%       { transform: translateX(-6px); }
   80%       { transform: translateX(6px); }
 }
+
 .shake {
     animation: shake 0.5s ease;
 }

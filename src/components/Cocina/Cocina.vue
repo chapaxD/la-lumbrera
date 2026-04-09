@@ -1,16 +1,18 @@
 <template>
     <section class="section" style="min-height: 70vh;">
-        <div class="columns is-vcentered mb-4">
-            <div class="column">
+        <div class="columns is-mobile is-multiline is-vcentered mb-4">
+            <div class="column is-12-mobile">
                 <p class="title is-1 has-text-weight-bold">
                     <b-icon icon="silverware-fork-knife" size="is-large" type="is-primary"></b-icon>
                     Pantalla Cocina
                 </p>
             </div>
-            <div class="column is-narrow has-text-right">
-                <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
-                    Reportar faltante
-                </b-button>
+            <div class="column is-12-mobile has-text-right-tablet">
+                <div class="buttons is-right">
+                    <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
+                        Reportar faltante
+                    </b-button>
+                </div>
                 <p class="is-size-7 mt-1" :class="conectado ? 'has-text-success' : 'has-text-danger'">
                     <b-icon :icon="conectado ? 'wifi' : 'wifi-off'" size="is-small" class="mr-1"></b-icon>
                     {{ conectado ? 'Conectado (6s)' : 'Reconectando...' }}
@@ -76,7 +78,7 @@
                             'has-background-info-light': (insumo.categoria || '').toLowerCase() === 'carnes' && insumo.acompanamiento_listo === 0
                         }">
                             <div
-                                style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
+                                style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
                                 <b-icon :icon="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'check-circle' : 'clock-alert-outline'"
                                     :type="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'is-success' : (insumo.categoria || '').toLowerCase() === 'carnes' ? 'is-info' : 'is-danger'"
                                     style="flex-shrink:0;">
@@ -430,75 +432,3 @@ export default {
     }
 }
 </script>
-<style>
-@keyframes pulso-pagada {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(72, 199, 142, 0);
-    }
-
-    50% {
-        box-shadow: 0 0 0 10px rgba(72, 199, 142, 0.5);
-    }
-}
-
-.cocina-pagada-lista {
-    background-color: #effaf3 !important;
-    border: 2px solid #48c78e !important;
-    animation: pulso-pagada 1.2s ease-in-out infinite;
-}
-
-.cocina-pagada-lista.cobrado {
-    border-color: #257942 !important;
-}
-
-/* ── Encabezado rediseñado ── */
-.cocina-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.cocina-card-header {
-    padding: 10px 14px 8px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.cocina-card-titulo {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-}
-
-.cocina-icono-tipo {
-    flex-shrink: 0;
-}
-
-.cocina-titulo-texto {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.cocina-titulo-texto span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.cocina-cliente {
-    font-style: italic;
-    line-height: 1.2;
-}
-
-.cocina-card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-</style>

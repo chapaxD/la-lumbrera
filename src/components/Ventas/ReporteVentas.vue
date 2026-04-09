@@ -34,13 +34,8 @@
     <div class="box mb-4" v-if="filtrar">
       <b-field grouped group-multiline>
         <b-field label="Periodo de tiempo" expanded>
-          <b-datepicker
-            placeholder="Selecciona rango..."
-            v-model="fechasSeleccionadas"
-            @input="buscarEnFecha"
-            icon="calendar-today"
-            range
-          ></b-datepicker>
+          <b-datepicker placeholder="Selecciona rango..." v-model="fechasSeleccionadas" @input="buscarEnFecha"
+            icon="calendar-today" range></b-datepicker>
         </b-field>
         <b-field label="Vendedor" expanded>
           <b-select v-model="usuarioSeleccionado" @change.native="buscarEnFecha">
@@ -81,123 +76,88 @@
       </div>
     </div>
 
-    <!-- Resumen por día -->
-    <div class="box mb-4" v-if="resumenPorDia && resumenPorDia.length > 0">
-      <p class="title is-5 has-text-weight-bold has-text-grey mb-3">
-        <b-icon icon="calendar-today" type="is-info"></b-icon>
-        Ventas por día
-      </p>
-      <b-table :data="resumenPorDia" bordered striped hoverable narrowed>
-        <b-table-column field="fecha" label="Fecha" v-slot="props">
-          {{ props.row.fecha }}
-        </b-table-column>
-        <b-table-column field="numVentas" label="N° Ventas" v-slot="props">
-          {{ props.row.numVentas }}
-        </b-table-column>
-        <b-table-column field="totalVentas" label="Total vendido" v-slot="props">
-          ${{ props.row.totalVentas }}
-        </b-table-column>
-      </b-table>
-    </div>
+
 
     <!-- Tabla principal -->
     <div class="box">
-    <b-table
-      :data="ventas"
-      :total="totalRegistros"
-      :per-page="perPage"
-      :paginated="true"
-      :bordered="true"
-      :narrowed="true"
-      :striped="true"
-      :hoverable="true"
-      :current-page.sync="currentPage"
-      :pagination-simple="isPaginationSimple"
-      :pagination-position="paginationPosition"
-      :default-sort-direction="defaultSortDirection"
-      :sort-icon="sortIcon"
-      :sort-icon-size="sortIconSize"
-      backend-pagination
-      detailed
-      detail-key="id"
-      @page-change="onPageChange"
-      aria-next-label="Siguiente"
-      aria-previous-label="Anterior"
-      aria-page-label="Página"
-      aria-current-label="Página actual"
-    >
-      <b-table-column field="id" label="#" numeric sortable v-slot="props">
-        <strong>{{ props.row.id }}</strong>
-      </b-table-column>
+      <b-table :data="ventas" :total="totalRegistros" :per-page="perPage" :paginated="true" :bordered="true"
+        :narrowed="true" :striped="true" :hoverable="true" :current-page.sync="currentPage"
+        :pagination-simple="isPaginationSimple" :pagination-position="paginationPosition"
+        :default-sort-direction="defaultSortDirection" :sort-icon="sortIcon" :sort-icon-size="sortIconSize"
+        backend-pagination detailed detail-key="id" @page-change="onPageChange" aria-next-label="Siguiente"
+        aria-previous-label="Anterior" aria-page-label="Página" aria-current-label="Página actual">
+        <b-table-column field="id" label="#" numeric sortable v-slot="props">
+          <strong>{{ props.row.id }}</strong>
+        </b-table-column>
 
-      <b-table-column field="tipo_orden" label="Tipo" v-slot="props">
-        <b-tag :type="props.row.tipo_orden === 'DELIVERY' ? 'is-info' : 'is-light'">
-          {{ props.row.tipo_orden || 'LOCAL' }}
-        </b-tag>
-      </b-table-column>
+        <b-table-column field="tipo_orden" label="Tipo" v-slot="props">
+          <b-tag :type="props.row.tipo_orden === 'DELIVERY' ? 'is-info' : 'is-light'">
+            {{ props.row.tipo_orden || 'LOCAL' }}
+          </b-tag>
+        </b-table-column>
 
-      <b-table-column field="idMesa" label="Mesa / Ref" v-slot="props">
-        <span v-if="props.row.tipo_orden === 'DELIVERY'">Delivery</span>
-        <span v-else>Mesa #{{ props.row.idMesa }}</span>
-      </b-table-column>
+        <b-table-column field="idMesa" label="Mesa / Ref" v-slot="props">
+          <span v-if="props.row.tipo_orden === 'DELIVERY'">Delivery</span>
+          <span v-else>Mesa #{{ props.row.idMesa }}</span>
+        </b-table-column>
 
-      <b-table-column field="fecha" label="Fecha" searchable sortable v-slot="props">
-        {{ props.row.fecha | formatFecha }}
-      </b-table-column>
+        <b-table-column field="fecha" label="Fecha" searchable sortable v-slot="props">
+          {{ props.row.fecha | formatFecha }}
+        </b-table-column>
 
-      <b-table-column field="atendio" label="Atendió" searchable v-slot="props">
-        {{ props.row.atendio }}
-      </b-table-column>
+        <b-table-column field="atendio" label="Atendió" searchable v-slot="props">
+          {{ props.row.atendio }}
+        </b-table-column>
 
-      <b-table-column field="cliente" label="Cliente" searchable v-slot="props">
-        {{ props.row.cliente || '-' }}
-      </b-table-column>
+        <b-table-column field="cliente" label="Cliente" searchable v-slot="props">
+          {{ props.row.cliente || '-' }}
+        </b-table-column>
 
-      <b-table-column field="pagado" label="Pago" numeric v-slot="props">
-        ${{ props.row.pagado }}
-      </b-table-column>
+        <b-table-column field="pagado" label="Pago" numeric v-slot="props">
+          ${{ props.row.pagado }}
+        </b-table-column>
 
-      <b-table-column field="cambio" label="Cambio" numeric sortable v-slot="props">
-        ${{ (props.row.pagado - props.row.total).toFixed(2) }}
-      </b-table-column>
+        <b-table-column field="cambio" label="Cambio" numeric sortable v-slot="props">
+          ${{ (props.row.pagado - props.row.total).toFixed(2) }}
+        </b-table-column>
 
-      <b-table-column field="total" label="Total" numeric sortable v-slot="props">
-        <strong>${{ props.row.total }}</strong>
-      </b-table-column>
+        <b-table-column field="total" label="Total" numeric sortable v-slot="props">
+          <strong>${{ props.row.total }}</strong>
+        </b-table-column>
 
-      <b-table-column label="Acciones" v-slot="props">
-        <div class="buttons">
-          <b-button size="is-small" type="is-info" icon-left="printer" title="Imprimir ticket"
-            @click="imprimirComprobante(props.row)"></b-button>
-          <b-button size="is-small" type="is-warning" icon-left="file-document-outline" title="Generar factura"
-            @click="generarFactura(props.row)"></b-button>
-        </div>
-      </b-table-column>
+        <b-table-column label="Acciones" v-slot="props">
+          <div class="buttons">
+            <b-button size="is-small" type="is-info" icon-left="printer" title="Imprimir ticket"
+              @click="imprimirComprobante(props.row)"></b-button>
+            <b-button size="is-small" type="is-warning" icon-left="file-document-outline" title="Generar factura"
+              @click="generarFactura(props.row)"></b-button>
+          </div>
+        </b-table-column>
 
-      <!-- Detalle expandible: productos del pedido -->
-      <template #detail="props">
-        <b-table :data="props.row.insumos" narrowed class="is-size-7">
-          <b-table-column field="codigo" label="Código" v-slot="p">{{ p.row.codigo }}</b-table-column>
-          <b-table-column field="nombre" label="Producto" v-slot="p">{{ p.row.nombre }}</b-table-column>
-          <b-table-column field="cantidad" label="Cant." numeric v-slot="p">{{ p.row.cantidad }}</b-table-column>
-          <b-table-column field="precio" label="Precio unit." numeric v-slot="p">${{ p.row.precio }}</b-table-column>
-          <b-table-column field="subtotal" label="Subtotal" numeric v-slot="p">
-            <strong>${{ (p.row.cantidad * p.row.precio).toFixed(2) }}</strong>
-          </b-table-column>
-        </b-table>
-        <div v-if="props.row.tipo_orden === 'DELIVERY'" class="mt-2 is-size-7 has-text-grey">
-          <strong>Dirección:</strong> {{ props.row.direccion }} &nbsp;&nbsp;
-          <strong>Tel:</strong> {{ props.row.telefono }}
-        </div>
-      </template>
+        <!-- Detalle expandible: productos del pedido -->
+        <template #detail="props">
+          <b-table :data="props.row.insumos" narrowed class="is-size-7">
+            <b-table-column field="codigo" label="Código" v-slot="p">{{ p.row.codigo }}</b-table-column>
+            <b-table-column field="nombre" label="Producto" v-slot="p">{{ p.row.nombre }}</b-table-column>
+            <b-table-column field="cantidad" label="Cant." numeric v-slot="p">{{ p.row.cantidad }}</b-table-column>
+            <b-table-column field="precio" label="Precio unit." numeric v-slot="p">${{ p.row.precio }}</b-table-column>
+            <b-table-column field="subtotal" label="Subtotal" numeric v-slot="p">
+              <strong>${{ (p.row.cantidad * p.row.precio).toFixed(2) }}</strong>
+            </b-table-column>
+          </b-table>
+          <div v-if="props.row.tipo_orden === 'DELIVERY'" class="mt-2 is-size-7 has-text-grey">
+            <strong>Dirección:</strong> {{ props.row.direccion }} &nbsp;&nbsp;
+            <strong>Tel:</strong> {{ props.row.telefono }}
+          </div>
+        </template>
 
-      <template #empty>
-        <div class="has-text-centered py-5 has-text-grey">
-          <b-icon icon="cash-register" size="is-large"></b-icon>
-          <p class="mt-2">No se encontraron ventas para este período</p>
-        </div>
-      </template>
-    </b-table>
+        <template #empty>
+          <div class="has-text-centered py-5 has-text-grey">
+            <b-icon icon="cash-register" size="is-large"></b-icon>
+            <p class="mt-2">No se encontraron ventas para este período</p>
+          </div>
+        </template>
+      </b-table>
     </div>
 
     <!-- Top 10 productos -->
@@ -210,7 +170,8 @@
           </p>
           <b-table :data="topInsumos" narrowed bordered striped hoverable>
             <b-table-column field="nombre" label="Producto" v-slot="props">{{ props.row.nombre }}</b-table-column>
-            <b-table-column field="categoria" label="Categoría" v-slot="props">{{ props.row.categoria }}</b-table-column>
+            <b-table-column field="categoria" label="Categoría" v-slot="props">{{ props.row.categoria
+              }}</b-table-column>
             <b-table-column field="totalVendidos" label="Cant. vendida" centered numeric v-slot="props">
               {{ props.row.totalVendidos }}
             </b-table-column>
@@ -222,14 +183,8 @@
       </div>
     </div>
 
-    <ticket
-      @impreso="onImpreso"
-      :venta="this.ventaSeleccionada"
-      :insumos="insumosSeleccionados"
-      :datosLocal="datos"
-      :logo="logo"
-      v-if="mostrarTicket"
-    ></ticket>
+    <ticket @impreso="onImpreso" :venta="this.ventaSeleccionada" :insumos="insumosSeleccionados" :datosLocal="datos"
+      :logo="logo" v-if="mostrarTicket"></ticket>
   </section>
 </template>
 <script>
@@ -297,16 +252,16 @@ export default {
     },
 
     exportarPDF() {
-      if(this.ventas.length === 0) return;
+      if (this.ventas.length === 0) return;
       let columnas = ["ID Ticket", "Tipo", "Mesa / Ref", "Fecha", "Atendio", "Cliente", "Total Comprado"];
       let filas = this.ventas.map(v => [
-          "#" + v.id,
-          v.tipo_orden || "LOCAL",
-          v.tipo_orden === 'DELIVERY' ? (v.direccion || "Delivery") : ("Mesa " + v.idMesa),
-          this.$options.filters.formatFecha(v.fecha),
-          v.atendio,
-          v.cliente || "-",
-          "$" + v.total
+        "#" + v.id,
+        v.tipo_orden || "LOCAL",
+        v.tipo_orden === 'DELIVERY' ? (v.direccion || "Delivery") : ("Mesa " + v.idMesa),
+        this.$options.filters.formatFecha(v.fecha),
+        v.atendio,
+        v.cliente || "-",
+        "$" + v.total
       ]);
       ReportesPdfService.generar("Reporte Resumido de Ventas", columnas, filas, "Total Acumulado Generado: $" + this.totalVentas);
     },

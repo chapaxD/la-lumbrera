@@ -238,6 +238,8 @@ $migraciones = [
     "reservas_estado_enum"  => "ALTER TABLE reservas MODIFY estado ENUM('PENDIENTE','CONFIRMADA','CANCELADA','COMPLETADA','SENTADA','NO-SHOW') DEFAULT 'PENDIENTE'",
     "reservas_adelanto_col" => "ALTER TABLE reservas ADD COLUMN IF NOT EXISTS adelanto DECIMAL(8,2) NOT NULL DEFAULT 0",
     "items_orden_acompanamiento_col" => "ALTER TABLE items_orden ADD COLUMN IF NOT EXISTS acompanamiento_listo TINYINT(1) NOT NULL DEFAULT 0",
+    "ventas_idmesa_varchar"         => "ALTER TABLE ventas MODIFY idMesa VARCHAR(20) NOT NULL",
+    "reservas_idmesa_varchar"       => "ALTER TABLE reservas MODIFY idMesa VARCHAR(20)",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

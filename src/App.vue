@@ -5,7 +5,7 @@
     <cambiar-password v-if="cambiarPassword"></cambiar-password>
     <div v-if="logeado && !cambiarPassword">
       <encabezado @cerrar="onClose"/> 
-      <div class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+      <div class="container is-fluid" style="padding-top: 1.5rem; padding-bottom: 3rem;">
         <router-view/>
       </div> 
       <pie /> 
@@ -243,6 +243,102 @@ footer.fondo {
   .title.is-3 {
     font-size: 1.1rem !important;
   }
+
+  /* Ajustes globales para evitar desbordamientos */
+  .card-content, .box {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .is-grouped.is-grouped-multiline {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Fixes generales de desbordamiento incluso en escritorio */
+.card, .box {
+  max-width: 100%;
+}
+
+.table {
+  width: 100% !important;
+}
+
+.title {
+  word-break: break-word;
+}
+
+/* ── Estilos Compartidos: Cocina y Parrilla ── */
+
+@keyframes pulso-pagada {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(72, 199, 142, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(72, 199, 142, 0.5);
+  }
+}
+
+.cocina-pagada-lista {
+  background-color: #effaf3 !important;
+  border: 2px solid #48c78e !important;
+  animation: pulso-pagada 1.2s ease-in-out infinite;
+}
+
+.cocina-pagada-lista.cobrado {
+  border-color: #257942 !important;
+}
+
+.cocina-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cocina-card-header {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cocina-card-titulo {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.cocina-icono-tipo {
+  flex-shrink: 0;
+}
+
+.cocina-titulo-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cocina-titulo-texto span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cocina-cliente {
+  font-style: italic;
+  line-height: 1.2;
+}
+
+.cocina-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 </style>
 

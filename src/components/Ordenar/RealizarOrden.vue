@@ -1,15 +1,17 @@
 <template>
     <section>
-        <div class="level mb-4">
-            <div class="level-left">
+        <div class="columns is-mobile is-multiline mb-4">
+            <div class="column is-12-mobile is-6-tablet">
                 <p class="title is-1 has-text-weight-bold">
                     <b-icon icon="order-bool-ascending-variant" size="is-large" type="is-primary"></b-icon>
                     Realizar orden 
                 </p>
             </div>
-            <div class="level-right">
-                <b-button type="is-warning" icon-left="walk" size="is-large" class="mr-2" @click="nuevoParaLlevar">Para llevar</b-button>
-                <b-button type="is-info" icon-left="truck-delivery" size="is-large" @click="nuevoDelivery">Nuevo Delivery</b-button>
+            <div class="column is-12-mobile is-6-tablet has-text-right-tablet">
+                <div class="buttons is-right">
+                    <b-button type="is-warning" icon-left="walk" size="is-medium" class="is-responsive" @click="nuevoParaLlevar">Para llevar</b-button>
+                    <b-button type="is-info" icon-left="truck-delivery" size="is-medium" class="is-responsive" @click="nuevoDelivery">Nuevo Delivery</b-button>
+                </div>
             </div>
         </div>
 
@@ -20,11 +22,12 @@
             :key="'mesa-'+mesa.mesa.idMesa">
                 
                     <div class="box" :class="{'has-background-warning-light': mesa.mesa.reserva, 'orden-lista-pulso': tieneListo(mesa.insumos)}">
-                    <p class="title is-2 has-text-grey">Mesa #{{ mesa.mesa.idMesa }}
-                        <span class="title is-1 has-text-weight-bold is-pulled-right" v-if="mesa.mesa.total && puedeVerDetallesMesa(mesa)">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
+                        <p class="title is-2 has-text-grey mb-0">Mesa #{{ mesa.mesa.idMesa }}</p>
+                        <span class="title is-1 has-text-weight-bold" v-if="mesa.mesa.total && puedeVerDetallesMesa(mesa)">
                             ${{ mesa.mesa.total }}
                         </span>
-                    </p>
+                    </div>
                     <p v-if="mesa.mesa.atiende">
                         <strong>Atiende</strong>: {{ mesa.mesa.atiende }}
                     </p>
@@ -66,6 +69,8 @@
                                 @check="(rows) => $set(checkedRowsMap, mesa.mesa.idMesa, rows)"
                                 :is-row-checkable="(row) => row.estado !== 'entregado'"
                                 checkable
+                                mobile-cards
+                                narrow
                                 custom-row-key="itemId"
                                 :checkbox-position="checkboxPosition"
                                 :checkbox-type="checkboxType">
@@ -99,12 +104,15 @@
                           <b-icon icon="lock" size="is-small"></b-icon>
                           <b>Mesa {{ mesa.mesa.reserva.estado === 'PENDIENTE' ? 'en espera de confirmación' : 'confirmada' }}</b> — solo puede abrirse desde <b>Gestión de Reservas</b>
                         </div>
-                        <div class="field is-grouped is-centered" v-if="mesa.mesa.estado === 'ocupada' && puedeAccederOrden(mesa.mesa.idUsuario)">
+                        <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="mesa.mesa.estado === 'ocupada' && puedeAccederOrden(mesa.mesa.idUsuario)">
                             <p class="control">
                                 <b-button type="is-success" icon-left="cash" @click="cobrar(mesa)">Cobrar</b-button>
                             </p>
                             <p class="control">
                                 <b-button type="is-info" icon-left="plus" @click="ocuparMesa(mesa)">Agregar</b-button>
+                            </p>
+                            <p class="control">
+                                <b-button type="is-primary" icon-left="account-multiple-plus" @click="compartirMesa(mesa)" title="Compartir mesa con otro grupo">Compartir</b-button>
                             </p>
                             <p class="control">
                                 <b-button type="is-warning" icon-left="check" v-if="(checkedRowsMap[mesa.mesa.idMesa] || []).length > 0" @click="marcarInsumosEntregados(mesa)">Entregado</b-button>
@@ -138,11 +146,12 @@
                     <p class="has-text-info has-text-weight-bold mb-1">
                         <b-icon icon="truck-delivery" size="is-small"></b-icon> DELIVERY
                     </p>
-                    <p class="title is-3 has-text-grey">{{ del.delivery.cliente || ('Delivery ' + del.delivery.idDelivery) }}
-                        <span class="title is-1 has-text-weight-bold is-pulled-right" v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
+                        <p class="title is-3 has-text-grey mb-0">{{ del.delivery.cliente || ('Delivery ' + del.delivery.idDelivery) }}</p>
+                        <span class="title is-1 has-text-weight-bold" v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
                             ${{ del.delivery.total }}
                         </span>
-                    </p>
+                    </div>
                     <p v-if="del.delivery.direccion && puedeAccederOrden(del.delivery.idUsuario)"><strong>Dirección</strong>: {{ del.delivery.direccion }}</p>
                     <p v-if="del.delivery.telefono && puedeAccederOrden(del.delivery.idUsuario)"><strong>Teléfono</strong>: {{ del.delivery.telefono }}</p>
                     <p><strong>Atiende</strong>: {{ del.delivery.atiende }}</p>
@@ -167,7 +176,7 @@
 
                         <div class="card-content">
                             <div class="content">
-                                <b-table :data="del.insumos">
+                                <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
                                     </b-table-column>                                    
@@ -189,7 +198,7 @@
                     <br>
                     <div class="has-text-centered">
                         <template v-if="del.delivery.estado_orden !== 'pagada'">
-                            <div class="field is-grouped is-centered" v-if="puedeAccederOrden(del.delivery.idUsuario)">
+                            <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <p class="control">
                                     <b-button type="is-success" icon-left="cash" @click="cobrarDelivery(del)">Cobrar</b-button>
                                 </p>
@@ -225,11 +234,12 @@
                     <p class="has-text-warning-dark has-text-weight-bold mb-1">
                         <b-icon icon="walk" size="is-small"></b-icon> PARA LLEVAR
                     </p>
-                    <p class="title is-3 has-text-grey">{{ del.delivery.cliente || ('Pedido ' + del.delivery.idDelivery) }}
-                        <span class="title is-1 has-text-weight-bold is-pulled-right" v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
+                        <p class="title is-3 has-text-grey mb-0">{{ del.delivery.cliente || ('Pedido ' + del.delivery.idDelivery) }}</p>
+                        <span class="title is-1 has-text-weight-bold" v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
                             ${{ del.delivery.total }}
                         </span>
-                    </p>
+                    </div>
                     <p v-if="del.delivery.telefono && puedeAccederOrden(del.delivery.idUsuario)"><strong>Teléfono</strong>: {{ del.delivery.telefono }}</p>
                     <p><strong>Atiende</strong>: {{ del.delivery.atiende }}</p>
 
@@ -247,7 +257,7 @@
                         </template>
                         <div class="card-content">
                             <div class="content">
-                                <b-table :data="del.insumos">
+                                <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
                                     </b-table-column>
@@ -269,7 +279,7 @@
                     <br>
                     <div class="has-text-centered">
                         <template v-if="del.delivery.estado_orden !== 'pagada'">
-                            <div class="field is-grouped is-centered" v-if="puedeAccederOrden(del.delivery.idUsuario)">
+                            <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <p class="control">
                                     <b-button type="is-success" icon-left="cash" @click="cobrarDelivery(del)">Cobrar</b-button>
                                 </p>
@@ -870,7 +880,17 @@ export default {
                         }
                     })
                 }
-                this.mesas = mesas || []
+                const mesasProcesadas = mesas || [];
+                // Ordenar para que las mesas compartidas queden juntas (ej: 1, 1-B, 2...)
+                mesasProcesadas.sort((a, b) => {
+                    const idA = String(a.mesa.idMesa);
+                    const idB = String(b.mesa.idMesa);
+                    const baseA = parseInt(idA);
+                    const baseB = parseInt(idB);
+                    if (baseA !== baseB) return baseA - baseB;
+                    return idA.localeCompare(idB);
+                });
+                this.mesas = mesasProcesadas;
                 // Re-sincronizar checkedRowsMap con las nuevas referencias de objetos
                 Object.keys(this.checkedRowsMap).forEach(idMesa => {
                     const mesaData = (mesas || []).find(m => String(m.mesa.idMesa) === String(idMesa))
@@ -925,7 +945,7 @@ export default {
             });
         },
 
-        ocuparMesa(mesa){
+        ocuparMesa(mesa) {
             if (mesa && mesa.mesa && (mesa.mesa.estado === 'ocupada' || mesa.mesa.estado === 'pagada') && !this.puedeAccederOrden(mesa.mesa.idUsuario)) {
                 this.$toast({ message: 'Sin acceso a esta orden', type: 'is-danger' });
                 return;
@@ -961,6 +981,48 @@ export default {
                     cliente: mesa.mesa.cliente || (mesa.mesa.reserva ? mesa.mesa.reserva.nombre_cliente : "")
                 },
             })
+        },
+
+        compartirMesa(mesa) {
+            const idActual = String(mesa.mesa.idMesa);
+            // Extraer número base (ej: de "1" -> "1", de "1-B" -> "1")
+            const baseId = idActual.split('-')[0];
+
+            // Buscar todas las mesas que tengan el mismo baseId y ver qué letras tienen
+            const subfijosUsados = this.mesas
+                .map(m => String(m.mesa.idMesa))
+                .filter(id => id.startsWith(baseId + '-'))
+                .map(id => id.split('-')[1]);
+
+            // Determinar la siguiente letra disponible (B, C, D...)
+            const siguiente = this._siguienteLetra(subfijosUsados);
+            const nuevoId = `${baseId}-${siguiente}`;
+
+            this.$buefy.toast.open({
+                message: `Abriendo cuenta compartida: Mesa ${nuevoId}`,
+                type: 'is-info'
+            });
+
+            // Reutilizamos la lógica de ocuparMesa pero para el nuevo ID
+            const mesaSimulada = {
+                mesa: {
+                    idMesa: nuevoId,
+                    estado: 'libre',
+                    cliente: '',
+                    atiende: '',
+                    idUsuario: ''
+                },
+                insumos: []
+            };
+            this.ocuparMesa(mesaSimulada);
+        },
+
+        _siguienteLetra(usadas) {
+            const abecedario = "BCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+            for (let letra of abecedario) {
+                if (!usadas.includes(letra)) return letra;
+            }
+            return "Z2";
         },
 
         confirmarAsignacionMesero() {

@@ -1,16 +1,22 @@
 <template>
   <section class="section" style="min-height: 70vh;">
-    <div class="columns is-vcentered mb-4">
-      <div class="column">
+    <div class="columns is-mobile is-multiline is-vcentered mb-4">
+      <div class="column is-12-mobile">
         <p class="title is-1 has-text-weight-bold">
           <b-icon icon="fire" size="is-large" type="is-danger"></b-icon>
           Pantalla Parrilla
         </p>
       </div>
-      <div class="column is-narrow has-text-right">
-        <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
-          Reportar faltante
-        </b-button>
+      <div class="column is-12-mobile has-text-right-tablet">
+        <div class="buttons is-right">
+          <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
+            Reportar faltante
+          </b-button>
+        </div>
+        <p class="is-size-7 mt-1" :class="conectado ? 'has-text-success' : 'has-text-danger'">
+          <b-icon :icon="conectado ? 'wifi' : 'wifi-off'" size="is-small" class="mr-1"></b-icon>
+          {{ conectado ? 'Conectado (6s)' : 'Reconectando...' }}
+        </p>
       </div>
 
     </div>
@@ -56,7 +62,7 @@
               'has-background-danger-light': insumo.estado === 'pendiente',
               'has-background-success-light': insumo.estado === 'listo'
             }">
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:nowrap;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
                 <b-icon :icon="insumo.estado === 'listo' ? 'check-circle' : 'clock-alert-outline'"
                   :type="insumo.estado === 'listo' ? 'is-success' : 'is-danger'" style="flex-shrink:0;">
                 </b-icon>
@@ -141,6 +147,7 @@ export default {
     intervaloReloj: null,
     modalReporte: false,
     enviandoReporte: false,
+    conectado: false,
     insumosFiltrados: [],
     reporte: {
       idInsumo: null,
@@ -168,7 +175,10 @@ export default {
           HttpService.obtener('obtener_mesas.php'),
           HttpService.obtener('obtener_deliveries.php')
         ])
+        this.conectado = true
         this.ordenes = this.procesarDatos(mesas, deliveries)
+      } catch (e) {
+        this.conectado = false
       } finally {
         this.cargando = false
       }

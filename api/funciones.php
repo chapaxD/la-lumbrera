@@ -381,33 +381,41 @@ function obtenerMesas($idUsuario = null, $rol = null)
     $hoy = date("Y-m-d");
     $reservasHoy = obtenerReservasDelDia($hoy);
 
+    // 1. Obtener información de configuración
     $numeroMesas = (int)(obtenerInformacionLocal()[0]->numeroMesas ?? 0);
-    for ($i = 1; $i <= $numeroMesas; $i++) {
-        $mesaData = leerArchivo($i, $idUsuario, $rol);
+    
+    // 2. Obtener TODAS las referencias activas actualmente para locales
+    $bd = conectarBaseDatos();
+    $stmtActivas = $bd->query("SELECT referencia FROM ordenes_activas WHERE tipo='LOCAL'");
+    $refsActivas = $stmtActivas->fetchAll(PDO::FETCH_COLUMN);
 
-        // Buscar si esta mesa tiene reserva hoy
+    // 3. Procesar mesas físicas configuradas (1 a N)
+    $referenciasProcesadas = [];
+    for ($i = 1; $i <= $numeroMesas; $i++) {
+        $refStr = (string)$i;
+        $mesaData = leerArchivo($refStr, $idUsuario, $rol);
+
+        // Buscar si esta mesa tiene reserva hoy (solo para la referencia base entera)
         $reservaEncontrada = null;
         foreach ($reservasHoy as $reserva) {
-            if ($reserva->idMesa == $i || $reserva->idMesa === null) {
+            if ($reserva->idMesa == $i) {
                 $reservaEncontrada = $reserva;
                 break;
             }
         }
         $mesaData["mesa"]["reserva"] = $reservaEncontrada;
         array_push($mesas, $mesaData);
+        $referenciasProcesadas[] = $refStr;
     }
 
-    // Agregar órdenes activas con número de mesa fuera del rango configurado
-    // (evita que una mesa ocupada desaparezca si numeroMesas fue reducido)
-    $bd = conectarBaseDatos();
-    $stmtExtra = $bd->query("SELECT referencia FROM ordenes_activas WHERE tipo='LOCAL'");
-    $referenciasEnLoop = range(1, $numeroMesas);
-    foreach ($stmtExtra->fetchAll() as $row) {
-        $ref = (int)$row->referencia;
-        if (!in_array($ref, $referenciasEnLoop)) {
+    // 4. Agregar cualquier otra orden activa que no haya sido procesada 
+    // (Esto incluye sub-mesas como "1-B", mesas fuera de rango, etc.)
+    foreach ($refsActivas as $ref) {
+        if (!in_array((string)$ref, $referenciasProcesadas)) {
             $mesaData = leerArchivo($ref, $idUsuario, $rol);
             $mesaData["mesa"]["reserva"] = null;
             array_push($mesas, $mesaData);
+            $referenciasProcesadas[] = (string)$ref;
         }
     }
 

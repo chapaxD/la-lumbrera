@@ -73,9 +73,11 @@ function obtenerTotalesPorMesa()
 function obtenerVentasDelDia()
 {
     $bd = conectarBaseDatos();
-    $sentencia = $bd->query("SELECT IFNULL(SUM(total),0) AS totalVentasHoy
+    $hoy = date('Y-m-d'); // Usa la zona horaria de PHP (America/La_Paz)
+    $sentencia = $bd->prepare("SELECT IFNULL(SUM(total),0) AS totalVentasHoy
 	FROM ventas
-	WHERE DATE(fecha) = CURDATE()");
+	WHERE DATE(fecha) = ?");
+    $sentencia->execute([$hoy]);
     return $sentencia->fetchObject()->totalVentasHoy;
 }
 
@@ -106,7 +108,9 @@ function obtenerTotalVentas()
 function cantidadVentasDia()
 {
     $bd = conectarBaseDatos();
-    $sentencia = $bd->query("SELECT COUNT(*) AS cantidad FROM ventas WHERE DATE(fecha) = CURDATE()");
+    $hoy = date('Y-m-d'); // Usa la zona horaria de PHP (America/La_Paz)
+    $sentencia = $bd->prepare("SELECT COUNT(*) AS cantidad FROM ventas WHERE DATE(fecha) = ?");
+    $sentencia->execute([$hoy]);
     return (int)$sentencia->fetchObject()->cantidad;
 }
 

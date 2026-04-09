@@ -1,37 +1,21 @@
-﻿<template>
+<template>
     <section>
         <br>
         <widget-caja class="mb-5" v-if="rol === 'admin'"></widget-caja>
         <div class="columns is-multiline mb-4">
-            <div class="column is-6-tablet is-4-desktop is-12-mobile" v-for="(carta, index) in cartas"  :key="index">
-                <div class="card is-card-widget h-100">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            <span class="is-pulled-right">
-                                <b-button tag="router-link" type="is-primary" :to="{ path: carta.ruta }">
-                                    <b-icon icon="cogs" size="is-small"></b-icon>
-                                </b-button>
-                            </span>
-                            
-                            <p>{{ carta.encabezado}}</p>
-                            
+            <div class="column is-6-tablet is-4-desktop is-3-widescreen is-12-mobile" v-for="(carta, index) in cartas" :key="index">
+                <div class="card is-card-widget h-100 glass-card transition-card">
+                    <div class="card-content widget-card-body">
+                        <div class="widget-icon-bubble">
+                            <b-icon :icon="carta.icono" size="is-medium" :class="carta.colorTexto"></b-icon>
                         </div>
-                    </div>
-                    <div class="card-content">
-                        <div class="level is-desktop">
-                            <div class="level-item">
-                                <div class="is-widget-label">
-                                    <h4 class="subtitle is-spaced">{{ carta.titulo }}</h4>
-                                    <h3 class="title">{{ carta.total }}</h3>
-                                </div>
-                            </div>
-                            <div class="level-item has-widget-icon">
-                                <div class="is-widget-icon">
-                                    <span class="icon is-large" :class="carta.colorTexto">
-                                        <b-icon :icon="carta.icono" size="is-large"></b-icon>
-                                    </span>
-                                </div>
-                            </div>
+                        <p class="is-size-7 is-uppercase has-text-weight-semibold has-text-grey mt-3 mb-1">{{ carta.encabezado }}</p>
+                        <h3 class="title is-3 has-text-weight-bold mb-1">{{ carta.total }}</h3>
+                        <div class="is-flex is-align-items-center mt-auto">
+                            <p class="is-size-7 has-text-grey mb-0">{{ carta.titulo }}</p>
+                            <b-button tag="router-link" type="is-ghost" size="is-small" :to="{ path: carta.ruta }" class="ml-auto px-0">
+                                <b-icon icon="arrow-right-circle" size="is-small"></b-icon>
+                            </b-button>
                         </div>
                     </div>
                 </div>
@@ -95,25 +79,24 @@
                     </div> 
                 </div>
             </div>
-            <div class="box">
-                <div class="level is-mobile">
-                    <div class="level-left">
-                        <p class="title is-4 has-text-grey mb-0">
-                            <b-icon icon="calendar-month"></b-icon>
-                            Ventas por año
-                            <span class="tag is-primary is-large ml-2"> ${{totalVentasMeses}}</span>
-                        </p>
-                    </div>
-                    <div class="level-right">
-                        <b-field label="Año" horizontal>
+            <div class="card mb-5 glass-card">
+                <div class="card-content">
+                    <div class="mb-4">
+                        <div class="is-flex is-flex-wrap-wrap is-align-items-center mb-1" style="gap: 0.5rem">
+                            <p class="title is-4 has-text-weight-bold mb-0">
+                                <b-icon icon="calendar-month"></b-icon>
+                                Ventas por año
+                            </p>
+                            <span class="tag is-primary is-medium has-text-weight-bold ml-auto">Total: ${{totalVentasMeses}}</span>
                             <b-select size="is-small" v-model="anioSeleccionado" @change.native="busquedaAvanzada('mes')">
                                 <option v-for="(anio, index) in listaAnios" :key="index" :value="anio">{{ anio }}</option>
                             </b-select>
-                        </b-field>
+                        </div>
+                        <p class="has-text-grey is-size-6">Resumen mensual de ingresos</p>
                     </div>
-                </div>
-                <div id="contenedor-mes" class="grafica-anual">
-                    <canvas id="grafica-mes"></canvas>
+                    <div id="contenedor-mes" class="grafica-anual">
+                        <canvas id="grafica-mes"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="columns is-multiline" v-if="alertasStock.length > 0">
@@ -364,7 +347,7 @@ export default ({
                     {
                         encabezado: "Ventas del día",
                         titulo: "Ventas hoy",
-                        total: "$" + this.resultadoCartas.totalVentasDia,
+                        total: this.resultadoCartas.totalVentasDia > 0 ? "$" + this.resultadoCartas.totalVentasDia : "$0 hoy",
                         icono: "cart-outline",
                         colorTexto: "has-text-info",
                         ruta: "/reporte-ventas"
@@ -395,35 +378,35 @@ export default ({
                     },
                     {
                         encabezado: "Total ventas",
-                        titulo: "Ventas",
+                        titulo: "Ventas acumuladas",
                         total: "$" + this.resultadoCartas.totalVentas,
-                        icono: "cart-outline",
+                        icono: "trending-up",
                         colorTexto: "has-text-primary",
                         ruta: "/reporte-ventas"
                     },
                     {
                         encabezado: "Tickets del día",
                         titulo: "Órdenes hoy",
-                        total: this.resultadoCartas.cantidadVentasDia,
+                        total: this.resultadoCartas.cantidadVentasDia > 0 ? this.resultadoCartas.cantidadVentasDia : "0 hoy",
                         icono: "receipt",
                         colorTexto: "has-text-success",
                         ruta: "/reporte-ventas"
                     },
                     {
                         encabezado: "Ticket promedio",
-                        titulo: "Promedio por orden",
-                        total: "$" + this.resultadoCartas.ticketPromedio,
-                        icono: "trending-up",
+                        titulo: "Promedio por orden hoy",
+                        total: this.resultadoCartas.ticketPromedio > 0 ? "$" + this.resultadoCartas.ticketPromedio : "Sin ventas hoy",
+                        icono: "cash-multiple",
                         colorTexto: "has-text-warning",
                         ruta: "/reporte-ventas"
                     },
                 ]
                 
-                // Filtrar cartas según el rol
+                // Filtrar cartas según el rol (solo admin ve todas)
                 if (this.rol !== 'admin') {
-                    this.cartas = this.cartas.filter(carta => 
-                        carta.ruta === '/realizar-orden' || 
-                        carta.ruta === '/reporte-ventas' && carta.titulo === 'Ventas hoy'
+                    this.cartas = this.cartas.filter(carta =>
+                        carta.ruta === '/realizar-orden' ||
+                        (carta.ruta === '/reporte-ventas' && carta.titulo === 'Ventas hoy')
                     )
                 }
                  if(!silencioso) this.cargando = false
@@ -446,8 +429,49 @@ export default ({
 </script>
 
 <style scoped>
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    border-radius: 16px;
+}
+
+/* Burbuja de ícono del widget - fondo neutro suave */
+.widget-icon-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Layout interno de la tarjeta */
+.widget-card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Backgrounds suaves para iconos */
+.bg-info { background: rgba(32, 156, 238, 0.12); }
+.bg-success { background: rgba(72, 199, 142, 0.12); }
+.bg-danger { background: rgba(241, 70, 104, 0.12); }
+.bg-warning { background: rgba(255, 221, 87, 0.15); }
+.bg-primary { background: rgba(0, 209, 178, 0.12); }
+
+.transition-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.transition-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+}
+
 .grafica-anual {
-    height: 240px;
+    height: 300px;
     position: relative;
 }
 </style>

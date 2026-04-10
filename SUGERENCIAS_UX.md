@@ -21,7 +21,7 @@ El evitar pantallas en blanco, ceros o tablas vacías cuando no hay información
     *   *Ventas del Día (En cero):* "Aún no hay ventas. ¡Vamos por esos primeros clientes de hoy!"
 *   **Beneficio UX:** Remueve la incertidumbre de fallo del sistema y genera micro-momentos de recompensa emocional en los empleados.
 
-## 4. ⌨️ Atajos de Teclado (Keyboard Shortcuts) completado!
+## 4. ⌨️ Atajos de Teclado (Keyboard Shortcuts) completado! amedias2
 Acelerar el uso del sistema de punto de venta físico sin depender tanto del mouse/pantalla táctil.
 *   **Sugerencia:** Añadir combinaciones de teclas (hotkeys) universales. Ej: 
     *   Presionar `F2` en cualquier lado para abrir el modal de Ordenar.

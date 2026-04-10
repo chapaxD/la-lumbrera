@@ -3,12 +3,12 @@
     <configuracion-inicial v-if="configurar"/>
     <login @logeado="onLog" v-if="!logeado && !configurar"></login>
     <cambiar-password v-if="cambiarPassword"></cambiar-password>
-    <div v-if="logeado && !cambiarPassword">
-      <encabezado @cerrar="onClose"/> 
-      <div class="container is-fluid" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+    <div v-if="logeado && !cambiarPassword" class="app-shell">
+      <encabezado @cerrar="onClose"/>
+      <div class="app-shell-main container is-fluid">
         <router-view/>
-      </div> 
-      <pie /> 
+      </div>
+      <pie/>
     </div>
   </div>
 </template>
@@ -112,8 +112,35 @@ export default {
   --color-fondo: #f5f0ff;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   background-color: var(--color-fondo) !important;
+  min-height: 100%;
+}
+
+#app {
+  min-height: 100%;
+}
+
+/* Contenido + pie: el pie queda siempre al fondo del viewport si hay poco contenido */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-main {
+  flex: 1 0 auto;
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.app-shell > *:first-child {
+  flex-shrink: 0;
 }
 
 /* Navbar */

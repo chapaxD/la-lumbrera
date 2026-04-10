@@ -8,7 +8,8 @@ if ($insumo === null || $insumo === '') {
 
 include_once "funciones.php";
 
-// $insumo puede llegar como string plano ("cua") o como objeto con ->insumo
-$termino = is_object($insumo) ? $insumo->insumo : $insumo;
-$resultado = obtenerInsumosPorNombre($termino);
+// $insumo puede llegar como string plano o como objeto con ->insumo y opcional ->ajusteStockVenta
+$termino = is_object($insumo) ? ($insumo->insumo ?? '') : $insumo;
+$ajustar = is_object($insumo) && !empty($insumo->ajusteStockVenta);
+$resultado = obtenerInsumosPorNombre($termino, $ajustar);
 echo json_encode($resultado);

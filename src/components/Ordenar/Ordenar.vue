@@ -288,12 +288,22 @@ export default {
       const endpoint = (this.tipo_orden === 'DELIVERY' || this.tipo_orden === 'LLEVAR') ? "registrar_delivery.php" : "editar_mesa.php";
       
       HttpService.registrar(payload, endpoint).then((resultado) => {
-        if (resultado) {
+        if (resultado === true || (resultado && resultado.status === true)) {
           this.$toast({
             message: "Pedido actualizado",
             type: "is-success",
           });
           this.$router.push({ name: "RealizarOrden" });
+        } else if (resultado && resultado.error === "stock") {
+          this.$toast({
+            message: resultado.mensaje || "Stock insuficiente para completar el pedido.",
+            type: "is-danger",
+          });
+        } else if (!resultado || resultado === false) {
+          this.$toast({
+            message: "No se pudo actualizar el pedido.",
+            type: "is-danger",
+          });
         }
       });
     },
@@ -325,12 +335,24 @@ export default {
       const endpoint = (this.tipo_orden === 'DELIVERY' || this.tipo_orden === 'LLEVAR') ? "registrar_delivery.php" : "ocupar_mesa.php";
 
       HttpService.registrar(payload, endpoint).then((resultado) => {
-        if (resultado) {
+        const okMesa = resultado === true;
+        const okDelivery = resultado && resultado.status === true;
+        if (okMesa || okDelivery) {
           this.$toast({
             message: "Pedido registrado",
             type: "is-success",
           });
           this.$router.push({ name: "RealizarOrden" });
+        } else if (resultado && resultado.error === "stock") {
+          this.$toast({
+            message: resultado.mensaje || "Stock insuficiente para completar el pedido.",
+            type: "is-danger",
+          });
+        } else if (!resultado || resultado === false || (resultado && resultado.status === false)) {
+          this.$toast({
+            message: "No se pudo registrar el pedido.",
+            type: "is-danger",
+          });
         }
       });
     },
@@ -367,7 +389,7 @@ export default {
     buscarInsumo() {
       if (this.nombre) {
         HttpService.obtenerConDatos(
-          this.nombre,
+          { insumo: this.nombre, ajusteStockVenta: true },
           "obtener_insumo_nombre.php"
         ).then((resultado) => {
           this.insumos = resultado;
@@ -379,7 +401,10 @@ export default {
 
     obtenerMenuHoy() {
       const hoy = new Date().getDay() + 1; // MySQL 1=Sun... 7=Sat
-      HttpService.obtenerConDatos(hoy, "obtener_menu_dia.php").then((resultado) => {
+      HttpService.obtenerConDatos(
+        { dia: hoy, ajusteStockVenta: true },
+        "obtener_menu_dia.php"
+      ).then((resultado) => {
         this.insumos = resultado || [];
       });
     },

@@ -289,7 +289,8 @@ function registrarVenta($venta)
     $saldo_a_favor = 0;
     if ($tipo_orden === 'LOCAL' && isset($venta->idMesa) && $venta->idMesa) {
         $hoy = date('Y-m-d');
-        $stmtReserva = $bd->prepare("SELECT adelanto FROM reservas WHERE idMesa = ? AND fecha = ? AND estado = 'COMPLETADA' AND adelanto > 0 ORDER BY id DESC LIMIT 1");
+        // Descontar adelanto si la reserva está COMPLETADA o SENTADA
+        $stmtReserva = $bd->prepare("SELECT adelanto FROM reservas WHERE idMesa = ? AND fecha = ? AND estado IN ('COMPLETADA','SENTADA') AND adelanto > 0 ORDER BY id DESC LIMIT 1");
         $stmtReserva->execute([$venta->idMesa, $hoy]);
         $reserva = $stmtReserva->fetch();
         if ($reserva && $reserva->adelanto > 0) {
@@ -309,8 +310,14 @@ function registrarVenta($venta)
         $idUsuario = 1; // Fallback hardcoded id if somehow not present
     }
 
+    // Para ventas LLEVAR y DELIVERY, idMesa debe ser 0 (cero)
+    $idMesa = $venta->idMesa;
+    if ($tipo_orden === 'LLEVAR' || $tipo_orden === 'DELIVERY') {
+        $idMesa = 0;
+    }
+
     $sentencia = $bd->prepare("INSERT INTO ventas (idMesa, cliente, fecha, total, pagado, idUsuario, metodoPago, montoEfectivo, montoTarjeta, montoQR, tipo_orden, direccion, telefono, estado_delivery) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-    $exitoVenta = $sentencia->execute([$venta->idMesa, $venta->cliente, date("Y-m-d H:i:s"), $venta->total, $venta->pagado,  $idUsuario, $metodoPago, $montoEfectivo, $montoTarjeta, $montoQR, $tipo_orden, $direccion, $telefono, $estado_delivery]);
+    $exitoVenta = $sentencia->execute([$idMesa, $venta->cliente, date("Y-m-d H:i:s"), $venta->total, $venta->pagado,  $idUsuario, $metodoPago, $montoEfectivo, $montoTarjeta, $montoQR, $tipo_orden, $direccion, $telefono, $estado_delivery]);
     
     if (!$exitoVenta) return false;
 
@@ -451,28 +458,30 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
     $orden = $stmt->fetch();
 
     if ($orden) {
-        // Si es mesero, ocultar detalles de órdenes de otros usuarios
-        if (_rolEsMeseroConFiltro($idUsuario, $rol) && (string)$orden->idUsuario !== (string)$idUsuario) {
+        $esVistaAjenaMesero = _rolEsMeseroConFiltro($idUsuario, $rol) && (string)$orden->idUsuario !== (string)$idUsuario;
+        // Vista ajena: no mostrar total ni cliente (privacidad), pero sí ítems/estados para ver la mesa y cocina
+        if ($esVistaAjenaMesero) {
             $mesa = [
-                "idMesa"    => $orden->referencia,
-                "atiende"   => $orden->atiende,
-                "idUsuario" => $orden->idUsuario,
-                "total"     => "",
-                "estado"    => $orden->estado,
-                "cliente"   => "",
+                "idMesa"     => $orden->referencia,
+                "atiende"    => $orden->atiende,
+                "idUsuario"  => $orden->idUsuario,
+                "total"      => "",
+                "estado"     => $orden->estado,
+                "cliente"    => "",
+                "created_at" => $orden->created_at ?? null,
             ];
-            return ["mesa" => $mesa, "insumos" => []];
+        } else {
+            $mesa = [
+                "idMesa"     => $orden->referencia,
+                "atiende"    => $orden->atiende,
+                "idUsuario"  => $orden->idUsuario,
+                "total"      => $orden->total,
+                "estado"     => $orden->estado,
+                "cliente"    => $orden->cliente,
+                "created_at" => $orden->created_at ?? null,
+            ];
         }
 
-        $mesa = [
-            "idMesa"    => $orden->referencia,
-            "atiende"   => $orden->atiende,
-            "idUsuario" => $orden->idUsuario,
-            "total"     => $orden->total,
-            "estado"    => $orden->estado,
-            "cliente"   => $orden->cliente,
-            "created_at" => $orden->created_at ?? null,
-        ];
         $stmtItems = $bd->prepare("
             SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
             FROM items_orden io
@@ -482,7 +491,7 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
         ");
         $stmtItems->execute([$orden->id]);
         $insumosArr = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $insumos = array_map(function ($item) {
             return [
                 "itemId"          => $item['id'],
@@ -588,7 +597,15 @@ function ocuparMesa($mesa)
         if ($owner !== '' && $solicitante !== '' && $rolSolicitante !== 'admin' && $owner !== $solicitante) {
             return false;
         }
+    }
 
+    $idOrdenExcluir = $existing ? (int)$existing->id : null;
+    $stockOk = validarStockDisponibleParaItemsOrden($bd, $mesa->insumos ?? [], $idOrdenExcluir);
+    if ($stockOk !== true) {
+        return $stockOk;
+    }
+
+    if ($existing) {
         $idOrden = $existing->id;
         $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='ocupada', cliente=? WHERE id=?")
             ->execute([$mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente, $idOrden]);
@@ -689,7 +706,7 @@ function registrarUsuario($usuario)
     return $sentencia->execute([$usuario->correo, $usuario->nombre, $usuario->telefono, $usuario->password, $usuario->rol ?? 'mesero']);
 }
 
-function obtenerInsumosPorNombre($insumo)
+function obtenerInsumosPorNombre($insumo, $ajustarStockVenta = false)
 {
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
@@ -697,7 +714,11 @@ function obtenerInsumosPorNombre($insumo)
 	LEFT JOIN categorias ON categorias.id = insumos.categoria 
 	WHERE insumos.nombre LIKE ? ");
     $sentencia->execute(['%' . $insumo . '%']);
-    return $sentencia->fetchAll();
+    $filas = $sentencia->fetchAll();
+    if ($ajustarStockVenta) {
+        ajustarStockDisponibleVentaEnFilas($bd, $filas);
+    }
+    return $filas;
 }
 
 function actualizarInformacionLocal($datos)
@@ -1416,7 +1437,115 @@ function obtenerHistorialCajas()
     return $sentencia->fetchAll();
 }
 
-function obtenerMenuDia($dia)
+/**
+ * Cantidades ya comprometidas en pedidos activos (mesas / delivery sin cerrar).
+ * El stock en `insumos` no baja hasta cobrar; esto evita sobre-vender entre órdenes.
+ */
+function obtenerMapaStockReservadoEnOrdenesActivas($bd)
+{
+    $sentencia = $bd->query("
+        SELECT io.idInsumo, COALESCE(SUM(io.cantidad), 0) AS reservado
+        FROM items_orden io
+        INNER JOIN ordenes_activas oa ON oa.id = io.idOrden
+        WHERE io.idInsumo IS NOT NULL AND io.idInsumo > 0
+        GROUP BY io.idInsumo
+    ");
+    $mapa = [];
+    foreach ($sentencia->fetchAll() as $row) {
+        $mapa[(int)$row->idInsumo] = (int)$row->reservado;
+    }
+    return $mapa;
+}
+
+function obtenerMapaCantidadesItemsOrden($bd, $idOrden)
+{
+    $st = $bd->prepare("
+        SELECT idInsumo, COALESCE(SUM(cantidad), 0) AS c
+        FROM items_orden
+        WHERE idOrden = ? AND idInsumo IS NOT NULL AND idInsumo > 0
+        GROUP BY idInsumo
+    ");
+    $st->execute([(int)$idOrden]);
+    $m = [];
+    foreach ($st->fetchAll() as $r) {
+        $m[(int)$r->idInsumo] = (int)$r->c;
+    }
+    return $m;
+}
+
+/**
+ * Ajusta el campo `stock` de cada fila a (stock físico en BD − ya pedido en órdenes activas).
+ */
+function ajustarStockDisponibleVentaEnFilas($bd, $filas)
+{
+    if (!$filas || count($filas) === 0) {
+        return $filas;
+    }
+    $mapa = obtenerMapaStockReservadoEnOrdenesActivas($bd);
+    foreach ($filas as $row) {
+        $id = (int)($row->id ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+        $res = $mapa[$id] ?? 0;
+        $stockFisico = (int)($row->stock ?? 0);
+        $row->stock = max(0, $stockFisico - $res);
+    }
+    return $filas;
+}
+
+/**
+ * Valida que haya stock libre para los ítems del payload. Si $idOrdenExcluir está definido,
+ * no cuenta la reserva de esa orden (útil al editar la misma mesa/delivery).
+ * @return true|object { error: 'stock', mensaje: string }
+ */
+function validarStockDisponibleParaItemsOrden($bd, $insumosPayload, $idOrdenExcluir = null)
+{
+    if ($insumosPayload === null || !is_iterable($insumosPayload)) {
+        return true;
+    }
+    $porId = [];
+    foreach ($insumosPayload as $insumo) {
+        $i = is_object($insumo) ? get_object_vars($insumo) : (array)$insumo;
+        $id = (int)($i['id'] ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+        $cant = (int)($i['cantidad'] ?? 1);
+        if ($cant < 1) {
+            $cant = 1;
+        }
+        $porId[$id] = ($porId[$id] ?? 0) + $cant;
+    }
+    if (count($porId) === 0) {
+        return true;
+    }
+    $mapaReservado = obtenerMapaStockReservadoEnOrdenesActivas($bd);
+    if ($idOrdenExcluir) {
+        $mapaActual = obtenerMapaCantidadesItemsOrden($bd, (int)$idOrdenExcluir);
+        foreach ($mapaActual as $idInsumo => $c) {
+            $mapaReservado[$idInsumo] = max(0, ($mapaReservado[$idInsumo] ?? 0) - $c);
+        }
+    }
+    foreach ($porId as $idInsumo => $necesita) {
+        $stmt = $bd->prepare("SELECT stock, nombre FROM insumos WHERE id = ?");
+        $stmt->execute([$idInsumo]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return (object)['error' => 'stock', 'mensaje' => 'Un producto del pedido no existe en inventario.'];
+        }
+        $stockFisico = (int)$row->stock;
+        $yaReservadoOtros = (int)($mapaReservado[$idInsumo] ?? 0);
+        $libre = $stockFisico - $yaReservadoOtros;
+        if ($necesita > $libre) {
+            $nom = $row->nombre ?? 'El producto';
+            return (object)['error' => 'stock', 'mensaje' => "Stock insuficiente para «{$nom}»: pedís {$necesita} y solo quedan {$libre} disponible(s) para nuevas órdenes."];
+        }
+    }
+    return true;
+}
+
+function obtenerMenuDia($dia, $ajustarStockVenta = false)
 {
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("
@@ -1427,7 +1556,11 @@ function obtenerMenuDia($dia)
         WHERE menu_dia.diaSemana = ?
     ");
     $sentencia->execute([$dia]);
-    return $sentencia->fetchAll();
+    $filas = $sentencia->fetchAll();
+    if ($ajustarStockVenta) {
+        ajustarStockDisponibleVentaEnFilas($bd, $filas);
+    }
+    return $filas;
 }
 
 function guardarMenuDia($idInsumo, $dia)
@@ -1639,7 +1772,8 @@ function ocuparDelivery($delivery)
     $cliente    = ($delivery->cliente === "" || $delivery->cliente === null) ? "S/N" : $delivery->cliente;
     $direccion  = $delivery->direccion ?? "";
     $telefono   = $delivery->telefono  ?? "";
-    $tipo_orden = isset($delivery->tipo_orden) ? $delivery->tipo_orden : 'DELIVERY';
+    // Respetar el tipo_orden recibido (puede ser 'DELIVERY' o 'LLEVAR')
+    $tipo_orden = (isset($delivery->tipo_orden) && $delivery->tipo_orden) ? $delivery->tipo_orden : 'DELIVERY';
 
     $rolSolicitante = isset($delivery->rolSolicitante) ? $delivery->rolSolicitante : null;
     $idUsuarioSolicitante = isset($delivery->idUsuarioSolicitante) ? $delivery->idUsuarioSolicitante : null;
@@ -1654,7 +1788,15 @@ function ocuparDelivery($delivery)
         if ($owner !== '' && $solicitante !== '' && $rolSolicitante !== 'admin' && $owner !== $solicitante) {
             return false;
         }
+    }
 
+    $idOrdenExcluir = $existing ? (int)$existing->id : null;
+    $stockOk = validarStockDisponibleParaItemsOrden($bd, $delivery->insumos ?? [], $idOrdenExcluir);
+    if ($stockOk !== true) {
+        return array_merge(['status' => false], (array)$stockOk);
+    }
+
+    if ($existing) {
         $idOrden = $existing->id;
         $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='pendiente', cliente=?, direccion=?, telefono=?, tipo_orden=? WHERE id=?")
             ->execute([$delivery->atiende, $delivery->idUsuario, $delivery->total, $cliente, $direccion, $telefono, $tipo_orden, $idOrden]);

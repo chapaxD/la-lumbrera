@@ -1,5 +1,5 @@
 <template>
-    <section class="section" style="min-height: 70vh;">
+    <section class="section" style="min-height: 70vh;" @click="desbloquearAudioSiHaceFalta">
         <div class="columns is-mobile is-multiline is-vcentered mb-4">
             <div class="column is-12-mobile">
                 <p class="title is-1 has-text-weight-bold">
@@ -16,6 +16,9 @@
                 <p class="is-size-7 mt-1" :class="conectado ? 'has-text-success' : 'has-text-danger'">
                     <b-icon :icon="conectado ? 'wifi' : 'wifi-off'" size="is-small" class="mr-1"></b-icon>
                     {{ conectado ? 'Conectado (6s)' : 'Reconectando...' }}
+                </p>
+                <p v-if="!audioListo" class="is-size-7 has-text-info mt-1">
+                    Tocá la pantalla una vez (cualquier botón) para activar el sonido de nuevas comandas.
                 </p>
             </div>
         </div>
@@ -189,6 +192,9 @@ export default {
         enviandoReporte: false,
         insumosFiltrados: [],
         ultimoConteoPendientes: 0,
+        pollSonidoInicialHecha: false,
+        audioCampana: null,
+        audioListo: false,
         reporte: {
             idInsumo: null,
             nombreInsumo: '',
@@ -271,31 +277,48 @@ export default {
 
             this.ordenes = [...ordenesLocales, ...ordenesDelivery]
             
-            // Lógica de Sonido: Contar pendientes
-            let pendientesActuales = this.ordenes.reduce((total, orden) => total + orden.pendientes, 0)
-            
-            // Si el conteo actual es mayor al anterior y no es la primera carga (0), reproducir sonido
-            if (this.ultimoConteoPendientes > 0 && pendientesActuales > this.ultimoConteoPendientes) {
+            const pendientesActuales = this.ordenes.reduce((total, orden) => total + orden.pendientes, 0)
+            const subieronPendientes = pendientesActuales > this.ultimoConteoPendientes
+            if (this.pollSonidoInicialHecha && subieronPendientes) {
                 this.reproducirSonido()
             }
-            // Evitar reproducir sonido al recién cargar la página
-            if (this.ultimoConteoPendientes === 0 && pendientesActuales > 0 && !this.cargando) {
-                 // No hacer nada en la primera carga
-            }
-            if (!this.cargando || this.ultimoConteoPendientes === 0) {
-                this.ultimoConteoPendientes = pendientesActuales
-            }
+            this.ultimoConteoPendientes = pendientesActuales
+            this.pollSonidoInicialHecha = true
 
             this.cargando = false
         },
 
+        getAudioCampana() {
+            if (!this.audioCampana) {
+                this.audioCampana = new Audio('/static/campana.ogg')
+            }
+            return this.audioCampana
+        },
+        desbloquearAudioSiHaceFalta() {
+            if (this.audioListo) return
+            const a = this.getAudioCampana()
+            const vol = a.volume
+            a.volume = 0.01
+            a.play()
+                .then(() => {
+                    a.pause()
+                    a.currentTime = 0
+                    a.volume = 0.6
+                    this.audioListo = true
+                })
+                .catch(() => {
+                    a.volume = vol
+                })
+        },
         reproducirSonido() {
             try {
-                // Utilizando un sonido de campana de notificación corto y profesional
-                const audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3');
-                audio.volume = 0.6; // No tan fuerte
-                audio.play().catch(e => console.warn('Sonido bloqueado por navegador:', e));
-            } catch(e) {}
+                const audio = this.getAudioCampana()
+                audio.currentTime = 0
+                audio.volume = 0.6
+                audio.play().catch(e => console.warn('Sonido bloqueado por navegador:', e))
+            } catch (e) {
+                console.warn('No se pudo reproducir alerta:', e)
+            }
         },
 
         async marcarListo(orden, insumo) {

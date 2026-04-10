@@ -1,10 +1,13 @@
 <template>
-    <section>
+    <section @click="desbloquearAudioSiHaceFalta">
         <div class="columns is-mobile is-multiline mb-4">
             <div class="column is-12-mobile is-6-tablet">
                 <p class="title is-1 has-text-weight-bold">
                     <b-icon icon="order-bool-ascending-variant" size="is-large" type="is-primary"></b-icon>
                     Realizar orden 
+                </p>
+                <p v-if="!audioListo" class="is-size-7 has-text-info mb-0">
+                    Tocá la pantalla una vez para activar el sonido cuando cocina marque un plato listo.
                 </p>
             </div>
             <div class="column is-12-mobile is-6-tablet has-text-right-tablet">
@@ -40,14 +43,14 @@
                     <div class="box" :class="{'has-background-warning-light': mesa.mesa.reserva, 'orden-lista-pulso': tieneListo(mesa.insumos)}">
                     <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
                         <p class="title is-2 has-text-grey mb-0">Mesa #{{ mesa.mesa.idMesa }}</p>
-                        <span class="title is-1 has-text-weight-bold" v-if="mesa.mesa.total && puedeVerDetallesMesa(mesa)">
+                        <span class="title is-1 has-text-weight-bold" v-if="mesa.mesa.total && puedeAccederOrden(mesa.mesa.idUsuario)">
                             ${{ mesa.mesa.total }}
                         </span>
                     </div>
                     <p v-if="mesa.mesa.atiende">
                         <strong>Atiende</strong>: {{ mesa.mesa.atiende }}
                     </p>
-                    <p v-if="mesa.mesa.cliente && puedeVerDetallesMesa(mesa)">
+                    <p v-if="mesa.mesa.cliente && puedeAccederOrden(mesa.mesa.idUsuario)">
                         <strong>Cliente</strong>: {{ mesa.mesa.cliente }}
                     </p>
                     <div v-if="mesa.mesa.reserva" class="notification is-warning is-light py-2 px-3 mt-2 mb-0">
@@ -59,7 +62,7 @@
                         class="card mt-2" 
                         animation="slide" 
                         aria-id="contentIdForA11y3"
-                        v-if="(mesa.mesa.estado === 'ocupada' || mesa.mesa.estado === 'pagada') && puedeVerDetallesMesa(mesa)">
+                        v-if="mesa.mesa.estado === 'ocupada' || mesa.mesa.estado === 'pagada'">
                         <template #trigger="props">
                             <div
                                 class="card-header"
@@ -84,7 +87,7 @@
                                 :checked-rows="checkedRowsMap[mesa.mesa.idMesa] || []"
                                 @check="(rows) => $set(checkedRowsMap, mesa.mesa.idMesa, rows)"
                                 :is-row-checkable="(row) => row.estado !== 'entregado'"
-                                checkable
+                                :checkable="puedeAccederOrden(mesa.mesa.idUsuario)"
                                 mobile-cards
                                 narrow
                                 custom-row-key="itemId"
@@ -144,7 +147,7 @@
                             <b-icon icon="cash-check" type="is-success"></b-icon>
                             <span v-if="tienePendiente(mesa.insumos)"><strong>Cobrado</strong> — el pedido está en preparación en cocina</span>
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                            <div class="mt-2">
+                            <div class="mt-2" v-if="puedeAccederOrden(mesa.mesa.idUsuario)">
                                 <b-button v-if="!tienePendiente(mesa.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('LOCAL', mesa.mesa.idMesa)">Entregar al cliente</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="ocuparMesa(mesa)">Agregar más</b-button>
                             </div>
@@ -233,7 +236,7 @@
                             <b-icon icon="cash-check" type="is-success"></b-icon>
                             <span v-if="tienePendiente(del.insumos)"><strong>Cobrado</strong> — el pedido está en preparación en cocina</span>
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                            <div class="mt-2">
+                            <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <b-button v-if="!tienePendiente(del.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('DELIVERY', del.delivery.idDelivery)">Entregar al cliente</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="editarDelivery(del)">Agregar más</b-button>
                             </div>
@@ -314,7 +317,7 @@
                             <b-icon icon="cash-check" type="is-success"></b-icon>
                             <span v-if="tienePendiente(del.insumos)"><strong>Cobrado</strong> — el pedido está en preparación en cocina</span>
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                            <div class="mt-2">
+                            <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <b-button v-if="!tienePendiente(del.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('LLEVAR', del.delivery.idDelivery)">Entregar al cliente</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="editarParaLlevar(del)">Agregar más</b-button>
                             </div>
@@ -488,6 +491,9 @@ export default {
             sugerenciasClientes: [],
             buscandoCliente: false,
             _timerCliente: null,
+            audioCampanaListo: null,
+            audioListo: false,
+            _debounceSonidoListo: null,
         }
     },
 
@@ -537,6 +543,7 @@ export default {
 
     beforeDestroy() {
         if(this.timer) clearInterval(this.timer);
+        if (this._debounceSonidoListo) clearTimeout(this._debounceSonidoListo)
         window.removeEventListener('keydown', this.manejarAtajos)
     },
 
@@ -566,12 +573,6 @@ export default {
         puedeAccederOrden(idUsuarioOrden) {
             if (this.rol !== 'mesero') return true;
             return String(idUsuarioOrden || '') === String(this.idUsuarioActual || '');
-        },
-
-        puedeVerDetallesMesa(mesa) {
-            if (!mesa || !mesa.mesa) return true;
-            if (mesa.mesa.estado !== 'ocupada') return true;
-            return this.puedeAccederOrden(mesa.mesa.idUsuario);
         },
 
         queryAcceso() {
@@ -844,9 +845,17 @@ export default {
             const todosInsumos = this.elementoCobro.insumos || []
             const insumosACobrar = todosInsumos.filter(i => !i.pagado)
             let total = insumosACobrar.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0)
+
+            // Validación extra para evitar cobrar 'para llevar' sin idDelivery
+            let idDelivery = (this.tipoCobro === 'DELIVERY' || this.tipoCobro === 'LLEVAR') ? this.elementoCobro.delivery.idDelivery : null;
+            if (this.tipoCobro === 'LLEVAR' && (!idDelivery || idDelivery === null || idDelivery === undefined)) {
+                this.$toast({ message: 'Error: No se puede cobrar este pedido para llevar porque falta el ID de la orden. Intenta refrescar la página o revisa el pedido.', type: 'is-danger' });
+                this.cargando = false;
+                return;
+            }
             let payload = {
                 idMesa: this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.idMesa : 0,
-                idDelivery: (this.tipoCobro === 'DELIVERY' || this.tipoCobro === 'LLEVAR') ? this.elementoCobro.delivery.idDelivery : null,
+                idDelivery: idDelivery,
                 tipo_orden: this.tipoCobro,
                 cliente: this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.cliente : this.elementoCobro.delivery.cliente,
                 direccion: this.tipoCobro === 'DELIVERY' ? this.elementoCobro.delivery.direccion : '',
@@ -896,17 +905,22 @@ export default {
             
             // Capturar snapshot de ítems listos antes de recargar
             const prevListosMesas = {}
-            this.mesas.forEach(m => {
+            ;(Array.isArray(this.mesas) ? this.mesas : []).forEach(m => {
+                if (!m || !m.mesa) return
                 prevListosMesas[m.mesa.idMesa] = (m.insumos || []).filter(i => i.estado === 'listo').map(i => i.nombre)
             })
 
             HttpService.obtener("obtener_mesas.php" + this.queryAcceso())
-            .then(mesas => {
+            .then(mesasRaw => {
+                const mesasLista = Array.isArray(mesasRaw) ? mesasRaw : []
                 if (silencioso) {
-                    (mesas || []).forEach(m => {
+                    mesasLista.forEach(m => {
+                        if (!m || !m.mesa) return
+                        if (this.rol === 'mesero' && !this.puedeAccederOrden(m.mesa.idUsuario)) return
                         const prev = prevListosMesas[m.mesa.idMesa] || []
                         const nuevosListos = (m.insumos || []).filter(i => i.estado === 'listo' && !prev.includes(i.nombre))
                         if (nuevosListos.length > 0) {
+                            this.programarSonidoListoUnaVez()
                             nuevosListos.forEach(item => {
                                 this.$buefy.notification.open({
                                     message: `🍽️ <b>Mesa #${m.mesa.idMesa}</b> — <b>${item.nombre}</b> está listo para entregar`,
@@ -920,20 +934,19 @@ export default {
                         }
                     })
                 }
-                const mesasProcesadas = mesas || [];
-                // Ordenar para que las mesas compartidas queden juntas (ej: 1, 1-B, 2...)
+                const mesasProcesadas = mesasLista.slice()
                 mesasProcesadas.sort((a, b) => {
-                    const idA = String(a.mesa.idMesa);
-                    const idB = String(b.mesa.idMesa);
-                    const baseA = parseInt(idA);
-                    const baseB = parseInt(idB);
-                    if (baseA !== baseB) return baseA - baseB;
-                    return idA.localeCompare(idB);
-                });
-                this.mesas = mesasProcesadas;
-                // Re-sincronizar checkedRowsMap con las nuevas referencias de objetos
+                    if (!a.mesa || !b.mesa) return 0
+                    const idA = String(a.mesa.idMesa)
+                    const idB = String(b.mesa.idMesa)
+                    const baseA = parseInt(idA, 10)
+                    const baseB = parseInt(idB, 10)
+                    if (baseA !== baseB) return baseA - baseB
+                    return idA.localeCompare(idB)
+                })
+                this.mesas = mesasProcesadas
                 Object.keys(this.checkedRowsMap).forEach(idMesa => {
-                    const mesaData = (mesas || []).find(m => String(m.mesa.idMesa) === String(idMesa))
+                    const mesaData = mesasLista.find(m => m && m.mesa && String(m.mesa.idMesa) === String(idMesa))
                     if (!mesaData) return
                     const oldChecked = this.checkedRowsMap[idMesa] || []
                     const checkedItemIds = oldChecked.map(r => r.itemId).filter(Boolean)
@@ -951,19 +964,23 @@ export default {
                 if(!silencioso) this.cargando = false
             });
 
-            // Capturar snapshot de ítems listos en deliveries
             const prevListosDeliveries = {}
-            this.deliveries.forEach(d => {
+            ;(Array.isArray(this.deliveries) ? this.deliveries : []).forEach(d => {
+                if (!d || !d.delivery) return
                 prevListosDeliveries[d.delivery.idDelivery] = (d.insumos || []).filter(i => i.estado === 'listo').map(i => i.nombre)
             })
 
             HttpService.obtener("obtener_deliveries.php" + this.queryAcceso())
-            .then(deliveries => {
+            .then(deliveriesRaw => {
+                const deliveriesLista = Array.isArray(deliveriesRaw) ? deliveriesRaw : []
                 if (silencioso) {
-                    (deliveries || []).forEach(d => {
+                    deliveriesLista.forEach(d => {
+                        if (!d || !d.delivery) return
+                        if (this.rol === 'mesero' && !this.puedeAccederOrden(d.delivery.idUsuario)) return
                         const prev = prevListosDeliveries[d.delivery.idDelivery] || []
                         const nuevosListos = (d.insumos || []).filter(i => i.estado === 'listo' && !prev.includes(i.nombre))
                         if (nuevosListos.length > 0) {
+                            this.programarSonidoListoUnaVez()
                             nuevosListos.forEach(item => {
                                 this.$buefy.notification.open({
                                     message: `🚚 <b>${d.delivery.cliente || 'Delivery #' + d.delivery.idDelivery}</b> — <b>${item.nombre}</b> está listo para entregar`,
@@ -977,7 +994,7 @@ export default {
                         }
                     })
                 }
-                this.deliveries = deliveries || []
+                this.deliveries = deliveriesLista
             })
             .catch(e => {
                 console.error("Error cargando deliveries", e);
@@ -1171,6 +1188,46 @@ export default {
                     tipo_orden: "DELIVERY"
                 },
             })
+        },
+
+        getAudioCampanaListo() {
+            if (!this.audioCampanaListo) {
+                this.audioCampanaListo = new Audio('/static/campana.ogg')
+            }
+            return this.audioCampanaListo
+        },
+        desbloquearAudioSiHaceFalta() {
+            if (this.audioListo) return
+            const a = this.getAudioCampanaListo()
+            const vol = a.volume
+            a.volume = 0.01
+            a.play()
+                .then(() => {
+                    a.pause()
+                    a.currentTime = 0
+                    a.volume = 0.6
+                    this.audioListo = true
+                })
+                .catch(() => {
+                    a.volume = vol
+                })
+        },
+        programarSonidoListoUnaVez() {
+            if (this._debounceSonidoListo) clearTimeout(this._debounceSonidoListo)
+            this._debounceSonidoListo = setTimeout(() => {
+                this._debounceSonidoListo = null
+                this.reproducirSonidoListo()
+            }, 120)
+        },
+        reproducirSonidoListo() {
+            try {
+                const audio = this.getAudioCampanaListo()
+                audio.currentTime = 0
+                audio.volume = 0.6
+                audio.play().catch(e => console.warn('Sonido listo (mesero) bloqueado:', e))
+            } catch (e) {
+                console.warn('No se pudo reproducir alerta de listo:', e)
+            }
         },
 
         tieneListo(insumos) {

@@ -51,6 +51,7 @@ export default {
   background-color: var(--color-pie, #1a1a1a);
   padding: 0.6rem 1.5rem;
   border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
 }
 
 .footer-inner {

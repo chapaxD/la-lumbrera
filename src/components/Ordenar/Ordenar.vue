@@ -83,6 +83,44 @@
       </b-autocomplete>
     </b-field>
 
+    <b-modal :active.sync="modalCombo" has-modal-card trap-focus aria-close-label="Cerrar">
+      <div class="modal-card" style="width: 100%; max-width: 900px">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Armar menú: {{ insumoComboPendiente ? insumoComboPendiente.nombre : '' }}</p>
+        </header>
+        <section class="modal-card-body" style="position: relative; min-height: 120px; overflow-x: hidden;">
+          <b-loading :is-full-page="false" :active="cargandoPlantillaCombo"></b-loading>
+          <template v-if="plantillaCombo && !cargandoPlantillaCombo">
+            <b-field label="Cantidad de menús" class="mb-4">
+              <b-numberinput v-model="comboNumMenus" :min="1" :max="20" controls-position="compact" @input="sincronizarMatricesCombo"></b-numberinput>
+            </b-field>
+
+            <div class="columns is-multiline">
+              <div class="column is-12-mobile is-6-tablet is-6-desktop" v-for="(menu, mi) in comboElecciones" :key="'m' + mi">
+                <div class="box py-3 mb-0" style="height: 100%;">
+                  <p class="has-text-weight-semibold mb-2 is-size-5 has-text-primary">
+                    <b-icon icon="food" size="is-small" class="mr-1"></b-icon> Menú {{ mi + 1 }}
+                  </p>
+                  <b-field v-for="slot in plantillaCombo.slots || []" :key="'sl' + slot.id" :label="slot.etiqueta">
+                    <b-select v-model="menu[String(slot.id)]" expanded placeholder="Elegir">
+                      <option v-for="op in slot.opciones || []" :key="'op' + op.id" :value="op.id_insumo" :disabled="op.stock !== undefined && op.stock <= 0">
+                        {{ op.nombre_insumo || ('#' + op.id_insumo) }} {{ op.stock !== undefined ? (op.stock <= 0 ? '— 🚫 Agotado' : '— ' + op.stock + ' disp.') : '' }}
+                      </option>
+                    </b-select>
+                  </b-field>
+                </div>
+              </div>
+            </div>
+            
+          </template>
+        </section>
+        <footer class="modal-card-foot is-justify-content-flex-end">
+          <b-button @click="modalCombo = false" size="is-medium">Cancelar</b-button>
+          <b-button type="is-primary" icon-left="check" size="is-medium" :disabled="!plantillaCombo || cargandoPlantillaCombo" @click="confirmarComboAlPedido">Agregar al pedido</b-button>
+        </footer>
+      </div>
+    </b-modal>
+
     <div class="columns is-desktop">
       <div
         class="column"
@@ -125,7 +163,10 @@
           v-for="insumo in insumos"
           :key="insumo.id"
         >
-          <div class="card sugerencia-card" :class="{ 'sin-stock': insumo.stock <= 0 }">
+          <div
+            class="card sugerencia-card"
+            :class="{ 'sin-stock': !esInsumoCombo(insumo) && (!Number.isFinite(Number(insumo.stock)) || Number(insumo.stock) <= 0) }"
+          >
             <div class="card-content p-3">
               <div class="is-flex is-justify-content-space-between is-align-items-flex-start">
                 <div style="min-width:0; flex:1;">
@@ -151,18 +192,18 @@
                 <div class="is-flex" style="gap:4px; flex-wrap:wrap;">
                   <span class="has-text-weight-bold has-text-primary is-size-5">${{ insumo.precio }}</span>
                   <b-tag
-                    :type="insumo.stock <= 0 ? 'is-danger' : 'is-success is-light'"
+                    :type="etiquetaStockSugerencia(insumo).tipo"
                     size="is-small"
                     rounded
                   >
-                    {{ insumo.stock <= 0 ? 'Sin stock' : 'Stock: ' + insumo.stock }}
+                    {{ etiquetaStockSugerencia(insumo).texto }}
                   </b-tag>
                 </div>
                 <b-button
                   type="is-primary"
                   size="is-small"
                   icon-left="plus"
-                  :disabled="insumo.stock <= 0"
+                  :disabled="!esInsumoCombo(insumo) && (!Number.isFinite(Number(insumo.stock)) || Number(insumo.stock) <= 0)"
                   @click="agregarInsumoAOrden(insumo)"
                 >Agregar</b-button>
               </div>
@@ -196,6 +237,12 @@ export default {
     sugerenciasClientes: [],
     buscandoCliente: false,
     _timerCliente: null,
+    modalCombo: false,
+    cargandoPlantillaCombo: false,
+    insumoComboPendiente: null,
+    plantillaCombo: null,
+    comboNumMenus: 1,
+    comboElecciones: [],
   }),
 
   mounted() {
@@ -228,6 +275,19 @@ export default {
   },
 
   methods: {
+    esInsumoCombo(insumo) {
+      return (insumo && (insumo.tipoVenta || '') === 'COMBO')
+    },
+    etiquetaStockSugerencia(insumo) {
+      if (this.esInsumoCombo(insumo)) {
+        return { tipo: 'is-info is-light', texto: 'Menú (por componentes)' }
+      }
+      const s = Number(insumo.stock)
+      if (!Number.isFinite(s) || s <= 0) {
+        return { tipo: 'is-danger', texto: 'Sin stock' }
+      }
+      return { tipo: 'is-success is-light', texto: 'Stock: ' + s }
+    },
     manejarAtajos(e) {
       if (e.key === 'F2') {
         e.preventDefault();
@@ -357,14 +417,8 @@ export default {
       });
     },
 
-    eliminar(idInsumo) {
-      let lista = this.insumosOrden;
-      for (let i = 0; i < lista.length; i++) {
-        if (lista[i].id === idInsumo) {
-          lista.splice(i, 1);
-        }
-      }
-      this.insumosOrden = lista;
+    eliminar(lineKey) {
+      this.insumosOrden = this.insumosOrden.filter((r) => (r._lineId || r.id) !== lineKey);
       this.calcularTotal();
     },
 
@@ -411,21 +465,34 @@ export default {
 
     agregarInsumoAOrden(insumo) {
       if (insumo) {
+        // Combo: el stock del insumo padre no aplica; la validación es por componentes al armar el menú y en el servidor.
+        if ((insumo.tipoVenta || 'NORMAL') === 'COMBO') {
+          if (!insumo.idComboPlantilla) {
+            this.$toast({ message: 'Este producto combo no tiene plantilla asignada', type: 'is-danger' })
+            setTimeout(() => (this.nombre = ''), 10)
+            return
+          }
+          this.iniciarModalCombo(insumo)
+          setTimeout(() => (this.nombre = ''), 10)
+          return
+        }
         if (insumo.stock !== undefined && insumo.stock <= 0) {
           this.$toast({ message: `⚠ "${insumo.nombre}" no tiene stock disponible`, type: 'is-danger' })
           setTimeout(() => (this.nombre = ''), 10)
           return
         }
-        let indice = this.verificarSiExisteEnLista(insumo.id);
+        let indice = this.verificarSiExisteEnLista(insumo);
         if (indice >= 0) {
           this.aumentarCantidad(indice);
         } else {
           this.insumosOrden.push({
+            _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
             id: insumo.id,
             codigo: insumo.codigo,
             nombre: insumo.nombre,
             precio: insumo.precio,
             tipo: insumo.tipo,
+            tipoVenta: insumo.tipoVenta || 'NORMAL',
             caracteristicas: "",
             cantidad: 1,
             estado: "pendiente",
@@ -437,17 +504,98 @@ export default {
       }
     },
 
-    verificarSiExisteEnLista(idInsumo) {
-      let lista = this.insumosOrden;
-      for (let i = 0; i < lista.length; i++) {
-        if (lista[i].id === idInsumo) return i;
+    async iniciarModalCombo(insumo) {
+      this.insumoComboPendiente = insumo
+      this.modalCombo = true
+      this.cargandoPlantillaCombo = true
+      this.plantillaCombo = null
+      try {
+        const pl = await HttpService.obtenerConDatos({ id: insumo.idComboPlantilla }, 'obtener_plantilla_combo_id.php')
+        if (!pl || !pl.slots || !pl.slots.length) {
+          this.$toast({ message: 'Plantilla de combo vacía o inexistente', type: 'is-danger' })
+          this.modalCombo = false
+          this.cargandoPlantillaCombo = false
+          return
+        }
+        this.plantillaCombo = pl
+        this.comboNumMenus = 1
+        this.$nextTick(() => this.sincronizarMatricesCombo())
+      } catch (e) {
+        this.$toast({ message: 'No se pudo cargar la plantilla del combo', type: 'is-danger' })
+        this.modalCombo = false
       }
-      return -1;
+      this.cargandoPlantillaCombo = false
+    },
+
+    sincronizarMatricesCombo() {
+      if (!this.plantillaCombo || !this.plantillaCombo.slots) return
+      let n = parseInt(this.comboNumMenus, 10)
+      if (!Number.isFinite(n) || n < 1) n = 1
+      if (n > 20) n = 20
+      this.comboNumMenus = n
+      const slots = this.plantillaCombo.slots || []
+      const nuevos = []
+      for (let i = 0; i < n; i++) {
+        const prev = this.comboElecciones[i] || {}
+        const row = {}
+        slots.forEach((s) => {
+          const k = String(s.id)
+          if (prev[k] != null && prev[k] !== '') row[k] = prev[k]
+          else row[k] = s.opciones && s.opciones[0] ? s.opciones[0].id_insumo : null
+        })
+        nuevos.push(row)
+      }
+      this.comboElecciones = nuevos
+    },
+
+    confirmarComboAlPedido() {
+      const ins = this.insumoComboPendiente
+      const n = this.comboNumMenus
+      if (!ins || !this.plantillaCombo) return
+      const slots = this.plantillaCombo.slots || []
+      for (let i = 0; i < this.comboElecciones.length; i++) {
+        const row = this.comboElecciones[i]
+        for (const s of slots) {
+          if (row[String(s.id)] == null || row[String(s.id)] === '') {
+            this.$toast({ message: 'Completá todas las opciones en cada menú', type: 'is-warning' })
+            return
+          }
+        }
+      }
+      const menus = this.comboElecciones.map((row) => ({ slots: { ...row } }))
+      const detalleJson = { menus }
+      this.insumosOrden.push({
+        _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+        id: ins.id,
+        codigo: ins.codigo,
+        nombre: ins.nombre,
+        precio: ins.precio,
+        tipo: ins.tipo,
+        tipoVenta: 'COMBO',
+        detalleJson,
+        caracteristicas: '',
+        cantidad: n,
+        estado: 'pendiente',
+        _stock: ins.stock,
+      })
+      this.modalCombo = false
+      this.calcularTotal()
+    },
+
+    verificarSiExisteEnLista(insumo) {
+      if ((insumo.tipoVenta || 'NORMAL') === 'COMBO') return -1
+      let lista = this.insumosOrden
+      const idInsumo = insumo.id
+      for (let i = 0; i < lista.length; i++) {
+        if (lista[i].id === idInsumo && (lista[i].tipoVenta || 'NORMAL') !== 'COMBO') return i
+      }
+      return -1
     },
 
     aumentarCantidad(indice) {
       let lista = this.insumosOrden;
       let insumo = lista[indice];
+      if ((insumo.tipoVenta || 'NORMAL') === 'COMBO') return
 
       if (insumo._stock !== undefined && insumo._stock > 0 && insumo.cantidad >= insumo._stock) {
         this.$toast({ message: `⚠ Solo hay ${insumo._stock} unidades de "${insumo.nombre}" disponibles`, type: 'is-warning' })

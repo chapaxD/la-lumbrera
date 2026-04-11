@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="section">
     <div class="container">
       <nav class="level">
@@ -86,13 +86,21 @@
                 ${{ props.row.precio }}
               </b-table-column>
               <b-table-column field="stock" label="Stock" v-slot="props" centered>
-                <b-tag
-                  :type="props.row.stock <= 0 ? 'is-danger' : props.row.stock <= props.row.stockMinimo ? 'is-warning' : 'is-success'"
-                  rounded
-                >
-                  <b-icon icon="package-variant" size="is-small" class="mr-1"></b-icon>
-                  {{ props.row.stock <= 0 ? 'Sin stock' : props.row.stock + ' uds.' }}
-                </b-tag>
+                <template v-if="props.row.tipoVenta === 'COMBO'">
+                  <b-tag type="is-info is-light" rounded>Menú (por componentes)</b-tag>
+                </template>
+                <template v-else-if="props.row.tipoVenta === 'RECETA'">
+                  <b-tag type="is-info is-light" rounded>Receta fija</b-tag>
+                </template>
+                <template v-else>
+                  <b-tag
+                    :type="props.row.stock <= 0 ? 'is-danger' : props.row.stock <= props.row.stockMinimo ? 'is-warning' : 'is-success'"
+                    rounded
+                  >
+                    <b-icon icon="package-variant" size="is-small" class="mr-1"></b-icon>
+                    {{ props.row.stock <= 0 ? 'Sin stock' : props.row.stock + ' uds.' }}
+                  </b-tag>
+                </template>
               </b-table-column>
               <b-table-column label="Acciones" v-slot="props">
                 <b-button 

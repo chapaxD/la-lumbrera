@@ -30,7 +30,9 @@ $tablas = [
         stock        DECIMAL(10,2) NOT NULL DEFAULT 0,
         stockMinimo  DECIMAL(10,2) NOT NULL DEFAULT 0,
         stockMateria DECIMAL(10,2) NOT NULL DEFAULT 0,
-        tipoCorte    INT          NOT NULL DEFAULT 0
+        tipoCorte    INT          NOT NULL DEFAULT 0,
+        tipoVenta    VARCHAR(20)  NOT NULL DEFAULT 'NORMAL',
+        idComboPlantilla BIGINT UNSIGNED NULL DEFAULT NULL
     ) ENGINE=InnoDB;",
 
     "informacion_negocio" => "CREATE TABLE IF NOT EXISTS informacion_negocio(
@@ -116,7 +118,8 @@ $tablas = [
         precio          DECIMAL(8,2) NOT NULL,
         caracteristicas VARCHAR(255),
         cantidad        INT          NOT NULL DEFAULT 1,
-        estado          ENUM('pendiente','listo','entregado') NOT NULL DEFAULT 'pendiente'
+        estado          ENUM('pendiente','listo','entregado') NOT NULL DEFAULT 'pendiente',
+        detalle_json    LONGTEXT NULL DEFAULT NULL
     ) ENGINE=InnoDB;",
 
     "reservas" => "CREATE TABLE IF NOT EXISTS reservas(
@@ -226,6 +229,74 @@ $tablas = [
         subtotal        DECIMAL(10,2)   NOT NULL DEFAULT 0
     ) ENGINE=InnoDB;",
 
+    // Tabla para registrar el despiece de materia prima en parrilla
+    "despiece_parrilla" => "CREATE TABLE IF NOT EXISTS despiece_parrilla(
+        id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        fecha DATETIME NOT NULL,
+        materia_prima VARCHAR(100) NOT NULL,
+        cantidad_recibida_kg DECIMAL(6,2) NOT NULL,
+        tipo_corte VARCHAR(100) NOT NULL,
+        gramos_porcion INT NOT NULL,
+        cantidad_porciones INT NOT NULL,
+        desperdicio_g INT NOT NULL,
+        sobras_g INT NOT NULL,
+        usuario VARCHAR(100) NOT NULL
+    ) ENGINE=InnoDB;",
+
+    // Despiece parrilla: un lote (kg recibidos) y varias líneas (reparto + porciones 250/350 + d/s) que deben cuadrar
+    "despiece_parrilla_lote" => "CREATE TABLE IF NOT EXISTS despiece_parrilla_lote(
+        id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        fecha DATETIME NOT NULL,
+        usuario VARCHAR(100) NOT NULL,
+        total_kg_recibido DECIMAL(8,3) NOT NULL
+    ) ENGINE=InnoDB;",
+
+    "despiece_parrilla_linea" => "CREATE TABLE IF NOT EXISTS despiece_parrilla_linea(
+        id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        id_lote INT UNSIGNED NOT NULL,
+        id_insumo INT UNSIGNED NULL,
+        materia_prima VARCHAR(120) NOT NULL,
+        kg_asignado DECIMAL(8,3) NOT NULL,
+        porciones_250 INT UNSIGNED NOT NULL DEFAULT 0,
+        porciones_350 INT UNSIGNED NOT NULL DEFAULT 0,
+        desperdicio_g INT UNSIGNED NOT NULL DEFAULT 0,
+        sobras_g INT UNSIGNED NOT NULL DEFAULT 0,
+        INDEX idx_despiece_lote (id_lote)
+    ) ENGINE=InnoDB;",
+
+    // Receta fija: insumo “padre” → componentes con cantidad por unidad vendida
+    "insumo_receta_componente" => "CREATE TABLE IF NOT EXISTS insumo_receta_componente(
+        id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        idInsumoPadre BIGINT UNSIGNED NOT NULL,
+        idInsumoHijo BIGINT UNSIGNED NOT NULL,
+        cantidad DECIMAL(10,3) NOT NULL DEFAULT 1,
+        INDEX idx_receta_padre (idInsumoPadre)
+    ) ENGINE=InnoDB;",
+
+    // Plantillas de menú / combo (slots y opciones por insumo del catálogo)
+    "combo_plantilla" => "CREATE TABLE IF NOT EXISTS combo_plantilla(
+        id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        nombre VARCHAR(120) NOT NULL,
+        descripcion VARCHAR(255) DEFAULT '',
+        descuento_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
+        activo TINYINT(1) NOT NULL DEFAULT 1
+    ) ENGINE=InnoDB;",
+
+    "combo_plantilla_slot" => "CREATE TABLE IF NOT EXISTS combo_plantilla_slot(
+        id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        id_plantilla BIGINT UNSIGNED NOT NULL,
+        etiqueta VARCHAR(80) NOT NULL,
+        orden SMALLINT NOT NULL DEFAULT 0,
+        INDEX idx_combo_slot_p (id_plantilla)
+    ) ENGINE=InnoDB;",
+
+    "combo_plantilla_opcion" => "CREATE TABLE IF NOT EXISTS combo_plantilla_opcion(
+        id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        id_slot BIGINT UNSIGNED NOT NULL,
+        id_insumo BIGINT UNSIGNED NOT NULL,
+        INDEX idx_combo_op_slot (id_slot)
+    ) ENGINE=InnoDB;",
+
 ];
 
 foreach ($tablas as $nombre => $sql) {
@@ -240,6 +311,12 @@ $migraciones = [
     "items_orden_acompanamiento_col" => "ALTER TABLE items_orden ADD COLUMN IF NOT EXISTS acompanamiento_listo TINYINT(1) NOT NULL DEFAULT 0",
     "ventas_idmesa_varchar"         => "ALTER TABLE ventas MODIFY idMesa VARCHAR(20) NOT NULL",
     "reservas_idmesa_varchar"       => "ALTER TABLE reservas MODIFY idMesa VARCHAR(20)",
+    // Versiones viejas de MySQL no soportan IF NOT EXISTS en ADD COLUMN; si la columna ya existe, el catch omite el error.
+    "despiece_linea_id_insumo"     => "ALTER TABLE despiece_parrilla_linea ADD COLUMN id_insumo INT UNSIGNED NULL DEFAULT NULL AFTER id_lote",
+    // Recetas y combos (bases ya creadas sin estas columnas/tablas)
+    "insumos_tipoVenta"            => "ALTER TABLE insumos ADD COLUMN tipoVenta VARCHAR(20) NOT NULL DEFAULT 'NORMAL'",
+    "insumos_idComboPlantilla"     => "ALTER TABLE insumos ADD COLUMN idComboPlantilla BIGINT UNSIGNED NULL DEFAULT NULL",
+    "items_orden_detalle_json"     => "ALTER TABLE items_orden ADD COLUMN detalle_json LONGTEXT NULL DEFAULT NULL",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

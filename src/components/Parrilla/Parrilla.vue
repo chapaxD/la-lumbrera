@@ -9,6 +9,14 @@
       </div>
       <div class="column is-12-mobile has-text-right-tablet">
         <div class="buttons is-right">
+          <b-button
+            v-if="mostrarRegistrarDespiece"
+            tag="router-link"
+            to="/registrar-despiece-parrilla"
+            type="is-info"
+            icon-left="clipboard-text-outline">
+            Registrar despiece
+          </b-button>
           <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
             Reportar faltante
           </b-button>
@@ -175,6 +183,12 @@ export default {
   beforeDestroy() {
     clearInterval(this.intervaloPolling)
     clearInterval(this.intervaloReloj)
+  },
+  computed: {
+    mostrarRegistrarDespiece() {
+      const r = typeof localStorage !== 'undefined' ? localStorage.getItem('rol') : ''
+      return r === 'parrillero' || r === 'admin'
+    }
   },
   methods: {
     getAudioCampana() {

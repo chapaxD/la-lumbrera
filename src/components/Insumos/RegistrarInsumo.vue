@@ -37,7 +37,14 @@ export default {
             nombre: "",
             descripcion: "",
             categoria: "",
-            precio: ""
+            precio: "",
+            stock: 0,
+            stockMinimo: 0,
+            stockMateria: 0,
+            tipoCorte: 0,
+            tipoVenta: "NORMAL",
+            idComboPlantilla: "",
+            receta: []
         }
     }),
 
@@ -54,7 +61,14 @@ export default {
                         nombre: "",
                         descripcion: "",
                         categoria: "",
-                        precio: ""
+                        precio: "",
+                        stock: 0,
+                        stockMinimo: 0,
+                        stockMateria: 0,
+                        tipoCorte: 0,
+                        tipoVenta: "NORMAL",
+                        idComboPlantilla: "",
+                        receta: []
                     }
                     this.$toast({
                         message: 'Insumo registrado',

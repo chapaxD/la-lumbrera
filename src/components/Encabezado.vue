@@ -21,6 +21,10 @@
                 <b-icon icon="fire"></b-icon>
                 <span>&nbsp;Pantalla Parrilla</span>
             </b-navbar-item>
+            <b-navbar-item v-if="rol === 'parrillero'" tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }">
+                <b-icon icon="clipboard-text-outline"></b-icon>
+                <span>&nbsp;Registrar despiece</span>
+            </b-navbar-item>
 
             <!-- Nav para admin y mesero -->
             <template
@@ -34,11 +38,26 @@
                     <b-icon icon="silverware-fork-knife" size="is-small"></b-icon>
                     <span>&nbsp;Cocina</span>
                 </b-navbar-item>
-                <b-navbar-item tag="router-link" :to="{ path: '/parrilla' }" v-if="rol === 'admin'">
-                    <b-icon icon="fire" size="is-small"></b-icon>
-                    <span>&nbsp;Parrilla</span>
-                </b-navbar-item>
-
+                <b-navbar-dropdown collapsible v-model="ddParrilla" v-if="rol === 'admin'">
+                    <template #label>
+                        <b-icon icon="fire" size="is-small"></b-icon>
+                        &nbsp;Registro parrilla
+                    </template>
+                    <b-navbar-item tag="router-link" :to="{ path: '/parrilla' }" @click.native="ddParrilla = false">
+                        <b-icon icon="grill" size="is-small"></b-icon>
+                        <span>&nbsp;Pantalla parrilla</span>
+                    </b-navbar-item>
+                    <b-navbar-item tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }"
+                        @click.native="ddParrilla = false">
+                        <b-icon icon="clipboard-text-outline" size="is-small"></b-icon>
+                        <span>&nbsp;Registrar despiece</span>
+                    </b-navbar-item>
+                    <b-navbar-item tag="router-link" :to="{ path: '/reporte-despiece-parrilla' }"
+                        @click.native="ddParrilla = false">
+                        <b-icon icon="clipboard-list-outline" size="is-small"></b-icon>
+                        <span>&nbsp;Reporte / control</span>
+                    </b-navbar-item>
+                </b-navbar-dropdown>
 
                 <b-navbar-item tag="router-link" :to="{ path: '/realizar-orden' }">
                     <b-icon icon="order-bool-ascending-variant"></b-icon>
@@ -80,6 +99,11 @@
                             @click.native="ddInventario = false">
                             <b-icon icon="history" size="is-small"></b-icon>
                             <span>&nbsp;Kardex</span>
+                        </b-navbar-item>
+                        <b-navbar-item tag="router-link" :to="{ path: '/plantillas-combo' }"
+                            @click.native="ddInventario = false">
+                            <b-icon icon="food-variant" size="is-small"></b-icon>
+                            <span>&nbsp;Menús / combos</span>
                         </b-navbar-item>
                     </b-navbar-dropdown>
 
@@ -277,6 +301,7 @@ export default ({
         rol: "",
         dropdownActivo: false,
         ddInventario: false,
+        ddParrilla: false,
         ddVentas: false,
         ddOperacion: false,
         ddAdmin: false

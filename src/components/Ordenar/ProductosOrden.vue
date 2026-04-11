@@ -6,6 +6,7 @@
         :narrowed="true">
             <b-table-column field="nombre" label="Nombre" v-slot="props">
             {{ props.row.nombre }}
+            <span v-if="(props.row.tipoVenta || '') === 'COMBO'" class="is-size-7 has-text-grey"><br>Menú ({{ props.row.cantidad }} u.)</span>
           </b-table-column>
 
           <b-table-column field="precio" label="Precio" v-slot="props">
@@ -18,6 +19,11 @@
             </span>
 
             <span v-if="tipo === 'nuevo'">
+                <template v-if="(props.row.tipoVenta || '') === 'COMBO'">
+                  <span class="has-text-weight-semibold">{{ props.row.cantidad }}</span>
+                  <p class="is-size-7 has-text-grey mt-1">Cantidad = menús (editar quitando y volviendo a agregar)</p>
+                </template>
+                <template v-else>
                 <b-numberinput
                 type="is-info"
                 size="is-small"
@@ -30,6 +36,7 @@
                 <p v-if="props.row._stock > 0" class="is-size-7 has-text-grey mt-1">
                     Stock: {{ props.row._stock }}
                 </p>
+                </template>
             </span>
             
           </b-table-column>
@@ -72,7 +79,7 @@
             <b-button
               type="is-danger"
               class="mb-1"
-              @click="eliminar(props.row.id)"
+              @click="eliminar(props.row._lineId || props.row.id)"
             >
               <b-icon icon="delete"></b-icon>
             </b-button>
@@ -87,6 +94,7 @@ export default {
 
     methods: {
         validarCantidad(insumo) {
+            if ((insumo.tipoVenta || '') === 'COMBO') return;
             if (!insumo._stock || insumo._stock <= 0) return;
             const val = parseInt(insumo.cantidad) || 1;
             if (val > insumo._stock) {

@@ -16,6 +16,8 @@
                                 <b-icon icon="cup" size="is-small"></b-icon>&nbsp;Bebida
                             </b-tag>
                             <b-tag v-else type="is-light">Sin tipo</b-tag>
+                            <b-tag v-if="(insumo.tipoVenta || 'NORMAL') === 'RECETA'" type="is-dark" class="ml-1 is-size-7">Receta</b-tag>
+                            <b-tag v-else-if="(insumo.tipoVenta || 'NORMAL') === 'COMBO'" type="is-link" class="ml-1 is-size-7">Combo</b-tag>
                             <b-tag v-if="insumo.codigo" type="is-light" class="ml-1 is-size-7">{{ insumo.codigo }}</b-tag>
                         </div>
 
@@ -90,14 +92,14 @@
             <!-- Fila 1: Tipo · Categoría · Código -->
             <b-field grouped group-multiline class="mb-4">
                 <b-field label="Tipo" :label-position="'inside'">
-                    <b-select v-model="insumo.tipo" @input="obtenerCategorias" placeholder="Tipo">
+                    <b-select v-model="insumo.tipo" placeholder="Tipo">
                         <option value="PLATILLO">Platillo</option>
                         <option value="BEBIDA">Bebida</option>
                     </b-select>
                 </b-field>
                 <b-field label="Categoría" :label-position="'inside'" expanded>
                     <b-select v-model="insumo.categoria" expanded placeholder="Selecciona la categoría">
-                        <option v-for="categoria in categorias" :key="categoria.id" :value="categoria.id">
+                        <option v-for="categoria in categorias" :key="categoria.id" :value="normalizarIdCategoria(categoria.id)">
                             {{ categoria.nombre }}
                         </option>
                     </b-select>
@@ -116,6 +118,42 @@
                     <b-input type="number" min="0" placeholder="0.00" v-model="insumo.precio" style="width:130px"></b-input>
                 </b-field>
             </b-field>
+
+            <hr class="my-3">
+            <p class="heading has-text-grey mb-3">Venta e inventario</p>
+            <b-field label="Tipo de venta" :label-position="'inside'" class="mb-3">
+                <b-select v-model="insumo.tipoVenta" placeholder="Normal" expanded>
+                    <option value="NORMAL">Normal (descontar este insumo)</option>
+                    <option value="RECETA">Receta fija (descontar componentes)</option>
+                    <option value="COMBO">Menú / combo (opciones por plantilla)</option>
+                </b-select>
+            </b-field>
+            <b-field v-if="insumo.tipoVenta === 'COMBO'" label="Plantilla de menú" :label-position="'inside'" class="mb-3">
+                <b-select v-model="insumo.idComboPlantilla" expanded placeholder="Creá plantillas en Inventario → Menús / combos">
+                    <option v-for="p in plantillasCombo" :key="'pc' + p.id" :value="normalizarId(p.id)">{{ p.nombre }}</option>
+                </b-select>
+            </b-field>
+            <div v-if="insumo.tipoVenta === 'RECETA'" class="mb-4">
+                <p class="is-size-7 has-text-grey mb-2">Componentes por cada <strong>1</strong> unidad vendida de este producto</p>
+                <div v-for="(r, idx) in insumo.receta" :key="'rec' + idx" class="columns is-mobile is-variable is-1 mb-2">
+                    <div class="column">
+                        <b-field label="Insumo" :label-position="'inside'">
+                            <b-select v-model="r.idInsumoHijo" expanded placeholder="Elegir">
+                                <option v-for="x in insumosParaReceta" :key="'ic' + x.id" :value="normalizarId(x.id)">{{ x.nombre }}</option>
+                            </b-select>
+                        </b-field>
+                    </div>
+                    <div class="column is-narrow" style="max-width:110px">
+                        <b-field label="Cant." :label-position="'inside'">
+                            <b-input type="number" min="0.01" step="0.01" v-model.number="r.cantidad"></b-input>
+                        </b-field>
+                    </div>
+                    <div class="column is-narrow">
+                        <b-button type="is-danger" outlined icon-left="delete" class="mt-4" @click="insumo.receta.splice(idx, 1)"></b-button>
+                    </div>
+                </div>
+                <b-button type="is-info" size="is-small" outlined icon-left="plus" @click="agregarLineaReceta">Agregar componente</b-button>
+            </div>
 
             <!-- Fila 3: Descripción -->
             <b-field label="Descripción" :label-position="'inside'" class="mb-4">
@@ -184,10 +222,15 @@ export default {
 
     data: () => ({
         errores: [],
-        categorias: []
+        categorias: [],
+        plantillasCombo: [],
+        insumosComponentes: []
     }),
 
     computed: {
+        insumosParaReceta() {
+            return (this.insumosComponentes || []).filter(x => String(x.id) !== String(this.insumo.id))
+        },
         stockTagType() {
             const s = Number(this.insumo.stock) || 0
             const m = Number(this.insumo.stockMinimo) || 0
@@ -197,7 +240,63 @@ export default {
         }
     },
 
+    watch: {
+        insumo: {
+            immediate: true,
+            deep: true,
+            handler(val) {
+                if (!val) return
+                if (!val.tipoVenta) this.$set(val, 'tipoVenta', 'NORMAL')
+                if (val.idComboPlantilla === undefined || val.idComboPlantilla === null) this.$set(val, 'idComboPlantilla', '')
+                if (!Array.isArray(val.receta)) this.$set(val, 'receta', [])
+            }
+        },
+        'insumo.tipo': {
+            immediate: true,
+            handler(nuevo, anterior) {
+                if (!this.insumo) return
+                const tipoVal = nuevo || ''
+                const cambioReal =
+                    anterior !== undefined &&
+                    anterior !== null &&
+                    String(anterior) !== '' &&
+                    String(anterior) !== String(tipoVal)
+                this.cargarListaCategorias(tipoVal, cambioReal)
+            }
+        }
+    },
+
+    mounted() {
+        this.cargarPlantillasYComponentes()
+    },
+
     methods: {
+        normalizarId(id) {
+            const n = parseInt(id, 10)
+            return Number.isFinite(n) ? n : id
+        },
+        async cargarPlantillasYComponentes() {
+            try {
+                const pl = await HttpService.obtener('obtener_plantillas_combo.php')
+                this.plantillasCombo = Array.isArray(pl) ? pl.filter(p => p.activo) : []
+            } catch (e) {
+                this.plantillasCombo = []
+            }
+            try {
+                const ins = await HttpService.obtenerConDatos({ tipo: '', categoria: '', nombre: '' }, 'obtener_insumos.php')
+                this.insumosComponentes = Array.isArray(ins) ? ins : []
+            } catch (e) {
+                this.insumosComponentes = []
+            }
+        },
+        agregarLineaReceta() {
+            if (!Array.isArray(this.insumo.receta)) this.$set(this.insumo, 'receta', [])
+            this.insumo.receta.push({ idInsumoHijo: '', cantidad: 1 })
+        },
+        normalizarIdCategoria(id) {
+            const n = parseInt(id, 10)
+            return Number.isFinite(n) ? n : id
+        },
         registrar() {
             let datos = {
                 tipo: this.insumo.tipo,
@@ -223,25 +322,55 @@ export default {
             }
             this.errores = Utiles.validar(datosValidar)
             if(this.errores.length > 0) return
+
+            const tv = this.insumo.tipoVenta || 'NORMAL'
+            if (tv === 'COMBO' && !this.insumo.idComboPlantilla) {
+                this.$buefy.toast.open({ message: 'Elegí una plantilla de menú para el combo', type: 'is-warning' })
+                return
+            }
+            if (tv === 'RECETA') {
+                const ok = (this.insumo.receta || []).some(r => r.idInsumoHijo && Number(r.cantidad) > 0)
+                if (!ok) {
+                    this.$buefy.toast.open({ message: 'Agregá al menos un componente con cantidad mayor a 0', type: 'is-warning' })
+                    return
+                }
+            }
+            if (tv !== 'RECETA') {
+                this.$set(this.insumo, 'receta', [])
+            }
+            if (tv !== 'COMBO') {
+                this.$set(this.insumo, 'idComboPlantilla', null)
+            }
+
             this.$emit("registrado", this.insumo)
         },
 
-        obtenerCategorias(tipo) {
-            const valor = tipo && typeof tipo === 'object' && tipo.target ? tipo.target.value : tipo
-            const tipoValido = valor !== undefined && valor !== null && valor !== '' ? valor : this.insumo.tipo
+        /** limpiarSeleccion: true si el usuario cambió el tipo (hay que elegir otra categoría). */
+        cargarListaCategorias(tipoValido, limpiarSeleccion) {
             if (!tipoValido || tipoValido === '') {
                 this.categorias = []
-                this.$set(this.insumo, 'categoria', '')
+                if (limpiarSeleccion) this.$set(this.insumo, 'categoria', '')
                 return
             }
-            this.$set(this.insumo, 'categoria', '')
+            if (limpiarSeleccion) this.$set(this.insumo, 'categoria', '')
             HttpService.obtenerConDatos({ tipo: tipoValido }, "obtener_categorias_tipo.php")
-                .then(resultado => {
+                .then((resultado) => {
                     this.categorias = Array.isArray(resultado) ? resultado : []
+                    this.alinearCategoriaConOpciones()
                 })
                 .catch(() => {
                     this.categorias = []
                 })
+        },
+
+        /** El API puede devolver id de categoría como string; el select usa números. */
+        alinearCategoriaConOpciones() {
+            const c = this.insumo.categoria
+            if (c === '' || c === null || c === undefined || !this.categorias.length) return
+            const idNum = parseInt(c, 10)
+            if (!Number.isFinite(idNum)) return
+            const existe = this.categorias.some((cat) => parseInt(cat.id, 10) === idNum)
+            if (existe) this.$set(this.insumo, 'categoria', idNum)
         }
     }
 }

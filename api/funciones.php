@@ -370,18 +370,17 @@ function registrarInsumosVenta($insumos, $idVenta, $idUsuario)
 {
     $resultados = [];
     $bd = conectarBaseDatos();
+    _asegurarTipoVentaInsumos();
     foreach ($insumos as $insumo) {
-        // Registrar insumo en la venta
+        $arr = is_object($insumo) ? get_object_vars($insumo) : (array) $insumo;
         $sentencia = $bd->prepare("INSERT INTO insumos_venta(idInsumo, precio, cantidad, idVenta) VALUES(?,?,?,?)");
-        $sentencia->execute([$insumo->id, $insumo->precio, $insumo->cantidad, $idVenta]);
-        if ($sentencia) array_push($resultados, $sentencia);
+        $sentencia->execute([$arr['id'], $arr['precio'], $arr['cantidad'], $idVenta]);
+        if ($sentencia) {
+            array_push($resultados, $sentencia);
+        }
 
-        // Descontar stock automáticamente (nunca queda negativo)
-        $descuento = $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id = ?");
-        $descuento->execute([$insumo->cantidad, $insumo->id]);
-
-        $movimiento = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, fecha) VALUES (?, ?, ?, 'VENTA', ?)");
-        $movimiento->execute([$insumo->id, $idUsuario, -$insumo->cantidad, date("Y-m-d H:i:s")]);
+        $nec = expandirNecesidadesLineaPedido($bd, $arr);
+        aplicarDescuentoStockPorMapa($bd, $nec, $idUsuario, 'VENTA', null);
     }
     return $resultados;
 }
@@ -452,6 +451,8 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
     _asegurarTipoItemsOrden();
     _asegurarPagadoItemsOrden();
     _asegurarAcompanamientoItemsOrden();
+    _asegurarDetalleJsonItemsOrden();
+    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
     $stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
     $stmt->execute([(string)$numeroMesa]);
@@ -483,7 +484,8 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
         }
 
         $stmtItems = $bd->prepare("
-            SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
+            SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria, IFNULL(i.tipoVenta, 'NORMAL') AS insumoTipoVenta,
+                   i.idComboPlantilla AS insumoIdComboPlantilla
             FROM items_orden io
             LEFT JOIN insumos i ON i.id = io.idInsumo
             LEFT JOIN categorias c ON c.id = i.categoria
@@ -492,7 +494,18 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
         $stmtItems->execute([$orden->id]);
         $insumosArr = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
 
-        $insumos = array_map(function ($item) {
+        $insumos = array_map(function ($item) use ($bd) {
+            $dj = $item['detalle_json'] ?? null;
+            $detalleJson = null;
+            if ($dj !== null && $dj !== '') {
+                $decoded = json_decode($dj, true);
+                $detalleJson = is_array($decoded) ? $decoded : null;
+            }
+            $tv = strtoupper((string) ($item['insumoTipoVenta'] ?? 'NORMAL'));
+            $resumenCombo = '';
+            if ($tv === 'COMBO') {
+                $resumenCombo = construirResumenComboParaCocina($bd, $dj, (int) ($item['insumoIdComboPlantilla'] ?? 0));
+            }
             return [
                 "itemId"          => $item['id'],
                 "id"              => $item['idInsumo'],
@@ -505,6 +518,9 @@ function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
                 "pagado"          => (int)($item['pagado'] ?? 0),
                 "acompanamiento_listo" => (int)($item['acompanamiento_listo'] ?? 0),
                 "categoria"       => $item['nombreCategoria'] ?? 'NO DEFINIDA',
+                "tipoVenta"       => $item['insumoTipoVenta'] ?? 'NORMAL',
+                "detalleJson"     => $detalleJson,
+                "resumenCombo"    => $resumenCombo,
             ];
         }, $insumosArr);
         return ["mesa" => $mesa, "insumos" => $insumos];
@@ -540,16 +556,20 @@ function cancelarMesa($id, $idUsuario = null, $motivo = null)
 
         // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
         // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
-        $stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? AND estado IN ('listo','entregado')");
+        _asegurarTipoVentaInsumos();
+        _asegurarDetalleJsonItemsOrden();
+        $stmtItems = $bd->prepare("
+            SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
+            FROM items_orden io
+            LEFT JOIN insumos i ON i.id = io.idInsumo
+            WHERE io.idOrden=? AND io.estado IN ('listo','entregado')
+        ");
         $stmtItems->execute([$idOrden]);
-        $items = $stmtItems->fetchAll();
+        $items = $stmtItems->fetchAll(PDO::FETCH_OBJ);
         foreach ($items as $item) {
             if ($item->idInsumo) {
-                // Descontar stock (pérdida — ingredientes usados pero no cobrados)
-                $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id=?")
-                    ->execute([$item->cantidad, $item->idInsumo]);
-                $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'CANCELACION', ?, ?)")
-                    ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
+                $ex = expandirNecesidadesDesdeFilaItemOrden($bd, $item);
+                aplicarDescuentoStockPorMapa($bd, $ex, $idUsuario, 'CANCELACION', $motivo);
             }
         }
     }
@@ -570,6 +590,7 @@ function editarMesa($mesa)
 
 function ocuparMesa($mesa)
 {
+    _asegurarDetalleJsonItemsOrden();
     $bd = conectarBaseDatos();
     $cliente = ($mesa->cliente === "" || $mesa->cliente === null) ? "MOSTRADOR" : $mesa->cliente;
 
@@ -622,8 +643,9 @@ function ocuparMesa($mesa)
         // Bebidas no pasan por cocina: nacen como 'listo' para que el mesero las entregue directamente
         $estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
         $pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
-        $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado) VALUES (?,?,?,?,?,?,?,?,?,?)")
-            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
+        $detJson = _encodeDetalleJsonParaDb($i['detalleJson'] ?? $i['detalle_json'] ?? null);
+        $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado, detalle_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado, $detJson]);
     }
     return true;
 }
@@ -764,6 +786,7 @@ function eliminarInsumo($idInsumo)
 
 function editarInsumo($insumo)
 {
+    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
 
     $antiguo = $bd->prepare("SELECT stock FROM insumos WHERE id = ?");
@@ -771,8 +794,23 @@ function editarInsumo($insumo)
     $viejo = $antiguo->fetch();
     $stockViejo = $viejo ? $viejo->stock : 0;
 
-    $sentencia = $bd->prepare("UPDATE insumos SET tipo = ?, codigo = ?, nombre = ?, descripcion = ?, categoria = ?, precio = ?, stock = ?, stockMinimo = ?, stockMateria = ?, tipoCorte = ? WHERE id = ?");
-    $resultado = $sentencia->execute([$insumo->tipo, $insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->categoria, $insumo->precio, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0, $insumo->id]);
+    $tipoVenta = isset($insumo->tipoVenta) ? $insumo->tipoVenta : 'NORMAL';
+    $idCombo = property_exists($insumo, 'idComboPlantilla') ? $insumo->idComboPlantilla : null;
+    if ($idCombo === '' || $idCombo === false) {
+        $idCombo = null;
+    }
+
+    $sentencia = $bd->prepare("UPDATE insumos SET tipo = ?, codigo = ?, nombre = ?, descripcion = ?, categoria = ?, precio = ?, stock = ?, stockMinimo = ?, stockMateria = ?, tipoCorte = ?, tipoVenta = ?, idComboPlantilla = ? WHERE id = ?");
+    $resultado = $sentencia->execute([$insumo->tipo, $insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->categoria, $insumo->precio, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0, $tipoVenta, $idCombo, $insumo->id]);
+
+    if ($resultado) {
+        $tvR = strtoupper((string) ($insumo->tipoVenta ?? 'NORMAL'));
+        if ($tvR === 'RECETA' && isset($insumo->receta)) {
+            guardarRecetaInsumo($insumo->id, $insumo->receta);
+        } elseif ($tvR !== 'RECETA') {
+            guardarRecetaInsumo($insumo->id, []);
+        }
+    }
 
     if ($resultado && isset($insumo->idUsuario)) {
         $diferencia = ($insumo->stock ?? 0) - $stockViejo;
@@ -786,10 +824,15 @@ function editarInsumo($insumo)
 
 function obtenerInsumoPorId($idInsumo)
 {
+    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT * FROM insumos WHERE id = ?");
     $sentencia->execute([$idInsumo]);
-    return $sentencia->fetchObject();
+    $obj = $sentencia->fetchObject();
+    if ($obj) {
+        $obj->receta = obtenerRecetaComponentesPorPadre($idInsumo);
+    }
+    return $obj;
 }
 
 function obtenerInsumos($filtros)
@@ -823,9 +866,23 @@ function obtenerInsumos($filtros)
 
 function registrarInsumo($insumo)
 {
+    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
-    $sentencia = $bd->prepare("INSERT INTO insumos (codigo, nombre, descripcion, precio, tipo, categoria, stock, stockMinimo, stockMateria, tipoCorte) VALUES (?,?,?,?,?,?,?,?,?,?)");
-    return $sentencia->execute([$insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->precio, $insumo->tipo, $insumo->categoria, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0]);
+    $tipoVenta = isset($insumo->tipoVenta) ? $insumo->tipoVenta : 'NORMAL';
+    $idCombo = property_exists($insumo, 'idComboPlantilla') ? $insumo->idComboPlantilla : null;
+    if ($idCombo === '' || $idCombo === false) {
+        $idCombo = null;
+    }
+    $sentencia = $bd->prepare("INSERT INTO insumos (codigo, nombre, descripcion, precio, tipo, categoria, stock, stockMinimo, stockMateria, tipoCorte, tipoVenta, idComboPlantilla) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+    $ok = $sentencia->execute([$insumo->codigo, $insumo->nombre, $insumo->descripcion, $insumo->precio, $insumo->tipo, $insumo->categoria, $insumo->stock ?? 0, $insumo->stockMinimo ?? 0, $insumo->stockMateria ?? 0, $insumo->tipoCorte ?? 0, $tipoVenta, $idCombo]);
+    if (!$ok) {
+        return false;
+    }
+    $nuevoId = (int) $bd->lastInsertId();
+    if ($nuevoId > 0 && strtoupper((string) $tipoVenta) === 'RECETA' && isset($insumo->receta)) {
+        guardarRecetaInsumo($nuevoId, $insumo->receta);
+    }
+    return true;
 }
 
 function obtenerCategoriasPorTipo($tipo)
@@ -939,6 +996,417 @@ function _asegurarAcompanamientoItemsOrden()
         }
     } catch (\Exception $e) { /* silencioso */
     }
+}
+
+function _asegurarTipoVentaInsumos()
+{
+    static $verificado = false;
+    if ($verificado) {
+        return;
+    }
+    $verificado = true;
+    try {
+        $bd = conectarBaseDatos();
+        $existe = $bd->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='insumos' AND COLUMN_NAME='tipoVenta'")->fetchColumn();
+        if (!$existe) {
+            $bd->exec("ALTER TABLE insumos ADD COLUMN tipoVenta VARCHAR(20) NOT NULL DEFAULT 'NORMAL'");
+        }
+        $existe2 = $bd->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='insumos' AND COLUMN_NAME='idComboPlantilla'")->fetchColumn();
+        if (!$existe2) {
+            $bd->exec("ALTER TABLE insumos ADD COLUMN idComboPlantilla BIGINT UNSIGNED NULL DEFAULT NULL");
+        }
+    } catch (\Exception $e) { /* silencioso */
+    }
+}
+
+function _asegurarDetalleJsonItemsOrden()
+{
+    static $verificado = false;
+    if ($verificado) {
+        return;
+    }
+    $verificado = true;
+    try {
+        $bd = conectarBaseDatos();
+        $existe = $bd->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='items_orden' AND COLUMN_NAME='detalle_json'")->fetchColumn();
+        if (!$existe) {
+            $bd->exec("ALTER TABLE items_orden ADD COLUMN detalle_json LONGTEXT NULL DEFAULT NULL");
+        }
+    } catch (\Exception $e) { /* silencioso */
+    }
+}
+
+function _encodeDetalleJsonParaDb($raw)
+{
+    if ($raw === null || $raw === '') {
+        return null;
+    }
+    if (is_string($raw)) {
+        return $raw;
+    }
+    return json_encode($raw, JSON_UNESCAPED_UNICODE);
+}
+
+function _mergeCantidadesMapa(&$dest, $src)
+{
+    foreach ($src as $id => $q) {
+        $iid = (int) $id;
+        $qq = (float) $q;
+        if ($iid <= 0 || $qq <= 0) {
+            continue;
+        }
+        $dest[$iid] = ($dest[$iid] ?? 0) + $qq;
+    }
+}
+
+function expandirRecetaInsumo($bd, $idPadre, $multCantidad)
+{
+    $idPadre = (int) $idPadre;
+    $multCantidad = (float) $multCantidad;
+    if ($idPadre <= 0 || $multCantidad <= 0) {
+        return [];
+    }
+    $st = $bd->prepare("SELECT idInsumoHijo, cantidad FROM insumo_receta_componente WHERE idInsumoPadre = ?");
+    $st->execute([$idPadre]);
+    $map = [];
+    foreach ($st->fetchAll(PDO::FETCH_OBJ) as $r) {
+        $hid = (int) $r->idInsumoHijo;
+        $q = (float) $r->cantidad * $multCantidad;
+        if ($hid > 0 && $q > 0) {
+            $map[$hid] = ($map[$hid] ?? 0) + $q;
+        }
+    }
+    if (count($map) === 0) {
+        return [$idPadre => $multCantidad];
+    }
+    return $map;
+}
+
+/**
+ * $detalle: array o JSON string. Formato: { "menus": [ { "slots": { "<idSlot>": <idInsumo>, ... } }, ... ] }
+ * cantidadLinea = número de menús (debe coincidir con count(menus)).
+ */
+function expandirComboDesdeDetalle($detalleRaw, $cantidadLinea)
+{
+    $cantidadLinea = (int) $cantidadLinea;
+    if ($cantidadLinea < 1) {
+        $cantidadLinea = 1;
+    }
+    if ($detalleRaw === null || $detalleRaw === '') {
+        return [];
+    }
+    $det = $detalleRaw;
+    if (is_string($detalleRaw)) {
+        $det = json_decode($detalleRaw, true);
+    } elseif (is_object($detalleRaw)) {
+        $det = json_decode(json_encode($detalleRaw), true);
+    }
+    if (!is_array($det)) {
+        return [];
+    }
+    $menus = $det['menus'] ?? [];
+    if (!is_array($menus) || count($menus) !== $cantidadLinea) {
+        return [];
+    }
+    $map = [];
+    foreach ($menus as $menu) {
+        if (!is_array($menu)) {
+            continue;
+        }
+        $slots = $menu['slots'] ?? $menu['s'] ?? [];
+        if (!is_array($slots)) {
+            continue;
+        }
+        foreach ($slots as $slotKey => $idInsumoElegido) {
+            $hid = (int) $idInsumoElegido;
+            if ($hid > 0) {
+                $map[$hid] = ($map[$hid] ?? 0) + 1;
+            }
+        }
+    }
+    return $map;
+}
+
+/**
+ * Texto multilínea para cocina / comanda: elecciones del menú con etiqueta de slot + nombre de insumo.
+ */
+function construirResumenComboParaCocina($bd, $detalleJsonRaw, $idPlantilla)
+{
+    $idPlantilla = (int) $idPlantilla;
+    if ($idPlantilla <= 0 || $detalleJsonRaw === null || $detalleJsonRaw === '') {
+        return '';
+    }
+    $det = is_array($detalleJsonRaw) ? $detalleJsonRaw : json_decode((string) $detalleJsonRaw, true);
+    if (!is_array($det)) {
+        return '';
+    }
+    $menus = $det['menus'] ?? [];
+    if (!is_array($menus) || count($menus) === 0) {
+        return '';
+    }
+    try {
+        $st = $bd->prepare('SELECT id, etiqueta FROM combo_plantilla_slot WHERE id_plantilla = ? ORDER BY orden ASC, id ASC');
+        $st->execute([$idPlantilla]);
+        $slotsMeta = [];
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $slotsMeta[(string) $r['id']] = (string) $r['etiqueta'];
+        }
+    } catch (\Exception $e) {
+        return '';
+    }
+    $bloques = [];
+    $mi = 1;
+    $stNom = $bd->prepare('SELECT nombre FROM insumos WHERE id = ?');
+    foreach ($menus as $menu) {
+        if (!is_array($menu)) {
+            $mi++;
+            continue;
+        }
+        $slots = $menu['slots'] ?? $menu['s'] ?? [];
+        if (!is_array($slots)) {
+            $mi++;
+            continue;
+        }
+        $partes = [];
+        foreach ($slots as $slotId => $idInsumoElegido) {
+            $et = $slotsMeta[(string) $slotId] ?? ('Opción ' . $slotId);
+            $nid = (int) $idInsumoElegido;
+            $nom = '?';
+            if ($nid > 0) {
+                $stNom->execute([$nid]);
+                $row = $stNom->fetchColumn();
+                $nom = $row ? (string) $row : ('#' . $nid);
+            }
+            $partes[] = $et . ': ' . $nom;
+        }
+        if (count($partes) > 0) {
+            $bloques[] = 'Menú ' . $mi . ': ' . implode(' · ', $partes);
+        }
+        $mi++;
+    }
+    return implode("\n", $bloques);
+}
+
+function expandirNecesidadesLineaPedido($bd, $linea)
+{
+    _asegurarTipoVentaInsumos();
+    $arr = is_array($linea) ? $linea : (array) $linea;
+    $id = (int) ($arr['id'] ?? 0);
+    if ($id <= 0) {
+        return [];
+    }
+    $cant = isset($arr['cantidad']) ? (float) $arr['cantidad'] : 1;
+    if ($cant < 0) {
+        $cant = 0;
+    }
+    $tipoVenta = strtoupper(trim((string) ($arr['tipoVenta'] ?? $arr['tipo_venta'] ?? '')));
+    if ($tipoVenta === '') {
+        $st = $bd->prepare("SELECT tipoVenta FROM insumos WHERE id = ?");
+        $st->execute([$id]);
+        $row = $st->fetch(PDO::FETCH_OBJ);
+        $tipoVenta = strtoupper($row->tipoVenta ?? 'NORMAL');
+    }
+    if ($tipoVenta === '' || $tipoVenta === 'NORMAL') {
+        return [$id => $cant];
+    }
+    if ($tipoVenta === 'RECETA') {
+        return expandirRecetaInsumo($bd, $id, $cant);
+    }
+    if ($tipoVenta === 'COMBO') {
+        $det = $arr['detalleJson'] ?? $arr['detalle_json'] ?? null;
+        return expandirComboDesdeDetalle($det, (int) round($cant));
+    }
+    return [$id => $cant];
+}
+
+function expandirNecesidadesDesdeFilaItemOrden($bd, $row)
+{
+    $o = is_object($row) ? $row : (object) $row;
+    $linea = [
+        'id' => (int) ($o->idInsumo ?? 0),
+        'cantidad' => isset($o->cantidad) ? (float) $o->cantidad : 1,
+        'tipoVenta' => $o->tipoVenta ?? null,
+        'detalle_json' => $o->detalle_json ?? null,
+    ];
+    return expandirNecesidadesLineaPedido($bd, $linea);
+}
+
+function aplicarDescuentoStockPorMapa($bd, $mapa, $idUsuario, $tipoHistorial = 'VENTA', $nota = null)
+{
+    foreach ($mapa as $idInsumo => $qty) {
+        $iid = (int) $idInsumo;
+        $q = (float) $qty;
+        if ($iid <= 0 || $q <= 0) {
+            continue;
+        }
+        $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id = ?")->execute([$q, $iid]);
+        $mov = $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, ?, ?, ?)");
+        $mov->execute([$iid, $idUsuario, -$q, $tipoHistorial, $nota, date('Y-m-d H:i:s')]);
+    }
+}
+
+function obtenerRecetaComponentesPorPadre($idPadre)
+{
+    $bd = conectarBaseDatos();
+    $st = $bd->prepare("SELECT idInsumoHijo, cantidad FROM insumo_receta_componente WHERE idInsumoPadre = ? ORDER BY idInsumoHijo ASC");
+    $st->execute([(int) $idPadre]);
+    return $st->fetchAll(PDO::FETCH_OBJ);
+}
+
+function guardarRecetaInsumo($idPadre, $receta)
+{
+    $bd = conectarBaseDatos();
+    $idPadre = (int) $idPadre;
+    $bd->prepare("DELETE FROM insumo_receta_componente WHERE idInsumoPadre = ?")->execute([$idPadre]);
+    if (!is_array($receta) && !is_object($receta)) {
+        return true;
+    }
+    $ins = $bd->prepare("INSERT INTO insumo_receta_componente (idInsumoPadre, idInsumoHijo, cantidad) VALUES (?,?,?)");
+    foreach ($receta as $r) {
+        $r = is_object($r) ? get_object_vars($r) : (array) $r;
+        $hijo = (int) ($r['idInsumoHijo'] ?? $r['id'] ?? 0);
+        $cant = isset($r['cantidad']) ? (float) $r['cantidad'] : 1;
+        if ($hijo <= 0 || $cant <= 0) {
+            continue;
+        }
+        $ins->execute([$idPadre, $hijo, $cant]);
+    }
+    return true;
+}
+
+function obtenerPlantillasCombo()
+{
+    $bd = conectarBaseDatos();
+    $plantillas = $bd->query("SELECT * FROM combo_plantilla ORDER BY nombre ASC")->fetchAll(PDO::FETCH_OBJ);
+    foreach ($plantillas as $p) {
+        _cargarSlotsPlantillaCombo($bd, $p);
+    }
+    return $plantillas;
+}
+
+function _cargarSlotsPlantillaCombo($bd, $p)
+{
+    $st = $bd->prepare("SELECT * FROM combo_plantilla_slot WHERE id_plantilla = ? ORDER BY orden ASC, id ASC");
+    $st->execute([(int) $p->id]);
+    $p->slots = $st->fetchAll(PDO::FETCH_OBJ);
+    foreach ($p->slots as $s) {
+        $so = $bd->prepare("SELECT o.id, o.id_insumo, i.nombre AS nombre_insumo, i.stock, i.tipoVenta FROM combo_plantilla_opcion o LEFT JOIN insumos i ON i.id = o.id_insumo WHERE o.id_slot = ? ORDER BY o.id ASC");
+        $so->execute([(int) $s->id]);
+        $opciones = $so->fetchAll(PDO::FETCH_OBJ);
+        
+        foreach ($opciones as $op) {
+            $tmpArr = [(object)['id' => $op->id_insumo, 'stock' => $op->stock, 'tipoVenta' => $op->tipoVenta]];
+            ajustarStockDisponibleVentaEnFilas($bd, $tmpArr);
+            $op->stock = (float)$tmpArr[0]->stock;
+            unset($op->tipoVenta);
+        }
+        $s->opciones = $opciones;
+    }
+}
+
+function obtenerPlantillaComboPorId($id)
+{
+    $bd = conectarBaseDatos();
+    $id = (int) $id;
+    if ($id <= 0) {
+        return null;
+    }
+    $st = $bd->prepare("SELECT * FROM combo_plantilla WHERE id = ?");
+    $st->execute([$id]);
+    $p = $st->fetch(PDO::FETCH_OBJ);
+    if (!$p) {
+        return null;
+    }
+    _cargarSlotsPlantillaCombo($bd, $p);
+    return $p;
+}
+
+function guardarPlantillaCombo($payload)
+{
+    $bd = conectarBaseDatos();
+    $p = is_object($payload) ? get_object_vars($payload) : (array) $payload;
+    $nombre = trim((string) ($p['nombre'] ?? ''));
+    if ($nombre === '') {
+        return false;
+    }
+    $desc = (string) ($p['descripcion'] ?? '');
+    $descPct = isset($p['descuento_pct']) ? (float) $p['descuento_pct'] : 0;
+    $activo = isset($p['activo']) ? (int) (bool) $p['activo'] : 1;
+    $idPlantilla = isset($p['id']) ? (int) $p['id'] : 0;
+
+    $bd->beginTransaction();
+    try {
+        if ($idPlantilla > 0) {
+            $bd->prepare("UPDATE combo_plantilla SET nombre=?, descripcion=?, descuento_pct=?, activo=? WHERE id=?")
+                ->execute([$nombre, $desc, $descPct, $activo, $idPlantilla]);
+            $stSlotIds = $bd->prepare("SELECT id FROM combo_plantilla_slot WHERE id_plantilla = ?");
+            $stSlotIds->execute([$idPlantilla]);
+            foreach ($stSlotIds->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+                $bd->prepare("DELETE FROM combo_plantilla_opcion WHERE id_slot = ?")->execute([(int) $sid]);
+            }
+            $bd->prepare("DELETE FROM combo_plantilla_slot WHERE id_plantilla = ?")->execute([$idPlantilla]);
+        } else {
+            $bd->prepare("INSERT INTO combo_plantilla (nombre, descripcion, descuento_pct, activo) VALUES (?,?,?,?)")
+                ->execute([$nombre, $desc, $descPct, $activo]);
+            $idPlantilla = (int) $bd->lastInsertId();
+        }
+
+        $slots = $p['slots'] ?? [];
+        if (is_object($slots)) {
+            $slots = json_decode(json_encode($slots), true);
+        }
+        if (!is_array($slots)) {
+            $slots = [];
+        }
+        $insSlot = $bd->prepare("INSERT INTO combo_plantilla_slot (id_plantilla, etiqueta, orden) VALUES (?,?,?)");
+        $insOp = $bd->prepare("INSERT INTO combo_plantilla_opcion (id_slot, id_insumo) VALUES (?,?)");
+        foreach ($slots as $idx => $slot) {
+            $slot = is_object($slot) ? get_object_vars($slot) : (array) $slot;
+            $et = trim((string) ($slot['etiqueta'] ?? ''));
+            if ($et === '') {
+                continue;
+            }
+            $ord = isset($slot['orden']) ? (int) $slot['orden'] : (int) $idx;
+            $insSlot->execute([$idPlantilla, $et, $ord]);
+            $idSlot = (int) $bd->lastInsertId();
+            $ops = $slot['opciones'] ?? [];
+            if (is_object($ops)) {
+                $ops = json_decode(json_encode($ops), true);
+            }
+            if (!is_array($ops)) {
+                $ops = [];
+            }
+            foreach ($ops as $op) {
+                $op = is_object($op) ? get_object_vars($op) : (array) $op;
+                $idi = (int) ($op['id_insumo'] ?? $op['idInsumo'] ?? 0);
+                if ($idi > 0) {
+                    $insOp->execute([$idSlot, $idi]);
+                }
+            }
+        }
+        $bd->commit();
+        return $idPlantilla;
+    } catch (\Exception $e) {
+        $bd->rollBack();
+        throw $e;
+    }
+}
+
+function eliminarPlantillaCombo($id)
+{
+    $bd = conectarBaseDatos();
+    $id = (int) $id;
+    if ($id <= 0) {
+        return false;
+    }
+    $stSlotIds = $bd->prepare("SELECT id FROM combo_plantilla_slot WHERE id_plantilla = ?");
+    $stSlotIds->execute([$id]);
+    foreach ($stSlotIds->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+        $bd->prepare("DELETE FROM combo_plantilla_opcion WHERE id_slot = ?")->execute([(int) $sid]);
+    }
+    $bd->prepare("DELETE FROM combo_plantilla_slot WHERE id_plantilla = ?")->execute([$id]);
+    $bd->prepare("DELETE FROM combo_plantilla WHERE id = ?")->execute([$id]);
+    return true;
 }
 
 // ─── CLIENTES ─────────────────────────────────────────────────────────────────
@@ -1443,32 +1911,38 @@ function obtenerHistorialCajas()
  */
 function obtenerMapaStockReservadoEnOrdenesActivas($bd)
 {
+    _asegurarTipoVentaInsumos();
+    _asegurarDetalleJsonItemsOrden();
     $sentencia = $bd->query("
-        SELECT io.idInsumo, COALESCE(SUM(io.cantidad), 0) AS reservado
+        SELECT io.idInsumo, io.cantidad, io.detalle_json, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
         FROM items_orden io
         INNER JOIN ordenes_activas oa ON oa.id = io.idOrden
+        LEFT JOIN insumos i ON i.id = io.idInsumo
         WHERE io.idInsumo IS NOT NULL AND io.idInsumo > 0
-        GROUP BY io.idInsumo
     ");
     $mapa = [];
-    foreach ($sentencia->fetchAll() as $row) {
-        $mapa[(int)$row->idInsumo] = (int)$row->reservado;
+    foreach ($sentencia->fetchAll(PDO::FETCH_OBJ) as $row) {
+        $ex = expandirNecesidadesDesdeFilaItemOrden($bd, $row);
+        _mergeCantidadesMapa($mapa, $ex);
     }
     return $mapa;
 }
 
 function obtenerMapaCantidadesItemsOrden($bd, $idOrden)
 {
+    _asegurarTipoVentaInsumos();
+    _asegurarDetalleJsonItemsOrden();
     $st = $bd->prepare("
-        SELECT idInsumo, COALESCE(SUM(cantidad), 0) AS c
-        FROM items_orden
-        WHERE idOrden = ? AND idInsumo IS NOT NULL AND idInsumo > 0
-        GROUP BY idInsumo
+        SELECT io.idInsumo, io.cantidad, io.detalle_json, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
+        FROM items_orden io
+        LEFT JOIN insumos i ON i.id = io.idInsumo
+        WHERE io.idOrden = ? AND io.idInsumo IS NOT NULL AND io.idInsumo > 0
     ");
-    $st->execute([(int)$idOrden]);
+    $st->execute([(int) $idOrden]);
     $m = [];
-    foreach ($st->fetchAll() as $r) {
-        $m[(int)$r->idInsumo] = (int)$r->c;
+    foreach ($st->fetchAll(PDO::FETCH_OBJ) as $r) {
+        $ex = expandirNecesidadesDesdeFilaItemOrden($bd, $r);
+        _mergeCantidadesMapa($m, $ex);
     }
     return $m;
 }
@@ -1481,15 +1955,40 @@ function ajustarStockDisponibleVentaEnFilas($bd, $filas)
     if (!$filas || count($filas) === 0) {
         return $filas;
     }
+    _asegurarTipoVentaInsumos();
     $mapa = obtenerMapaStockReservadoEnOrdenesActivas($bd);
     foreach ($filas as $row) {
-        $id = (int)($row->id ?? 0);
+        $id = (int) ($row->id ?? 0);
         if ($id <= 0) {
             continue;
         }
-        $res = $mapa[$id] ?? 0;
-        $stockFisico = (int)($row->stock ?? 0);
-        $row->stock = max(0, $stockFisico - $res);
+        $tv = strtoupper($row->tipoVenta ?? 'NORMAL');
+        if ($tv === 'RECETA') {
+            $nec = expandirRecetaInsumo($bd, $id, 1);
+            $soloPadre = count($nec) === 1 && isset($nec[$id]);
+            if (!$soloPadre && count($nec) > 0) {
+                $minUnidades = null;
+                foreach ($nec as $hid => $needPer) {
+                    $needPer = (float) $needPer;
+                    if ($needPer <= 0) {
+                        continue;
+                    }
+                    $st = $bd->prepare('SELECT stock FROM insumos WHERE id = ?');
+                    $st->execute([(int) $hid]);
+                    $inv = $st->fetch(PDO::FETCH_OBJ);
+                    $stockFisico = $inv ? (float) $inv->stock : 0;
+                    $res = (float) ($mapa[(int) $hid] ?? 0);
+                    $libre = max(0, $stockFisico - $res);
+                    $unidades = (int) floor($libre / $needPer);
+                    $minUnidades = $minUnidades === null ? $unidades : min($minUnidades, $unidades);
+                }
+                $row->stock = max(0, (int) ($minUnidades ?? 0));
+                continue;
+            }
+        }
+        $res = (float) ($mapa[$id] ?? 0);
+        $stockFisico = (float) ($row->stock ?? 0);
+        $row->stock = max(0, (int) floor($stockFisico - $res));
     }
     return $filas;
 }
@@ -1501,45 +2000,55 @@ function ajustarStockDisponibleVentaEnFilas($bd, $filas)
  */
 function validarStockDisponibleParaItemsOrden($bd, $insumosPayload, $idOrdenExcluir = null)
 {
+    _asegurarTipoVentaInsumos();
+    _asegurarDetalleJsonItemsOrden();
     if ($insumosPayload === null || !is_iterable($insumosPayload)) {
         return true;
     }
     $porId = [];
     foreach ($insumosPayload as $insumo) {
-        $i = is_object($insumo) ? get_object_vars($insumo) : (array)$insumo;
-        $id = (int)($i['id'] ?? 0);
+        $i = is_object($insumo) ? get_object_vars($insumo) : (array) $insumo;
+        $id = (int) ($i['id'] ?? 0);
         if ($id <= 0) {
             continue;
         }
-        $cant = (int)($i['cantidad'] ?? 1);
-        if ($cant < 1) {
-            $cant = 1;
+        $tipoVenta = strtoupper(trim((string) ($i['tipoVenta'] ?? $i['tipo_venta'] ?? '')));
+        if ($tipoVenta === '') {
+            $stTv = $bd->prepare('SELECT tipoVenta FROM insumos WHERE id = ?');
+            $stTv->execute([$id]);
+            $tipoVenta = strtoupper((string) ($stTv->fetchColumn() ?: 'NORMAL'));
         }
-        $porId[$id] = ($porId[$id] ?? 0) + $cant;
+        $ex = expandirNecesidadesLineaPedido($bd, $i);
+        if ($tipoVenta === 'COMBO' && count($ex) === 0) {
+            return (object) ['error' => 'stock', 'mensaje' => 'Menú combo incompleto: elegí las opciones de cada unidad (la cantidad debe coincidir con el número de menús configurados).'];
+        }
+        _mergeCantidadesMapa($porId, $ex);
     }
     if (count($porId) === 0) {
         return true;
     }
     $mapaReservado = obtenerMapaStockReservadoEnOrdenesActivas($bd);
     if ($idOrdenExcluir) {
-        $mapaActual = obtenerMapaCantidadesItemsOrden($bd, (int)$idOrdenExcluir);
+        $mapaActual = obtenerMapaCantidadesItemsOrden($bd, (int) $idOrdenExcluir);
         foreach ($mapaActual as $idInsumo => $c) {
             $mapaReservado[$idInsumo] = max(0, ($mapaReservado[$idInsumo] ?? 0) - $c);
         }
     }
     foreach ($porId as $idInsumo => $necesita) {
-        $stmt = $bd->prepare("SELECT stock, nombre FROM insumos WHERE id = ?");
+        $stmt = $bd->prepare('SELECT stock, nombre FROM insumos WHERE id = ?');
         $stmt->execute([$idInsumo]);
-        $row = $stmt->fetch();
+        $row = $stmt->fetch(PDO::FETCH_OBJ);
         if (!$row) {
-            return (object)['error' => 'stock', 'mensaje' => 'Un producto del pedido no existe en inventario.'];
+            return (object) ['error' => 'stock', 'mensaje' => 'Un producto del pedido no existe en inventario.'];
         }
-        $stockFisico = (int)$row->stock;
-        $yaReservadoOtros = (int)($mapaReservado[$idInsumo] ?? 0);
+        $stockFisico = (float) $row->stock;
+        $yaReservadoOtros = (float) ($mapaReservado[$idInsumo] ?? 0);
         $libre = $stockFisico - $yaReservadoOtros;
         if ($necesita > $libre) {
             $nom = $row->nombre ?? 'El producto';
-            return (object)['error' => 'stock', 'mensaje' => "Stock insuficiente para «{$nom}»: pedís {$necesita} y solo quedan {$libre} disponible(s) para nuevas órdenes."];
+            $necStr = (strpos((string) $necesita, '.') !== false) ? rtrim(rtrim(number_format((float) $necesita, 3, '.', ''), '0'), '.') : (string) (int) $necesita;
+            $libStr = (strpos((string) $libre, '.') !== false) ? rtrim(rtrim(number_format((float) $libre, 3, '.', ''), '0'), '.') : (string) (int) max(0, $libre);
+            return (object) ['error' => 'stock', 'mensaje' => "Stock insuficiente para «{$nom}»: se necesitan {$necStr} y solo quedan {$libStr} disponible(s) para nuevas órdenes."];
         }
     }
     return true;
@@ -1728,8 +2237,11 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
 
     _asegurarPagadoItemsOrden();
     _asegurarAcompanamientoItemsOrden();
+    _asegurarDetalleJsonItemsOrden();
+    _asegurarTipoVentaInsumos();
     $stmtItems = $bd->prepare("
-        SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
+        SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria, IFNULL(i.tipoVenta, 'NORMAL') AS insumoTipoVenta,
+               i.idComboPlantilla AS insumoIdComboPlantilla
         FROM items_orden io
         LEFT JOIN insumos i ON i.id = io.idInsumo
         LEFT JOIN categorias c ON c.id = i.categoria
@@ -1738,7 +2250,18 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
     $stmtItems->execute([$orden->id]);
     $rawItems = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
 
-    $insumos = array_map(function ($item) {
+    $insumos = array_map(function ($item) use ($bd) {
+        $dj = $item['detalle_json'] ?? null;
+        $detalleJson = null;
+        if ($dj !== null && $dj !== '') {
+            $decoded = json_decode($dj, true);
+            $detalleJson = is_array($decoded) ? $decoded : null;
+        }
+        $tv = strtoupper((string) ($item['insumoTipoVenta'] ?? 'NORMAL'));
+        $resumenCombo = '';
+        if ($tv === 'COMBO') {
+            $resumenCombo = construirResumenComboParaCocina($bd, $dj, (int) ($item['insumoIdComboPlantilla'] ?? 0));
+        }
         return [
             "itemId"          => $item['id'] ?? null,
             "id"              => $item['idInsumo'] ?? null,
@@ -1751,6 +2274,9 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
             "pagado"          => (int)($item['pagado'] ?? 0),
             "acompanamiento_listo" => (int)($item['acompanamiento_listo'] ?? 0),
             "categoria"       => $item['nombreCategoria'] ?? 'NO DEFINIDA',
+            "tipoVenta"       => $item['insumoTipoVenta'] ?? 'NORMAL',
+            "detalleJson"     => $detalleJson,
+            "resumenCombo"    => $resumenCombo,
         ];
     }, $rawItems);
 
@@ -1761,6 +2287,7 @@ function ocuparDelivery($delivery)
 {
     _asegurarCreatedAtOrdenes();
     _asegurarTipoOrdenOrdenes();
+    _asegurarDetalleJsonItemsOrden();
     $bd = conectarBaseDatos();
 
     if (!isset($delivery->idDelivery) || $delivery->idDelivery === "" || $delivery->idDelivery === null) {
@@ -1813,8 +2340,9 @@ function ocuparDelivery($delivery)
         // Bebidas no pasan por cocina: nacen como 'listo' para que el mesero las entregue directamente
         $estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
         $pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
-        $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado) VALUES (?,?,?,?,?,?,?,?,?,?)")
-            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado]);
+        $detJson = _encodeDetalleJsonParaDb($i['detalleJson'] ?? $i['detalle_json'] ?? null);
+        $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado, detalle_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+            ->execute([$idOrden, $i['id'] ?? 0, $i['codigo'] ?? '', $i['nombre'] ?? '', $i['precio'] ?? 0, $i['caracteristicas'] ?? '', $i['cantidad'] ?? 1, $estadoInicial, $tipoInsumo, $pagado, $detJson]);
     }
 
     return ["status" => true, "idDelivery" => $delivery->idDelivery];
@@ -1838,16 +2366,20 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null)
 
         // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
         // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
-        $stmtItems = $bd->prepare("SELECT * FROM items_orden WHERE idOrden=? AND estado IN ('listo','entregado')");
+        _asegurarTipoVentaInsumos();
+        _asegurarDetalleJsonItemsOrden();
+        $stmtItems = $bd->prepare("
+            SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
+            FROM items_orden io
+            LEFT JOIN insumos i ON i.id = io.idInsumo
+            WHERE io.idOrden=? AND io.estado IN ('listo','entregado')
+        ");
         $stmtItems->execute([$idOrden]);
-        $items = $stmtItems->fetchAll();
+        $items = $stmtItems->fetchAll(PDO::FETCH_OBJ);
         foreach ($items as $item) {
             if ($item->idInsumo) {
-                // Descontar stock (pérdida — ingredientes usados pero no cobrados)
-                $bd->prepare("UPDATE insumos SET stock = GREATEST(0, stock - ?) WHERE id=?")
-                    ->execute([$item->cantidad, $item->idInsumo]);
-                $bd->prepare("INSERT INTO historial_stock (idInsumo, idUsuario, cantidad, tipo, nota, fecha) VALUES (?, ?, ?, 'CANCELACION', ?, ?)")
-                    ->execute([$item->idInsumo, $idUsuario, -$item->cantidad, $motivo, date('Y-m-d H:i:s')]);
+                $ex = expandirNecesidadesDesdeFilaItemOrden($bd, $item);
+                aplicarDescuentoStockPorMapa($bd, $ex, $idUsuario, 'CANCELACION', $motivo);
             }
         }
     }
@@ -1944,4 +2476,64 @@ function resolverReporteCocina($id)
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("UPDATE reportes_cocina SET resuelto = 1 WHERE id = ?");
     return $sentencia->execute([(int)$id]);
+}
+
+// Despiece parrilla: lotes con líneas (cuadre kg total y gramos por línea)
+function obtenerDespieceParrilla($fechaInicio = null, $fechaFin = null) {
+    $bd = conectarBaseDatos();
+    $sql = "SELECT * FROM despiece_parrilla_lote ";
+    $params = [];
+    if ($fechaInicio && $fechaFin) {
+        $sql .= "WHERE DATE(fecha) >= ? AND DATE(fecha) <= ? ";
+        $params[] = $fechaInicio;
+        $params[] = $fechaFin;
+    } elseif ($fechaInicio) {
+        $sql .= "WHERE DATE(fecha) = ? ";
+        $params[] = $fechaInicio;
+    }
+    $sql .= "ORDER BY fecha DESC, id DESC";
+    $sentencia = $bd->prepare($sql);
+    $sentencia->execute($params);
+    $lotes = $sentencia->fetchAll(PDO::FETCH_ASSOC);
+    if (!$lotes) {
+        return [];
+    }
+    $ids = array_column($lotes, 'id');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stLineas = $bd->prepare(
+        "SELECT * FROM despiece_parrilla_linea WHERE id_lote IN ($placeholders) ORDER BY id_lote ASC, id ASC"
+    );
+    $stLineas->execute($ids);
+    $todasLineas = $stLineas->fetchAll(PDO::FETCH_ASSOC);
+    $porLote = [];
+    foreach ($todasLineas as $ln) {
+        $idLote = (int) $ln['id_lote'];
+        if (!isset($porLote[$idLote])) {
+            $porLote[$idLote] = [];
+        }
+        $porLote[$idLote][] = $ln;
+    }
+    foreach ($lotes as &$l) {
+        $lid = (int) $l['id'];
+        $l['lineas'] = isset($porLote[$lid]) ? $porLote[$lid] : [];
+    }
+    unset($l);
+    return $lotes;
+}
+
+/** Unidades que ingresan a stock: cada porción 250 g o 350 g cuenta como 1 unidad de insumo. */
+function unidadesStockDesdeLineaDespiece($porciones250, $porciones350) {
+    return (int) $porciones250 + (int) $porciones350;
+}
+
+/** Normaliza fecha enviada desde input datetime-local para MySQL DATETIME */
+function normalizarFechaDespieceMysql($fecha) {
+    $fecha = str_replace('T', ' ', trim((string) $fecha));
+    if ($fecha === '') {
+        return '';
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $fecha)) {
+        $fecha .= ':00';
+    }
+    return $fecha;
 }

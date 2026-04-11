@@ -120,6 +120,12 @@
                                 <b-icon icon="note-text-outline" size="is-small"></b-icon>
                                 {{ insumo.caracteristicas }}
                             </p>
+                            <p v-if="insumo.resumenCombo && insumo.resumenCombo.trim() !== ''"
+                                class="is-size-6 has-text-info ml-5 mt-1"
+                                style="border-left: 3px solid #3273dc; padding-left: 8px; white-space: pre-line;">
+                                <b-icon icon="food-variant" size="is-small"></b-icon>
+                                {{ insumo.resumenCombo }}
+                            </p>
                         </div>
                     </div>
 
@@ -417,11 +423,18 @@ export default {
             else if (orden.tipo === 'LLEVAR') encabezadoTipo = `&#x1F6B6; PARA LLEVAR #${orden.id}`
             else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
 
+            const esc = (t) => String(t || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
             const itemsHtml = orden.insumos.map(ins => {
                 const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d">[LISTO]</span>' : ''
-                let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${ins.nombre}</span>${estadoTag}</div>`
+                let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
                 if (ins.caracteristicas && ins.caracteristicas.trim()) {
-                    html += `<div class="carac">&rarr; ${ins.caracteristicas}</div>`
+                    html += `<div class="carac">&rarr; ${esc(ins.caracteristicas)}</div>`
+                }
+                if (ins.resumenCombo && ins.resumenCombo.trim()) {
+                    html += `<div class="carac" style="white-space:pre-line;border-left:2px solid #3273dc;padding-left:6px;margin-top:2px">${esc(ins.resumenCombo)}</div>`
                 }
                 return html
             }).join('')

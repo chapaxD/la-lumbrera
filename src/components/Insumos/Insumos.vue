@@ -132,11 +132,19 @@
       </b-table-column>
 
       <b-table-column field="stock" label="Stock" sortable numeric v-slot="props">
-        <b-tag :type="tipoAlertaStock(props.row)">
-          <b-icon icon="alert-circle" size="is-small" v-if="props.row.stock <= props.row.stockMinimo"></b-icon>
-          {{ props.row.stock }} uds.
-        </b-tag>
-        <span class="is-size-7 has-text-grey"> mín: {{ props.row.stockMinimo }}</span>
+        <template v-if="props.row.tipoVenta === 'COMBO'">
+          <b-tag type="is-info is-light">Menú (por componentes)</b-tag>
+        </template>
+        <template v-else-if="props.row.tipoVenta === 'RECETA'">
+          <b-tag type="is-info is-light">Receta fija</b-tag>
+        </template>
+        <template v-else>
+          <b-tag :type="tipoAlertaStock(props.row)">
+            <b-icon icon="alert-circle" size="is-small" v-if="props.row.stock <= props.row.stockMinimo"></b-icon>
+            {{ props.row.stock }} uds.
+          </b-tag>
+          <span class="is-size-7 has-text-grey"> mín: {{ props.row.stockMinimo }}</span>
+        </template>
       </b-table-column>
 
       <b-table-column field="porciones" label="Porciones / Unidades" v-slot="props">
@@ -454,7 +462,7 @@ export default {
     },
 
     abrirNuevoInsumo() {
-      this.insumoModal = { tipo: '', codigo: '', nombre: '', descripcion: '', categoria: '', precio: '', stock: 0, stockMinimo: 0, stockMateria: 0, tipoCorte: 0 }
+      this.insumoModal = { tipo: '', codigo: '', nombre: '', descripcion: '', categoria: '', precio: '', stock: 0, stockMinimo: 0, stockMateria: 0, tipoCorte: 0, tipoVenta: 'NORMAL', idComboPlantilla: '', receta: [] }
       this.editandoInsumo = false
       this.modalInsumo = true
     },

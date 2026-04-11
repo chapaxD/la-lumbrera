@@ -25,6 +25,7 @@ import Factura from '../components/Ventas/Factura'
 import HistorialFacturas from '../components/Ventas/HistorialFacturas'
 import Clientes from '../components/Clientes/Clientes'
 import Parrilla from '../components/Parrilla/Parrilla.vue'
+import PlantillasCombo from '../components/Insumos/PlantillasCombo.vue'
 
 Vue.use(Router)
 
@@ -39,6 +40,11 @@ const router = new Router({
       path: '/insumos',
       name: 'Insumos',
       component: Insumos
+    },
+    {
+      path: '/plantillas-combo',
+      name: 'PlantillasCombo',
+      component: PlantillasCombo
     },
     {
       path: '/configurar',
@@ -156,6 +162,16 @@ const router = new Router({
       path: '/parrilla',
       name: 'Parrilla',
       component: Parrilla
+    },
+    {
+      path: '/registrar-despiece-parrilla',
+      name: 'RegistrarDespieceParrilla',
+      component: () => import('../components/Parrilla/RegistrarDespieceParrilla.vue')
+    },
+    {
+      path: '/reporte-despiece-parrilla',
+      name: 'ReporteDespieceParrilla',
+      component: () => import('../components/Parrilla/ReporteDespieceParrilla.vue')
     }
   ]
 })
@@ -178,9 +194,12 @@ router.beforeEach((to, from, next) => {
     '/editar-insumo',
     '/registrar-usuario',
     '/editar-usuario',
-    '/menu-dia'
+    '/menu-dia',
+    '/reporte-despiece-parrilla',
+    '/plantillas-combo'
   ]
   const rutasCompartidas = ['/perfil', '/cambiar-password']
+  const rutasRegistrarDespieceParrilla = ['/registrar-despiece-parrilla']
 
   if (rol === 'cocina') {
     // Cocina solo puede ver su pantalla, perfil y cambiar password
@@ -190,6 +209,12 @@ router.beforeEach((to, from, next) => {
       next()
     }
   } else if (adminRoutes.some(route => to.path.startsWith(route)) && rol !== 'admin') {
+    next('/')
+  } else if (
+    rutasRegistrarDespieceParrilla.some(route => to.path.startsWith(route)) &&
+    rol !== 'parrillero' &&
+    rol !== 'admin'
+  ) {
     next('/')
   } else {
     next()

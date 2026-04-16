@@ -6,8 +6,10 @@
         Reporte / control de despiece de parrilla
       </p>
       <p class="subtitle is-6">
-        Auditoría de recepción y reparto de materia prima. Usá <strong>Imprimir</strong> o <strong>PDF</strong> abajo para control y archivo.
-        <span v-if="esAdmin" class="is-block mt-2">Si cargaste mal un despiece, usá <strong>Quitar registro</strong> en la tabla y volvé a registrar en <em>Registrar despiece</em>.</span>
+        Auditoría de recepción y reparto de materia prima. Usá <strong>Imprimir</strong> o <strong>PDF</strong> abajo
+        para control y archivo.
+        <span v-if="esAdmin" class="is-block mt-2">Si cargaste mal un despiece, usá <strong>Quitar registro</strong> en
+          la tabla y volvé a registrar en <em>Registrar despiece</em>.</span>
       </p>
     </div>
 
@@ -29,23 +31,18 @@
                 <b-button type="is-light" icon-left="refresh" :loading="cargando" @click="cargarDespiece">
                   Actualizar
                 </b-button>
+                <b-button type="is-info" icon-left="printer" @click="imprimir">
+                  Imprimir
+                </b-button>
+                <b-button type="is-danger" icon-left="file-pdf-box" @click="exportarPdf">
+                  Descargar PDF
+                </b-button>
               </div>
+              <p class="is-size-7 has-text-grey mt-2 mb-0">
+                Si no ves datos, elegí fechas y pulsá <strong>Filtrar</strong>. Los botones siempre están aquí.
+              </p>
             </b-field>
           </b-field>
-        </div>
-        <div class="column is-12-tablet">
-          <label class="label">Exportar (visible después de cargar datos)</label>
-          <div class="buttons">
-            <b-button type="is-info" icon-left="printer" @click="imprimir">
-              Imprimir
-            </b-button>
-            <b-button type="is-danger" icon-left="file-pdf-box" @click="exportarPdf">
-              Descargar PDF
-            </b-button>
-          </div>
-          <p class="is-size-7 has-text-grey mt-2 mb-0">
-            Si no ves datos, elegí fechas y pulsá <strong>Filtrar</strong>. Los botones siempre están aquí.
-          </p>
         </div>
       </div>
     </div>
@@ -57,13 +54,14 @@
         <thead>
           <tr>
             <th>Fecha</th>
+            <th>Materia prima lote</th>
             <th>Total kg rec.</th>
             <th>Usuario</th>
             <th>Id insumo</th>
             <th>Materia / corte</th>
             <th>Kg línea</th>
-            <th>Porc. 250 g</th>
-            <th>Porc. 350 g</th>
+            <th>Porciones</th>
+            <th>g / porción</th>
             <th>Desp. (g)</th>
             <th>Sobras (g)</th>
             <th v-if="esAdmin" class="no-print">Acciones</th>
@@ -74,22 +72,25 @@
             <template v-if="lote.lineas && lote.lineas.length">
               <tr v-for="(ln, idx) in lote.lineas" :key="'d' + lote.id + '-' + ln.id">
                 <td v-if="idx === 0" :rowspan="lote.lineas.length">{{ lote.fecha }}</td>
+                <td v-if="idx === 0" :rowspan="lote.lineas.length">{{ lote.materia_prima }}</td>
                 <td v-if="idx === 0" :rowspan="lote.lineas.length">{{ lote.total_kg_recibido }}</td>
                 <td v-if="idx === 0" :rowspan="lote.lineas.length">{{ lote.usuario }}</td>
                 <td>{{ ln.id_insumo != null ? ln.id_insumo : '—' }}</td>
                 <td>{{ ln.materia_prima }}</td>
                 <td>{{ ln.kg_asignado }}</td>
-                <td>{{ ln.porciones_250 }}</td>
-                <td>{{ ln.porciones_350 }}</td>
+                <td class="has-text-centered">
+                  <span v-if="ln.porciones > 0">{{ ln.porciones }}</span>
+                  <span v-else>{{ (ln.porciones_250 || 0) + (ln.porciones_350 || 0) }}</span>
+                </td>
+                <td class="has-text-centered">
+                  <span v-if="ln.gramos_porcion > 0">{{ ln.gramos_porcion }}g</span>
+                  <span v-else class="has-text-grey is-size-7">250/350g</span>
+                </td>
                 <td>{{ ln.desperdicio_g }}</td>
                 <td>{{ ln.sobras_g }}</td>
                 <td v-if="esAdmin && idx === 0" :rowspan="lote.lineas.length" class="no-print is-nowrap">
-                  <b-button
-                    type="is-danger is-light"
-                    size="is-small"
-                    icon-left="delete-outline"
-                    :loading="eliminandoId === lote.id"
-                    @click="confirmarEliminar(lote)">
+                  <b-button type="is-danger is-light" size="is-small" icon-left="delete-outline"
+                    :loading="eliminandoId === lote.id" @click="confirmarEliminar(lote)">
                     Quitar registro
                   </b-button>
                 </td>
@@ -97,23 +98,20 @@
             </template>
             <tr v-else :key="'empty-' + lote.id">
               <td>{{ lote.fecha }}</td>
+              <td>{{ lote.materia_prima }}</td>
               <td>{{ lote.total_kg_recibido }}</td>
               <td>{{ lote.usuario }}</td>
               <td colspan="7" class="has-text-grey">Sin líneas</td>
               <td v-if="esAdmin" class="no-print">
-                <b-button
-                  type="is-danger is-light"
-                  size="is-small"
-                  icon-left="delete-outline"
-                  :loading="eliminandoId === lote.id"
-                  @click="confirmarEliminar(lote)">
+                <b-button type="is-danger is-light" size="is-small" icon-left="delete-outline"
+                  :loading="eliminandoId === lote.id" @click="confirmarEliminar(lote)">
                   Quitar registro
                 </b-button>
               </td>
             </tr>
           </template>
           <tr v-if="despiece.length === 0 && !cargando">
-            <td :colspan="esAdmin ? 11 : 10" class="has-text-centered">No hay registros en el periodo</td>
+            <td :colspan="esAdmin ? 12 : 11" class="has-text-centered">No hay registros en el periodo</td>
           </tr>
         </tbody>
       </table>
@@ -173,13 +171,14 @@ export default {
           lote.lineas.forEach((ln) => {
             rows.push([
               String(lote.fecha || ''),
+              String(lote.materia_prima || ''),
               String(lote.total_kg_recibido != null ? lote.total_kg_recibido : ''),
               String(lote.usuario || ''),
               String(ln.id_insumo != null ? ln.id_insumo : '—'),
               String(ln.materia_prima || ''),
               String(ln.kg_asignado != null ? ln.kg_asignado : ''),
-              String(ln.porciones_250 != null ? ln.porciones_250 : ''),
-              String(ln.porciones_350 != null ? ln.porciones_350 : ''),
+              String(ln.porciones > 0 ? ln.porciones : ((ln.porciones_250 || 0) + (ln.porciones_350 || 0))),
+              String(ln.gramos_porcion > 0 ? ln.gramos_porcion + 'g' : '250/350g'),
               String(ln.desperdicio_g != null ? ln.desperdicio_g : ''),
               String(ln.sobras_g != null ? ln.sobras_g : '')
             ]);
@@ -187,6 +186,7 @@ export default {
         } else {
           rows.push([
             String(lote.fecha || ''),
+            String(lote.materia_prima || ''),
             String(lote.total_kg_recibido != null ? lote.total_kg_recibido : ''),
             String(lote.usuario || ''),
             '—',
@@ -212,13 +212,14 @@ export default {
       }
       const columnas = [
         'Fecha',
+        'Lote MP',
         'T.kg',
         'Usuario',
         'Id ins.',
         'Corte',
         'Kg línea',
-        '250g',
-        '350g',
+        'Porciones',
+        'g/porción',
         'Desp.',
         'Sob.'
       ];
@@ -287,28 +288,35 @@ export default {
 </script>
 
 <style scoped>
-.table-container { overflow-x: auto; }
+.table-container {
+  overflow-x: auto;
+}
 </style>
 
 <style>
 @media print {
+
   .no-print,
   .navbar,
-  .app-shell > footer,
+  .app-shell>footer,
   .footer-slim {
     display: none !important;
   }
+
   .app-shell-main.container {
     width: 100% !important;
     max-width: 100% !important;
     padding: 0.5rem !important;
   }
+
   .despiece-reporte-print .table {
     font-size: 8pt;
   }
+
   .despiece-tabla-print {
     overflow: visible !important;
   }
+
   body {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;

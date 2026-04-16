@@ -21,7 +21,7 @@ $bd = conectarBaseDatos();
 $bd->beginTransaction();
 try {
     $stSel = $bd->prepare(
-        "SELECT id_insumo, materia_prima, porciones_250, porciones_350, sobras_g FROM despiece_parrilla_linea WHERE id_lote = ?"
+        "SELECT id_insumo, materia_prima, porciones_250, porciones_350, porciones, gramos_porcion, sobras_g FROM despiece_parrilla_linea WHERE id_lote = ?"
     );
     $stSel->execute([$idLote]);
     $lineasLote = $stSel->fetchAll(PDO::FETCH_ASSOC);
@@ -48,7 +48,8 @@ try {
     foreach ($lineasLote as $ln) {
         $uds = unidadesStockDesdeLineaDespiece(
             $ln['porciones_250'] ?? 0,
-            $ln['porciones_350'] ?? 0
+            $ln['porciones_350'] ?? 0,
+            $ln['porciones']     ?? 0   // nuevo campo, prioritario
         );
         if ($uds <= 0) {
             continue;

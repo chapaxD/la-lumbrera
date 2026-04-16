@@ -21,7 +21,7 @@ $ventasPorHora = obtenerVentasPorHora($fechaInicioHora, $fechaFinHora);
 $ventasMeses = obtenerVentasPorMeses($filtros->anio ?? date('Y'));
 $ventasUsuario = obtenerVentasUsuario($fechaInicioUsuarios, $fechaFinUsuarios);
 $insumosMasVendidos = obtenerInsumosMasVendidos($filtros->limite ?? 5);
-$totalesPorMesa = obtenerTotalesPorMesa();
+$totalesPorMesa = obtenerTotalesPorMesa($filtros->limite ?? 5);
 $alertasStock = obtenerInsumosBajoStock();
 
 $totalDia = obtenerVentasDelDia();

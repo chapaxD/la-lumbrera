@@ -137,15 +137,35 @@
                 <p class="is-size-7 has-text-grey mb-2">Componentes por cada <strong>1</strong> unidad vendida de este producto</p>
                 <div v-for="(r, idx) in insumo.receta" :key="'rec' + idx" class="columns is-mobile is-variable is-1 mb-2">
                     <div class="column">
-                        <b-field label="Insumo" :label-position="'inside'">
-                            <b-select v-model="r.idInsumoHijo" expanded placeholder="Elegir">
-                                <option v-for="x in insumosParaReceta" :key="'ic' + x.id" :value="normalizarId(x.id)">{{ x.nombre }}</option>
-                            </b-select>
+                        <b-field label="Insumo Componente" :label-position="'inside'" :type="!r.idInsumoHijo && r.nombreBusqueda ? 'is-danger' : (!r.nombreBusqueda ? '' : 'is-success')" :message="!r.idInsumoHijo && r.nombreBusqueda ? 'Selecciona una opción del menú' : ''">
+                            <b-autocomplete
+                                v-model="r.nombreBusqueda"
+                                :data="filtrarInsumosComponentes(r.nombreBusqueda)"
+                                field="nombre"
+                                placeholder="Escribir para buscar..."
+                                icon="magnify"
+                                clearable
+                                open-on-focus
+                                keep-first
+                                @select="opt => { if (opt) { r.idInsumoHijo = normalizarId(opt.id); r.nombreBusqueda = opt.nombre; } else { r.idInsumoHijo = null; } }"
+                                @typing="() => { r.idInsumoHijo = null; }"
+                            >
+                                <template slot-scope="props">
+                                    <div class="media">
+                                        <div class="media-content">
+                                            <strong>{{ props.option.nombre }}</strong>
+                                            <br>
+                                            <small class="has-text-grey">Cod: {{ props.option.codigo || '—' }} | Stock: {{ props.option.stock }}</small>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template slot="empty">Insumo no encontrado</template>
+                            </b-autocomplete>
                         </b-field>
                     </div>
                     <div class="column is-narrow" style="max-width:110px">
                         <b-field label="Cant." :label-position="'inside'">
-                            <b-input type="number" min="0.01" step="0.01" v-model.number="r.cantidad"></b-input>
+                            <b-input type="number" min="0.001" step="0.001" v-model.number="r.cantidad"></b-input>
                         </b-field>
                     </div>
                     <div class="column is-narrow">
@@ -249,6 +269,15 @@ export default {
                 if (!val.tipoVenta) this.$set(val, 'tipoVenta', 'NORMAL')
                 if (val.idComboPlantilla === undefined || val.idComboPlantilla === null) this.$set(val, 'idComboPlantilla', '')
                 if (!Array.isArray(val.receta)) this.$set(val, 'receta', [])
+                
+                if (Array.isArray(val.receta) && this.insumosComponentes && this.insumosComponentes.length > 0) {
+                    val.receta.forEach(r => {
+                        if (r.idInsumoHijo && !r.nombreBusqueda) {
+                            const found = this.insumosComponentes.find(x => String(x.id) === String(r.idInsumoHijo))
+                            if (found) this.$set(r, 'nombreBusqueda', found.nombre)
+                        }
+                    })
+                }
             }
         },
         'insumo.tipo': {
@@ -271,6 +300,17 @@ export default {
     },
 
     methods: {
+        filtrarInsumosComponentes(texto) {
+            const t = (texto || '').toLowerCase().trim();
+            if (!t) return this.insumosParaReceta.slice(0, 50);
+            return this.insumosParaReceta
+                .filter((x) => {
+                    const nom = (x.nombre && String(x.nombre).toLowerCase()) || '';
+                    const cod = (x.codigo && String(x.codigo).toLowerCase()) || '';
+                    return nom.includes(t) || cod.includes(t);
+                })
+                .slice(0, 50);
+        },
         normalizarId(id) {
             const n = parseInt(id, 10)
             return Number.isFinite(n) ? n : id
@@ -285,13 +325,22 @@ export default {
             try {
                 const ins = await HttpService.obtenerConDatos({ tipo: '', categoria: '', nombre: '' }, 'obtener_insumos.php')
                 this.insumosComponentes = Array.isArray(ins) ? ins : []
+
+                if (this.insumo && Array.isArray(this.insumo.receta)) {
+                    this.insumo.receta.forEach(r => {
+                        if (r.idInsumoHijo && !r.nombreBusqueda) {
+                            const found = this.insumosComponentes.find(x => String(x.id) === String(r.idInsumoHijo))
+                            if (found) this.$set(r, 'nombreBusqueda', found.nombre)
+                        }
+                    })
+                }
             } catch (e) {
                 this.insumosComponentes = []
             }
         },
         agregarLineaReceta() {
             if (!Array.isArray(this.insumo.receta)) this.$set(this.insumo, 'receta', [])
-            this.insumo.receta.push({ idInsumoHijo: '', cantidad: 1 })
+            this.insumo.receta.push({ idInsumoHijo: '', cantidad: 1, nombreBusqueda: '' })
         },
         normalizarIdCategoria(id) {
             const n = parseInt(id, 10)

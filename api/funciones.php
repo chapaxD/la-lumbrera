@@ -60,13 +60,15 @@ function obtenerInsumosMasVendidos($limite)
     return $sentencia->fetchAll();
 }
 
-function obtenerTotalesPorMesa()
+function obtenerTotalesPorMesa($limite = 5)
 {
     $bd = conectarBaseDatos();
-    $sentencia = $bd->query("SELECT SUM(total) AS total, idMesa
+    $sentencia = $bd->prepare("SELECT SUM(total) AS total, idMesa
 	FROM ventas 
 	GROUP BY idMesa
-	ORDER BY total DESC");
+	ORDER BY total DESC LIMIT ?");
+    $sentencia->bindValue(1, (int)$limite, \PDO::PARAM_INT);
+    $sentencia->execute();
     return $sentencia->fetchAll();
 }
 
@@ -2521,9 +2523,32 @@ function obtenerDespieceParrilla($fechaInicio = null, $fechaFin = null) {
     return $lotes;
 }
 
-/** Unidades que ingresan a stock: cada porción 250 g o 350 g cuenta como 1 unidad de insumo. */
-function unidadesStockDesdeLineaDespiece($porciones250, $porciones350) {
+/** Unidades que ingresan a stock desde una línea de despiece.
+ * Prioriza el nuevo campo genérico `porciones`;
+ * si no existe o es 0, cae al cálculo antiguo (porciones_250 + porciones_350).
+ */
+function unidadesStockDesdeLineaDespiece($porciones250, $porciones350, $porcionesGenericas = 0) {
+    $gen = (int) $porcionesGenericas;
+    if ($gen > 0) return $gen;
     return (int) $porciones250 + (int) $porciones350;
+}
+
+/**
+ * Asegura que despiece_parrilla_linea tenga las columnas del nuevo sistema flexible.
+ * Usa IF NOT EXISTS para que sea idempotente (puede correr en cada request).
+ */
+function _asegurarColumnasDespieceLinea() {
+    static $verificado = false;
+    if ($verificado) return;
+    $verificado = true;
+    try {
+        $bd = conectarBaseDatos();
+        $bd->exec("
+            ALTER TABLE despiece_parrilla_linea
+              ADD COLUMN IF NOT EXISTS porciones       INT UNSIGNED NOT NULL DEFAULT 0,
+              ADD COLUMN IF NOT EXISTS gramos_porcion  INT UNSIGNED NOT NULL DEFAULT 0
+        ");
+    } catch (\Exception $e) { /* silencioso — si ya existen no falla */ }
 }
 
 /** Normaliza fecha enviada desde input datetime-local para MySQL DATETIME */

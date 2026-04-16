@@ -243,24 +243,27 @@ $tablas = [
         usuario VARCHAR(100) NOT NULL
     ) ENGINE=InnoDB;",
 
-    // Despiece parrilla: un lote (kg recibidos) y varias líneas (reparto + porciones 250/350 + d/s) que deben cuadrar
+    // Despiece parrilla: un lote (materia prima, kg recibidos) y varias líneas (reparto + porciones 250/350 + d/s) que deben cuadrar
     "despiece_parrilla_lote" => "CREATE TABLE IF NOT EXISTS despiece_parrilla_lote(
         id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
         fecha DATETIME NOT NULL,
         usuario VARCHAR(100) NOT NULL,
+        materia_prima VARCHAR(120) NOT NULL DEFAULT '',
         total_kg_recibido DECIMAL(8,3) NOT NULL
     ) ENGINE=InnoDB;",
 
     "despiece_parrilla_linea" => "CREATE TABLE IF NOT EXISTS despiece_parrilla_linea(
-        id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-        id_lote INT UNSIGNED NOT NULL,
-        id_insumo INT UNSIGNED NULL,
+        id            INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+        id_lote       INT UNSIGNED NOT NULL,
+        id_insumo     INT UNSIGNED NULL,
         materia_prima VARCHAR(120) NOT NULL,
-        kg_asignado DECIMAL(8,3) NOT NULL,
+        kg_asignado   DECIMAL(8,3) NOT NULL,
         porciones_250 INT UNSIGNED NOT NULL DEFAULT 0,
         porciones_350 INT UNSIGNED NOT NULL DEFAULT 0,
         desperdicio_g INT UNSIGNED NOT NULL DEFAULT 0,
-        sobras_g INT UNSIGNED NOT NULL DEFAULT 0,
+        sobras_g      INT UNSIGNED NOT NULL DEFAULT 0,
+        porciones     INT UNSIGNED NOT NULL DEFAULT 0,
+        gramos_porcion INT UNSIGNED NOT NULL DEFAULT 0,
         INDEX idx_despiece_lote (id_lote)
     ) ENGINE=InnoDB;",
 
@@ -317,6 +320,10 @@ $migraciones = [
     "insumos_tipoVenta"            => "ALTER TABLE insumos ADD COLUMN tipoVenta VARCHAR(20) NOT NULL DEFAULT 'NORMAL'",
     "insumos_idComboPlantilla"     => "ALTER TABLE insumos ADD COLUMN idComboPlantilla BIGINT UNSIGNED NULL DEFAULT NULL",
     "items_orden_detalle_json"     => "ALTER TABLE items_orden ADD COLUMN detalle_json LONGTEXT NULL DEFAULT NULL",
+    "despiece_lote_materia_prima"  => "ALTER TABLE despiece_parrilla_lote ADD COLUMN IF NOT EXISTS materia_prima VARCHAR(120) NOT NULL DEFAULT '' AFTER usuario",
+    // Porciones flexibles por insumo (sistema nuevo — backward compat con porciones_250/350)
+    "despiece_linea_porciones"     => "ALTER TABLE despiece_parrilla_linea ADD COLUMN  porciones      INT UNSIGNED NOT NULL DEFAULT 0",
+    "despiece_linea_gramos_porcion" => "ALTER TABLE despiece_parrilla_linea ADD COLUMN  gramos_porcion INT UNSIGNED NOT NULL DEFAULT 0",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

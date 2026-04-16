@@ -34,8 +34,8 @@ $lotes = obtenerDespieceParrilla($fechaInicio, $fechaFin);
                 <th>Id insumo</th>
                 <th>Materia / corte</th>
                 <th>Kg línea</th>
-                <th>Porc. 250 g</th>
-                <th>Porc. 350 g</th>
+                <th>Porciones</th>
+                <th>g / porción</th>
                 <th>Desp. (g)</th>
                 <th>Sobras (g)</th>
             </tr>
@@ -57,10 +57,16 @@ $lotes = obtenerDespieceParrilla($fechaInicio, $fechaFin);
                             <td><?= isset($ln['id_insumo']) && $ln['id_insumo'] !== null && $ln['id_insumo'] !== '' ? htmlspecialchars((string) $ln['id_insumo']) : '—' ?></td>
                             <td><?= htmlspecialchars((string) $ln['materia_prima']) ?></td>
                             <td><?= htmlspecialchars((string) $ln['kg_asignado']) ?></td>
-                            <td><?= htmlspecialchars((string) $ln['porciones_250']) ?></td>
-                            <td><?= htmlspecialchars((string) $ln['porciones_350']) ?></td>
-                            <td><?= htmlspecialchars((string) $ln['desperdicio_g']) ?></td>
-                            <td><?= htmlspecialchars((string) $ln['sobras_g']) ?></td>
+                            <?php
+                                $porGen = isset($ln['porciones']) ? (int)$ln['porciones'] : 0;
+                                $porOld = (isset($ln['porciones_250']) ? (int)$ln['porciones_250'] : 0)
+                                        + (isset($ln['porciones_350']) ? (int)$ln['porciones_350'] : 0);
+                                $gpDisp = isset($ln['gramos_porcion']) ? (int)$ln['gramos_porcion'] : 0;
+                            ?>
+                            <td><?= $porGen > 0 ? $porGen : $porOld ?></td>
+                            <td><?= $gpDisp > 0 ? $gpDisp . 'g' : '250/350g' ?></td>
+                            <td><?= htmlspecialchars((string) ($ln['desperdicio_g'] ?? '')) ?></td>
+                            <td><?= htmlspecialchars((string) ($ln['sobras_g'] ?? '')) ?></td>
                         </tr>
                         <?php $i++; ?>
                     <?php endforeach; ?>

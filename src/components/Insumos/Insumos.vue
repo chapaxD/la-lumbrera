@@ -323,7 +323,10 @@ export default {
       return this.insumos.filter(i => i.tipo === 'BEBIDA').length
     },
     stockCritico() {
-      return this.insumos.filter(i => i.stock <= i.stockMinimo).length
+      return this.insumos.filter(i => {
+        if (i.tipoVenta === 'RECETA' || i.tipoVenta === 'COMBO') return false
+        return this.tipoAlertaStock(i) === 'is-danger'
+      }).length
     },
   },
 

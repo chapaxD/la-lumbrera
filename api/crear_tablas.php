@@ -324,6 +324,21 @@ $migraciones = [
     // Porciones flexibles por insumo (sistema nuevo — backward compat con porciones_250/350)
     "despiece_linea_porciones"     => "ALTER TABLE despiece_parrilla_linea ADD COLUMN  porciones      INT UNSIGNED NOT NULL DEFAULT 0",
     "despiece_linea_gramos_porcion" => "ALTER TABLE despiece_parrilla_linea ADD COLUMN  gramos_porcion INT UNSIGNED NOT NULL DEFAULT 0",
+
+    // ── ÍNDICES DE RENDIMIENTO ─────────────────────────────────────────────────
+    // Críticos para TiDB Cloud gratuito: evitan full-table-scan en todas las
+    // consultas de reportes, dashboard y SSE de cocina.
+    "idx_ventas_fecha"              => "ALTER TABLE ventas ADD INDEX idx_ventas_fecha (fecha)",
+    "idx_ventas_idUsuario"          => "ALTER TABLE ventas ADD INDEX idx_ventas_idUsuario (idUsuario)",
+    "idx_insumos_venta_idVenta"     => "ALTER TABLE insumos_venta ADD INDEX idx_insumos_venta_idVenta (idVenta)",
+    "idx_insumos_venta_idInsumo"    => "ALTER TABLE insumos_venta ADD INDEX idx_insumos_venta_idInsumo (idInsumo)",
+    "idx_items_orden_idOrden"       => "ALTER TABLE items_orden ADD INDEX idx_items_orden_idOrden (idOrden)",
+    "idx_items_orden_idInsumo"      => "ALTER TABLE items_orden ADD INDEX idx_items_orden_idInsumo (idInsumo)",
+    "idx_historial_stock_fecha"     => "ALTER TABLE historial_stock ADD INDEX idx_historial_stock_fecha (fecha)",
+    "idx_historial_stock_idInsumo"  => "ALTER TABLE historial_stock ADD INDEX idx_historial_stock_idInsumo (idInsumo)",
+    "idx_ordenes_activas_tipo_ref"  => "ALTER TABLE ordenes_activas ADD UNIQUE INDEX idx_ordenes_tipo_ref (tipo, referencia)",
+    "idx_reservas_fecha"            => "ALTER TABLE reservas ADD INDEX idx_reservas_fecha (fecha)",
+    "idx_cancelaciones_fecha"       => "ALTER TABLE cancelaciones ADD INDEX idx_cancelaciones_fecha (fecha)",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

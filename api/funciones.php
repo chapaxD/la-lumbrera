@@ -75,11 +75,12 @@ function obtenerTotalesPorMesa($limite = 5)
 function obtenerVentasDelDia()
 {
     $bd = conectarBaseDatos();
-    $hoy = date('Y-m-d'); // Usa la zona horaria de PHP (America/La_Paz)
+    // Rango directo: evita DATE() sobre el índice y permite index scan en TiDB
+    $hoy = date('Y-m-d');
     $sentencia = $bd->prepare("SELECT IFNULL(SUM(total),0) AS totalVentasHoy
 	FROM ventas
-	WHERE DATE(fecha) = ?");
-    $sentencia->execute([$hoy]);
+	WHERE fecha >= ? AND fecha < DATE_ADD(?, INTERVAL 1 DAY)");
+    $sentencia->execute([$hoy, $hoy]);
     return $sentencia->fetchObject()->totalVentasHoy;
 }
 
@@ -110,9 +111,9 @@ function obtenerTotalVentas()
 function cantidadVentasDia()
 {
     $bd = conectarBaseDatos();
-    $hoy = date('Y-m-d'); // Usa la zona horaria de PHP (America/La_Paz)
-    $sentencia = $bd->prepare("SELECT COUNT(*) AS cantidad FROM ventas WHERE DATE(fecha) = ?");
-    $sentencia->execute([$hoy]);
+    $hoy = date('Y-m-d');
+    $sentencia = $bd->prepare("SELECT COUNT(*) AS cantidad FROM ventas WHERE fecha >= ? AND fecha < DATE_ADD(?, INTERVAL 1 DAY)");
+    $sentencia->execute([$hoy, $hoy]);
     return (int)$sentencia->fetchObject()->cantidad;
 }
 
@@ -449,12 +450,7 @@ function obtenerReservasDelDia($fecha)
 
 function leerArchivo($numeroMesa, $idUsuario = null, $rol = null)
 {
-    _asegurarCreatedAtOrdenes();
-    _asegurarTipoItemsOrden();
-    _asegurarPagadoItemsOrden();
-    _asegurarAcompanamientoItemsOrden();
-    _asegurarDetalleJsonItemsOrden();
-    _asegurarTipoVentaInsumos();
+    // _asegurar*() removidos del hot-path: las migraciones se aplican en crear_tablas.php
     $bd = conectarBaseDatos();
     $stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
     $stmt->execute([(string)$numeroMesa]);
@@ -557,9 +553,6 @@ function cancelarMesa($id, $idUsuario = null, $motivo = null)
             ->execute([(string)$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
         // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
-        // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
-        _asegurarTipoVentaInsumos();
-        _asegurarDetalleJsonItemsOrden();
         $stmtItems = $bd->prepare("
             SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
             FROM items_orden io
@@ -592,7 +585,6 @@ function editarMesa($mesa)
 
 function ocuparMesa($mesa)
 {
-    _asegurarDetalleJsonItemsOrden();
     $bd = conectarBaseDatos();
     $cliente = ($mesa->cliente === "" || $mesa->cliente === null) ? "MOSTRADOR" : $mesa->cliente;
 
@@ -788,7 +780,6 @@ function eliminarInsumo($idInsumo)
 
 function editarInsumo($insumo)
 {
-    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
 
     $antiguo = $bd->prepare("SELECT stock FROM insumos WHERE id = ?");
@@ -826,7 +817,6 @@ function editarInsumo($insumo)
 
 function obtenerInsumoPorId($idInsumo)
 {
-    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
     $sentencia = $bd->prepare("SELECT * FROM insumos WHERE id = ?");
     $sentencia->execute([$idInsumo]);
@@ -868,7 +858,6 @@ function obtenerInsumos($filtros)
 
 function registrarInsumo($insumo)
 {
-    _asegurarTipoVentaInsumos();
     $bd = conectarBaseDatos();
     $tipoVenta = isset($insumo->tipoVenta) ? $insumo->tipoVenta : 'NORMAL';
     $idCombo = property_exists($insumo, 'idComboPlantilla') ? $insumo->idComboPlantilla : null;
@@ -1156,29 +1145,40 @@ function construirResumenComboParaCocina($bd, $detalleJsonRaw, $idPlantilla)
     } catch (\Exception $e) {
         return '';
     }
+
+    // Recopilar todos los ids de insumos elegidos en todos los menús (un solo query IN en lugar de uno por slot)
+    $allInsumoIds = [];
+    foreach ($menus as $menu) {
+        if (!is_array($menu)) continue;
+        $slots = $menu['slots'] ?? $menu['s'] ?? [];
+        if (!is_array($slots)) continue;
+        foreach ($slots as $idInsumoElegido) {
+            $nid = (int) $idInsumoElegido;
+            if ($nid > 0) $allInsumoIds[$nid] = true;
+        }
+    }
+    $nombresInsumos = [];
+    if (!empty($allInsumoIds)) {
+        $ids = array_keys($allInsumoIds);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stNom = $bd->prepare("SELECT id, nombre FROM insumos WHERE id IN ($placeholders)");
+        $stNom->execute($ids);
+        foreach ($stNom->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $nombresInsumos[(int)$r['id']] = $r['nombre'];
+        }
+    }
+
     $bloques = [];
     $mi = 1;
-    $stNom = $bd->prepare('SELECT nombre FROM insumos WHERE id = ?');
     foreach ($menus as $menu) {
-        if (!is_array($menu)) {
-            $mi++;
-            continue;
-        }
+        if (!is_array($menu)) { $mi++; continue; }
         $slots = $menu['slots'] ?? $menu['s'] ?? [];
-        if (!is_array($slots)) {
-            $mi++;
-            continue;
-        }
+        if (!is_array($slots)) { $mi++; continue; }
         $partes = [];
         foreach ($slots as $slotId => $idInsumoElegido) {
-            $et = $slotsMeta[(string) $slotId] ?? ('Opción ' . $slotId);
+            $et  = $slotsMeta[(string) $slotId] ?? ('Opción ' . $slotId);
             $nid = (int) $idInsumoElegido;
-            $nom = '?';
-            if ($nid > 0) {
-                $stNom->execute([$nid]);
-                $row = $stNom->fetchColumn();
-                $nom = $row ? (string) $row : ('#' . $nid);
-            }
+            $nom = $nid > 0 ? ($nombresInsumos[$nid] ?? ('#' . $nid)) : '?';
             $partes[] = $et . ': ' . $nom;
         }
         if (count($partes) > 0) {
@@ -1191,7 +1191,6 @@ function construirResumenComboParaCocina($bd, $detalleJsonRaw, $idPlantilla)
 
 function expandirNecesidadesLineaPedido($bd, $linea)
 {
-    _asegurarTipoVentaInsumos();
     $arr = is_array($linea) ? $linea : (array) $linea;
     $id = (int) ($arr['id'] ?? 0);
     if ($id <= 0) {
@@ -1496,14 +1495,23 @@ function eliminarCliente($id)
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Singleton de conexión PDO.
+ * Una sola conexión TCP+SSL por request → crítico para TiDB Cloud gratuito.
+ */
 function conectarBaseDatos()
 {
+    static $instance = null;
+    if ($instance !== null) {
+        return $instance;
+    }
+
     require_once __DIR__ . '/db_config.php';
-    $host = DB_HOST;
-    $db   = DB_NAME;
-    $user = DB_USER;
-    $pass = DB_PASS;
-    $port = DB_PORT;
+    $host    = DB_HOST;
+    $db      = DB_NAME;
+    $user    = DB_USER;
+    $pass    = DB_PASS;
+    $port    = DB_PORT;
     $charset = DB_CHARSET;
 
     $options = [
@@ -1513,7 +1521,7 @@ function conectarBaseDatos()
     ];
 
     if (DB_SSL) {
-        // Buscar el bundle CA del sistema (Debian/Ubuntu en Docker)
+        // Bundle CA del sistema (Debian/Ubuntu en Render/Docker)
         $caBundle = '/etc/ssl/certs/ca-certificates.crt';
         if (file_exists($caBundle)) {
             $options[\PDO::MYSQL_ATTR_SSL_CA] = $caBundle;
@@ -1523,9 +1531,9 @@ function conectarBaseDatos()
 
     $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
     try {
-        $pdo = new \PDO($dsn, $user, $pass, $options);
-        $pdo->exec("SET time_zone = '+00:00'");
-        return $pdo;
+        $instance = new \PDO($dsn, $user, $pass, $options);
+        $instance->exec("SET time_zone = '+00:00'");
+        return $instance;
     } catch (\PDOException $e) {
         die('Error de conexión: ' . $e->getMessage());
     }
@@ -1556,22 +1564,25 @@ function registrarCompra($payload)
     return $resultados;
 }
 
-function obtenerHistorialStock($fechaInicio = null, $fechaFin = null)
+function obtenerHistorialStock($fechaInicio = null, $fechaFin = null, $limite = 500)
 {
     $bd = conectarBaseDatos();
     $valores = [];
     $where = '';
     if ($fechaInicio && $fechaFin) {
-        $where = 'WHERE DATE(h.fecha) BETWEEN ? AND ?';
+        // Rango directo sin DATE() para aprovechar índice en columna `fecha`
+        $where = 'WHERE h.fecha >= ? AND h.fecha < DATE_ADD(?, INTERVAL 1 DAY)';
         $valores = [$fechaInicio, $fechaFin];
     }
+    $limite = max(1, (int)$limite);
     $sentencia = $bd->prepare("
         SELECT h.*, i.nombre as insumoNombre, u.nombre as usuarioNombre 
         FROM historial_stock h 
         LEFT JOIN insumos i ON h.idInsumo = i.id 
         LEFT JOIN usuarios u ON h.idUsuario = u.id 
-		$where
+        $where
         ORDER BY h.fecha DESC
+        LIMIT $limite
     ");
     $sentencia->execute($valores);
     return $sentencia->fetchAll();
@@ -1913,8 +1924,6 @@ function obtenerHistorialCajas()
  */
 function obtenerMapaStockReservadoEnOrdenesActivas($bd)
 {
-    _asegurarTipoVentaInsumos();
-    _asegurarDetalleJsonItemsOrden();
     $sentencia = $bd->query("
         SELECT io.idInsumo, io.cantidad, io.detalle_json, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
         FROM items_orden io
@@ -1932,8 +1941,6 @@ function obtenerMapaStockReservadoEnOrdenesActivas($bd)
 
 function obtenerMapaCantidadesItemsOrden($bd, $idOrden)
 {
-    _asegurarTipoVentaInsumos();
-    _asegurarDetalleJsonItemsOrden();
     $st = $bd->prepare("
         SELECT io.idInsumo, io.cantidad, io.detalle_json, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
         FROM items_orden io
@@ -1957,7 +1964,6 @@ function ajustarStockDisponibleVentaEnFilas($bd, $filas)
     if (!$filas || count($filas) === 0) {
         return $filas;
     }
-    _asegurarTipoVentaInsumos();
     $mapa = obtenerMapaStockReservadoEnOrdenesActivas($bd);
     foreach ($filas as $row) {
         $id = (int) ($row->id ?? 0);
@@ -2002,8 +2008,6 @@ function ajustarStockDisponibleVentaEnFilas($bd, $filas)
  */
 function validarStockDisponibleParaItemsOrden($bd, $insumosPayload, $idOrdenExcluir = null)
 {
-    _asegurarTipoVentaInsumos();
-    _asegurarDetalleJsonItemsOrden();
     if ($insumosPayload === null || !is_iterable($insumosPayload)) {
         return true;
     }
@@ -2200,7 +2204,6 @@ function obtenerDeliveries($idUsuario = null, $rol = null)
 
 function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
 {
-    _asegurarTipoOrdenOrdenes();
     $bd = conectarBaseDatos();
     $stmt = $bd->prepare("SELECT * FROM ordenes_activas WHERE tipo='DELIVERY' AND referencia=?");
     $stmt->execute([$idDelivery]);
@@ -2237,10 +2240,6 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
         "created_at"  => $orden->created_at ?? null,
     ];
 
-    _asegurarPagadoItemsOrden();
-    _asegurarAcompanamientoItemsOrden();
-    _asegurarDetalleJsonItemsOrden();
-    _asegurarTipoVentaInsumos();
     $stmtItems = $bd->prepare("
         SELECT io.*, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria, IFNULL(i.tipoVenta, 'NORMAL') AS insumoTipoVenta,
                i.idComboPlantilla AS insumoIdComboPlantilla
@@ -2287,9 +2286,6 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
 
 function ocuparDelivery($delivery)
 {
-    _asegurarCreatedAtOrdenes();
-    _asegurarTipoOrdenOrdenes();
-    _asegurarDetalleJsonItemsOrden();
     $bd = conectarBaseDatos();
 
     if (!isset($delivery->idDelivery) || $delivery->idDelivery === "" || $delivery->idDelivery === null) {
@@ -2367,9 +2363,6 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null)
             ->execute([$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
         // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
-        // Los ítems 'pendiente' no se cocinaron, sus ingredientes siguen en stock
-        _asegurarTipoVentaInsumos();
-        _asegurarDetalleJsonItemsOrden();
         $stmtItems = $bd->prepare("
             SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
             FROM items_orden io

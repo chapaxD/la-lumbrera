@@ -24,17 +24,32 @@ $insumosMasVendidos = obtenerInsumosMasVendidos($filtros->limite ?? 5);
 $totalesPorMesa = obtenerTotalesPorMesa($filtros->limite ?? 5);
 $alertasStock = obtenerInsumosBajoStock();
 
-$totalDia = obtenerVentasDelDia();
-$cantidadDia = cantidadVentasDia();
+// Consolidar las métricas del día en 1 sola query (ahorra 2 round-trips a TiDB)
+$hoy = date('Y-m-d');
+$bdDash = conectarBaseDatos();
+$stmtDash = $bdDash->prepare("
+    SELECT
+        IFNULL(SUM(CASE WHEN fecha >= ? AND fecha < DATE_ADD(?, INTERVAL 1 DAY) THEN total ELSE 0 END), 0) AS totalVentasHoy,
+        COUNT(CASE WHEN fecha >= ? AND fecha < DATE_ADD(?, INTERVAL 1 DAY) THEN 1 END)                    AS cantidadHoy,
+        IFNULL(SUM(total), 0)                                                                             AS totalVentasGeneral
+    FROM ventas
+");
+$stmtDash->execute([$hoy, $hoy, $hoy, $hoy]);
+$metricas = $stmtDash->fetch(PDO::FETCH_OBJ);
+
+$totalDia    = (float) $metricas->totalVentasHoy;
+$cantidadDia = (int)   $metricas->cantidadHoy;
+$totalVentas = (float) $metricas->totalVentasGeneral;
+
 $cartas = [
-    "totalVentasDia" =>  $totalDia,
-    "cantidadVentasDia" => $cantidadDia,
-    "ticketPromedio" => ($cantidadDia > 0) ? round($totalDia / $cantidadDia, 2) : 0,
-    "numeroUsuarios" =>  obtenerNumeroUsuarios(),
-    "numeroInsumos" =>  obtenerNumeroInsumos(),
-    "totalVentas" =>  obtenerTotalVentas(),
-    "numeroMesasOcupadas" =>  obtenerNumeroMesasOcupadas(),
-    ];
+    "totalVentasDia"      => $totalDia,
+    "cantidadVentasDia"   => $cantidadDia,
+    "ticketPromedio"      => ($cantidadDia > 0) ? round($totalDia / $cantidadDia, 2) : 0,
+    "numeroUsuarios"      => obtenerNumeroUsuarios(),
+    "numeroInsumos"       => obtenerNumeroInsumos(),
+    "totalVentas"         => $totalVentas,
+    "numeroMesasOcupadas" => obtenerNumeroMesasOcupadas(),
+];
 
 echo json_encode(
 	[

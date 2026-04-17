@@ -65,5 +65,7 @@ while (true) {
         flush();
     }
 
-    sleep(1);
+    // 3 s de pausa: reduce queries a TiDB Cloud de ~60/min a ~20/min por cliente conectado.
+    // La cocina no necesita refresco sub-segundo; 3 s es imperceptible operativamente.
+    sleep(3);
 }

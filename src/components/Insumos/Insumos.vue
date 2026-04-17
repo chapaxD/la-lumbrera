@@ -75,7 +75,8 @@
         </div>
       </div>
       <div class="column">
-        <div class="notification py-4 has-text-centered" :class="stockCritico > 0 ? 'is-danger is-light' : 'is-success is-light'">
+        <div class="notification py-4 has-text-centered"
+          :class="stockCritico > 0 ? 'is-danger is-light' : 'is-success is-light'">
           <p class="heading">Stock crítico</p>
           <p class="title is-3">{{ stockCritico }}</p>
         </div>
@@ -84,103 +85,90 @@
 
     <!-- Tabla -->
     <div class="box">
-    <b-table
-      :data="insumos"
-      :loading="cargando"
-      :paginated="isPaginated"
-      :per-page="perPage"
-      :bordered="true"
-      :striped="true"
-      :hoverable="true"
-      :narrowed="true"
-      :current-page.sync="currentPage"
-      :pagination-simple="isPaginationSimple"
-      :pagination-position="paginationPosition"
-      :default-sort-direction="defaultSortDirection"
-      :sort-icon="sortIcon"
-      :sort-icon-size="sortIconSize"
-      aria-next-label="Siguiente"
-      aria-previous-label="Anterior"
-      aria-page-label="Página"
-      aria-current-label="Página actual"
-    >
-      <b-table-column field="tipo" label="Tipo" sortable v-slot="props">
-        <b-tag :type="props.row.tipo === 'PLATILLO' ? 'is-warning is-light' : 'is-info is-light'">
-          <b-icon :icon="props.row.tipo === 'PLATILLO' ? 'noodles' : 'cup'" size="is-small"></b-icon>
-          {{ props.row.tipo }}
-        </b-tag>
-      </b-table-column>
-
-      <b-table-column field="codigo" label="Código" sortable v-slot="props">
-        <span class="is-size-7 has-text-grey">{{ props.row.codigo }}</span>
-      </b-table-column>
-
-      <b-table-column field="nombre" label="Nombre" searchable sortable v-slot="props">
-        <strong>{{ props.row.nombre }}</strong>
-      </b-table-column>
-
-      <b-table-column field="descripcion" label="Descripción" v-slot="props">
-        <span class="is-size-7">{{ props.row.descripcion }}</span>
-      </b-table-column>
-
-      <b-table-column field="categoria" label="Categoría" searchable sortable v-slot="props">
-        {{ props.row.categoria || '—' }}
-      </b-table-column>
-
-      <b-table-column field="precio" label="Precio" sortable numeric v-slot="props">
-        <strong>${{ props.row.precio }}</strong>
-      </b-table-column>
-
-      <b-table-column field="stock" label="Stock" sortable numeric v-slot="props">
-        <template v-if="props.row.tipoVenta === 'COMBO'">
-          <b-tag type="is-info is-light">Menú (por componentes)</b-tag>
-        </template>
-        <template v-else-if="props.row.tipoVenta === 'RECETA'">
-          <b-tag type="is-info is-light">Receta fija</b-tag>
-        </template>
-        <template v-else>
-          <b-tag :type="tipoAlertaStock(props.row)">
-            <b-icon icon="alert-circle" size="is-small" v-if="props.row.stock <= props.row.stockMinimo"></b-icon>
-            {{ props.row.stock }} uds.
+      <b-table :data="insumos" :loading="cargando" :paginated="isPaginated" :per-page="perPage" :bordered="true"
+        :striped="true" :hoverable="true" :narrowed="true" :current-page.sync="currentPage"
+        :pagination-simple="isPaginationSimple" :pagination-position="paginationPosition"
+        :default-sort-direction="defaultSortDirection" :sort-icon="sortIcon" :sort-icon-size="sortIconSize"
+        aria-next-label="Siguiente" aria-previous-label="Anterior" aria-page-label="Página"
+        aria-current-label="Página actual">
+        <b-table-column field="tipo" label="Tipo" sortable v-slot="props">
+          <b-tag :type="props.row.tipo === 'PLATILLO' ? 'is-warning is-light' : 'is-info is-light'">
+            <b-icon :icon="props.row.tipo === 'PLATILLO' ? 'noodles' : 'cup'" size="is-small"></b-icon>
+            {{ props.row.tipo }}
           </b-tag>
-          <span class="is-size-7 has-text-grey"> mín: {{ props.row.stockMinimo }}</span>
-        </template>
-      </b-table-column>
+        </b-table-column>
 
-      <b-table-column field="porciones" label="Porciones / Unidades" v-slot="props">
-        <template v-if="props.row.tipo === 'PLATILLO' && props.row.tipoCorte > 0">
-          <b-tag type="is-primary">{{ props.row.stock }} listas</b-tag>
-          <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) / props.row.tipoCorte) }}</strong> posibles</span>
-        </template>
-        <template v-else-if="props.row.tipo === 'BEBIDA' && props.row.tipoCorte > 0">
-          <b-tag type="is-info">{{ props.row.stock }} uds.</b-tag>
-          <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) / props.row.tipoCorte) }}</strong> posibles</span>
-        </template>
-        <span v-else class="has-text-grey">—</span>
-      </b-table-column>
+        <b-table-column field="codigo" label="Código" sortable v-slot="props">
+          <span class="is-size-7 has-text-grey">{{ props.row.codigo }}</span>
+        </b-table-column>
 
-      <b-table-column field="acciones" label="Acciones" v-slot="props">
-        <div class="buttons">
-          <b-button size="is-small" type="is-info" icon-left="pen" title="Editar"
-            @click="editar(props.row.id)"></b-button>
-          <b-button size="is-small" type="is-warning" icon-left="minus" title="Dar Baja"
-            @click="darBaja(props.row)"></b-button>
-          <b-button size="is-small" type="is-success" icon-left="pot-steam" title="Producir"
-            v-if="props.row.tipoCorte > 0 && props.row.stockMateria > 0"
-            @click="abrirProducir(props.row)"></b-button>
-          <b-button size="is-small" type="is-danger" icon-left="delete" title="Eliminar"
-            @click="eliminar(props.row)"></b-button>
-        </div>
-      </b-table-column>
+        <b-table-column field="nombre" label="Nombre" searchable sortable v-slot="props">
+          <strong>{{ props.row.nombre }}</strong>
+        </b-table-column>
 
-      <template #empty>
-        <div class="has-text-centered py-6 has-text-grey" style="opacity: 0.8;">
-          <b-icon icon="food-apple-outline" custom-size="fa-4x" style="font-size: 4rem;"></b-icon>
-          <p class="mt-4 title is-4 has-text-grey-dark">El menú está vacío</p>
-          <p class="subtitle is-6">Sube tus recetas haciendo clic en "Añadir insumo".</p>
-        </div>
-      </template>
-    </b-table>
+        <b-table-column field="descripcion" label="Descripción" v-slot="props">
+          <span class="is-size-7">{{ props.row.descripcion }}</span>
+        </b-table-column>
+
+        <b-table-column field="categoria" label="Categoría" searchable sortable v-slot="props">
+          {{ props.row.categoria || '—' }}
+        </b-table-column>
+
+        <b-table-column field="precio" label="Precio" sortable numeric v-slot="props">
+          <strong>${{ props.row.precio }}</strong>
+        </b-table-column>
+
+        <b-table-column field="stock" label="Stock" sortable numeric v-slot="props">
+          <template v-if="props.row.tipoVenta === 'COMBO'">
+            <b-tag type="is-info is-light">Menú (por componentes)</b-tag>
+          </template>
+          <template v-else-if="props.row.tipoVenta === 'RECETA'">
+            <b-tag type="is-info is-light">Receta fija</b-tag>
+          </template>
+          <template v-else>
+            <b-tag :type="tipoAlertaStock(props.row)">
+              <b-icon icon="alert-circle" size="is-small" v-if="props.row.stock <= props.row.stockMinimo"></b-icon>
+              {{ props.row.stock }} uds.
+            </b-tag>
+            <span class="is-size-7 has-text-grey"> mín: {{ props.row.stockMinimo }}</span>
+          </template>
+        </b-table-column>
+
+        <b-table-column field="porciones" label="Porciones / Unidades" v-slot="props">
+          <template v-if="props.row.tipo === 'PLATILLO' && props.row.tipoCorte > 0">
+            <b-tag type="is-primary">{{ props.row.stock }} listas</b-tag>
+            <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) /
+              props.row.tipoCorte) }}</strong> posibles</span>
+          </template>
+          <template v-else-if="props.row.tipo === 'BEBIDA' && props.row.tipoCorte > 0">
+            <b-tag type="is-info">{{ props.row.stock }} uds.</b-tag>
+            <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) /
+              props.row.tipoCorte) }}</strong> posibles</span>
+          </template>
+          <span v-else class="has-text-grey">—</span>
+        </b-table-column>
+
+        <b-table-column field="acciones" label="Acciones" v-slot="props">
+          <div class="buttons">
+            <b-button size="is-small" type="is-info" icon-left="pen" title="Editar"
+              @click="editar(props.row.id)"></b-button>
+            <b-button size="is-small" type="is-warning" icon-left="minus" title="Dar Baja"
+              @click="darBaja(props.row)"></b-button>
+            <b-button size="is-small" type="is-success" icon-left="pot-steam" title="Producir"
+              v-if="props.row.tipoCorte > 0 && props.row.stockMateria > 0" @click="abrirProducir(props.row)"></b-button>
+            <b-button size="is-small" type="is-danger" icon-left="delete" title="Eliminar"
+              @click="eliminar(props.row)"></b-button>
+          </div>
+        </b-table-column>
+
+        <template #empty>
+          <div class="has-text-centered py-6 has-text-grey" style="opacity: 0.8;">
+            <b-icon icon="food-apple-outline" custom-size="fa-4x" style="font-size: 4rem;"></b-icon>
+            <p class="mt-4 title is-4 has-text-grey-dark">El menú está vacío</p>
+            <p class="subtitle is-6">Sube tus recetas haciendo clic en "Añadir insumo".</p>
+          </div>
+        </template>
+      </b-table>
     </div>
 
     <!-- Modal: Registrar / Editar insumo -->
@@ -195,11 +183,7 @@
         </header>
         <section class="modal-card-body" style="position:relative">
           <b-loading :active="guardandoInsumo" :is-full-page="false"></b-loading>
-          <datos-insumo
-            v-if="modalInsumo"
-            :insumo="insumoModal"
-            :editar="editandoInsumo"
-            @registrado="onGuardarInsumo">
+          <datos-insumo v-if="modalInsumo" :insumo="insumoModal" :editar="editandoInsumo" @registrado="onGuardarInsumo">
           </datos-insumo>
         </section>
       </div>
@@ -235,35 +219,31 @@
           </div>
 
           <!-- Preview dinámico -->
-          <div class="notification is-success is-light py-2 px-4 mb-3" v-if="usoMateriaBorrador > 0 && porcionesPreview > 0">
+          <div class="notification is-success is-light py-2 px-4 mb-3"
+            v-if="usoMateriaBorrador > 0 && porcionesPreview > 0">
             <b-icon icon="information-outline" size="is-small" class="mr-1"></b-icon>
-            Con <strong>{{ usoMateriaBorrador }} {{ insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'L' : 'kg' }}</strong> podés preparar
-            <strong>{{ porcionesPreview }} {{ insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'unidades' : 'porciones' }}</strong> más
+            Con <strong>{{ usoMateriaBorrador }} {{ insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'L' : 'kg'
+              }}</strong> podés preparar
+            <strong>{{ porcionesPreview }} {{ insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'unidades' :
+              'porciones'
+              }}</strong> más
           </div>
           <div class="notification is-warning is-light py-2 px-4 mb-3" v-else-if="usoMateriaBorrador > 0">
             <b-icon icon="alert" size="is-small" class="mr-1"></b-icon>
             La cantidad ingresada no alcanza para preparar ninguna porción
           </div>
 
-          <b-field :label="insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'Líquido a usar (L)' : 'Materia prima a usar (kg)'">
-            <b-numberinput
-              v-model="usoMateriaBorrador"
-              :min="0"
-              :max="insumoProducir.stockMateria"
-              :step="0.1"
-              type="is-success"
-              @input="recalcularPreview">
+          <b-field
+            :label="insumoProducir && insumoProducir.tipo === 'BEBIDA' ? 'Líquido a usar (L)' : 'Materia prima a usar (kg)'">
+            <b-numberinput v-model="usoMateriaBorrador" :min="0" :max="insumoProducir.stockMateria" :step="0.1"
+              type="is-success" @input="recalcularPreview">
             </b-numberinput>
           </b-field>
         </section>
         <footer class="modal-card-foot">
-          <b-button
-            type="is-success"
-            icon-left="check"
-            :disabled="porcionesPreview <= 0"
-            :loading="cargando"
+          <b-button type="is-success" icon-left="check" :disabled="porcionesPreview <= 0" :loading="cargando"
             @click="confirmarProducir">
-            Producir {{ porcionesPreview > 0 ? porcionesPreview + (insumoProducir && insumoProducir.tipo === 'BEBIDA' ? ' unidades' : ' porciones') : '' }}
+            Producir {{ porcionesPreview > 0 ? (porcionesPreview + (insumoProducir && insumoProducir.tipo === 'BEBIDA' ? ' unidades' : ' porciones')) : '' }}
           </b-button>
           <b-button type="is-light" @click="modalProducir = false">Cancelar</b-button>
         </footer>
@@ -370,59 +350,59 @@ export default {
         this.$toast({ message: res && res.error ? res.error : 'Error al producir', type: 'is-danger' })
       }
     },
-    darBaja(insumo){
-        this.$buefy.dialog.prompt({
-            title: `Baja de stock: ` + insumo.nombre,
-            message: `¿Cuántas unidades se darán de baja (Consumo dueño / Merma)?`,
-            inputAttrs: {
-                type: 'number',
-                value: 1,
-                placeholder: 'Cantidad',
-                min: 1,
-                max: insumo.stock
-            },
-            trapFocus: true,
-            confirmText: 'Registrar Baja',
-            cancelText: 'Cancelar',
-            onConfirm: (value) => {
-                let cantidad = parseFloat(value);
-                if(cantidad <= 0 || cantidad > insumo.stock) {
-                    this.$toast({ message: 'Cantidad inválida o superior al stock', type: 'is-danger' });
-                    return;
-                }
-                this.cargando = true;
-                let payload = {
-                    idInsumo: insumo.id,
-                    cantidad: cantidad,
-                    idUsuario: localStorage.getItem('idUsuario')
-                };
-                HttpService.registrar(payload, "registrar_merma.php")
-                .then(resultado => {
-                    this.cargando = false;
-                    if(resultado){
-                        this.$toast({ message: 'Baja registrada en Kardex', type: 'is-success' });
-                        this.obtenerInsumos();
-                    }
-                })
-                .catch(() => {
-                    this.cargando = false;
-                    this.$toast({ message: 'Error al registrar', type: 'is-danger' });
-                });
-            }
-        })
+    darBaja(insumo) {
+      this.$buefy.dialog.prompt({
+        title: `Baja de stock: ` + insumo.nombre,
+        message: `¿Cuántas unidades se darán de baja (Consumo dueño / Merma)?`,
+        inputAttrs: {
+          type: 'number',
+          value: 1,
+          placeholder: 'Cantidad',
+          min: 1,
+          max: insumo.stock
+        },
+        trapFocus: true,
+        confirmText: 'Registrar Baja',
+        cancelText: 'Cancelar',
+        onConfirm: (value) => {
+          let cantidad = parseFloat(value);
+          if (cantidad <= 0 || cantidad > insumo.stock) {
+            this.$toast({ message: 'Cantidad inválida o superior al stock', type: 'is-danger' });
+            return;
+          }
+          this.cargando = true;
+          let payload = {
+            idInsumo: insumo.id,
+            cantidad: cantidad,
+            idUsuario: localStorage.getItem('idUsuario')
+          };
+          HttpService.registrar(payload, "registrar_merma.php")
+            .then(resultado => {
+              this.cargando = false;
+              if (resultado) {
+                this.$toast({ message: 'Baja registrada en Kardex', type: 'is-success' });
+                this.obtenerInsumos();
+              }
+            })
+            .catch(() => {
+              this.cargando = false;
+              this.$toast({ message: 'Error al registrar', type: 'is-danger' });
+            });
+        }
+      })
     },
 
     exportarPDF() {
-      if(this.insumos.length === 0) return;
+      if (this.insumos.length === 0) return;
       let columnas = ["Tipo", "Código", "Nombre", "Categoría", "Precio Unit.", "Stock", "Límite Mínimo"];
       let filas = this.insumos.map(ins => [
-          ins.tipo,
-          ins.codigo,
-          ins.nombre,
-          ins.categoria || '-',
-          "$" + ins.precio,
-          ins.stock + " uds",
-          ins.stockMinimo + " uds"
+        ins.tipo,
+        ins.codigo,
+        ins.nombre,
+        ins.categoria || '-',
+        "$" + ins.precio,
+        ins.stock + " uds",
+        ins.stockMinimo + " uds"
       ]);
       let totalStockInfo = "Total Productos en Catálogo: " + this.insumos.length;
       ReportesPdfService.generar("Inventario General en Catálogo", columnas, filas, totalStockInfo);
@@ -514,12 +494,18 @@ export default {
     },
 
     tipoAlertaStock(insumo) {
-      const posibles = (insumo.tipo === 'PLATILLO' && insumo.tipoCorte > 0)
-        ? Math.floor((insumo.stockMateria * 1000) / insumo.tipoCorte)
+      const stock = Number(insumo.stock) || 0;
+      const stockMinimo = Number(insumo.stockMinimo) || 0;
+      const tipoCorte = Number(insumo.tipoCorte) || 0;
+      const stockMateria = Number(insumo.stockMateria) || 0;
+
+      const posibles = (insumo.tipo === 'PLATILLO' && tipoCorte > 0)
+        ? Math.floor((stockMateria * 1000) / tipoCorte)
         : 0;
-      const totalDisponible = insumo.stock + posibles;
-      if (totalDisponible <= insumo.stockMinimo) return 'is-danger';
-      if (totalDisponible <= insumo.stockMinimo * 2) return 'is-warning';
+      const totalDisponible = stock + posibles;
+
+      if (totalDisponible <= stockMinimo) return 'is-danger';
+      if (totalDisponible <= stockMinimo * 2) return 'is-warning';
       return 'is-success';
     },
 

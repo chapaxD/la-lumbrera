@@ -19,10 +19,7 @@
             <p class="menu-label">Días de la Semana</p>
             <ul class="menu-list">
               <li v-for="(dia, index) in diasSemana" :key="index">
-                <a 
-                  :class="{ 'is-active': diaSeleccionado === dia.valor }"
-                  @click="seleccionarDia(dia.valor)"
-                >
+                <a :class="{ 'is-active': diaSeleccionado === dia.valor }" @click="seleccionarDia(dia.valor)">
                   <b-icon :icon="dia.icono" size="is-small"></b-icon>
                   {{ dia.nombre }}
                 </a>
@@ -43,26 +40,20 @@
               <div class="level-right">
                 <div class="level-item">
                   <b-field>
-                    <b-autocomplete
-                      v-model="busqueda"
-                      :data="insumosFiltrados"
-                      placeholder="Buscar producto para añadir..."
-                      field="nombre"
-                      icon="magnify"
-                      clearable
-                      @select="aniadirAlMenu"
-                    >
+                    <b-autocomplete v-model="busqueda" :data="insumosFiltrados"
+                      placeholder="Buscar producto para añadir..." field="nombre" icon="magnify" clearable
+                      @select="aniadirAlMenu">
                       <template slot-scope="props">
                         <div class="media">
                           <div class="media-content">
                             <span class="has-text-weight-semibold">{{ props.option.nombre }}</span>
                             <br>
-                            <small class="has-text-grey">{{ props.option.categoria }} — ${{ props.option.precio }}</small>
+                            <small class="has-text-grey">{{ props.option.categoria }} — ${{ props.option.precio
+                              }}</small>
                             &nbsp;
                             <b-tag
                               :type="props.option.stock <= 0 ? 'is-danger' : props.option.stock <= props.option.stockMinimo ? 'is-warning' : 'is-success'"
-                              size="is-small"
-                            >
+                              size="is-small">
                               <b-icon icon="package-variant" size="is-small" class="mr-1"></b-icon>
                               Stock: {{ props.option.stock }}
                             </b-tag>
@@ -95,20 +86,13 @@
                 <template v-else>
                   <b-tag
                     :type="props.row.stock <= 0 ? 'is-danger' : props.row.stock <= props.row.stockMinimo ? 'is-warning' : 'is-success'"
-                    rounded
-                  >
+                    rounded>
                     <b-icon icon="package-variant" size="is-small" class="mr-1"></b-icon>
-                    {{ props.row.stock <= 0 ? 'Sin stock' : props.row.stock + ' uds.' }}
-                  </b-tag>
+                    {{ props.row.stock <= 0 ? 'Sin stock' : props.row.stock + ' uds.' }} </b-tag>
                 </template>
               </b-table-column>
               <b-table-column label="Acciones" v-slot="props">
-                <b-button 
-                  type="is-danger" 
-                  icon-left="delete" 
-                  size="is-small"
-                  @click="quitarDelMenu(props.row)"
-                >
+                <b-button type="is-danger" icon-left="delete" size="is-small" @click="quitarDelMenu(props.row)">
                   Quitar
                 </b-button>
               </b-table-column>
@@ -231,5 +215,3 @@ export default {
   }
 };
 </script>
-
-

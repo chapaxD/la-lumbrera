@@ -1,0 +1,11 @@
+services:
+  - type: static
+    name: botanero-ventas-frontend
+    runtime: static
+    region: washington_dc
+    buildCommand: npm run build
+    publishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

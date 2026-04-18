@@ -121,8 +121,8 @@
                                 {{ insumo.caracteristicas }}
                             </p>
                             <p v-if="insumo.resumenCombo && insumo.resumenCombo.trim() !== ''"
-                                class="is-size-6 has-text-info ml-5 mt-1"
-                                style="border-left: 3px solid #3273dc; padding-left: 8px; white-space: pre-line;">
+                                class="is-size-5 has-text-black has-text-weight-bold ml-5 mt-1"
+                                style="border-left: 3px solid #000; padding-left: 8px; white-space: pre-line;">
                                 <b-icon icon="food-variant" size="is-small"></b-icon>
                                 {{ insumo.resumenCombo }}
                             </p>
@@ -434,7 +434,7 @@ export default {
                     html += `<div class="carac">&rarr; ${esc(ins.caracteristicas)}</div>`
                 }
                 if (ins.resumenCombo && ins.resumenCombo.trim()) {
-                    html += `<div class="carac" style="white-space:pre-line;border-left:2px solid #3273dc;padding-left:6px;margin-top:2px">${esc(ins.resumenCombo)}</div>`
+                    html += `<div class="carac" style="white-space:pre-line;border-left:2px solid #000;padding-left:6px;margin-top:2px;font-weight:bold;font-size:14px">${esc(ins.resumenCombo)}</div>`
                 }
                 return html
             }).join('')

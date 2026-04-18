@@ -111,8 +111,8 @@ export default {
       .col-cant { text-align: center; width: 10mm; }
       .col-sub  { text-align: right;  width: 16mm; }
       .carac-combo {
-        font-size: 10px;
-        font-weight: normal;
+        font-size: 12px;
+        font-weight: bold;
         text-transform: none;
         margin-top: 1px;
         white-space: pre-line;

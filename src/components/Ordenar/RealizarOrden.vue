@@ -96,7 +96,7 @@
 
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
-                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                        <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
                                             {{ props.row.resumenCombo }}
                                         </p>
@@ -202,7 +202,7 @@
                                 <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
-                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                        <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
                                             {{ props.row.resumenCombo }}
                                         </p>
@@ -287,7 +287,7 @@
                                 <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
-                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                        <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
                                             {{ props.row.resumenCombo }}
                                         </p>

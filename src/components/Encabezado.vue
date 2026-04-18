@@ -125,12 +125,12 @@
                         </b-navbar-item>
                         <b-navbar-item tag="router-link" :to="{ path: '/factura' }" @click.native="ddVentas = false">
                             <b-icon icon="file-document-outline" size="is-small"></b-icon>
-                            <span>&nbsp;Facturación</span>
+                            <span>&nbsp;Nota de Venta</span>
                         </b-navbar-item>
                         <b-navbar-item tag="router-link" :to="{ path: '/historial-facturas' }"
                             @click.native="ddVentas = false">
                             <b-icon icon="file-document-multiple-outline" size="is-small"></b-icon>
-                            <span>&nbsp;Historial Facturas</span>
+                            <span>&nbsp;Historial Notas</span>
                         </b-navbar-item>
                         <hr class="navbar-divider">
                         <b-navbar-item tag="router-link" :to="{ path: '/clientes' }" @click.native="ddVentas = false">

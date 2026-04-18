@@ -728,7 +728,7 @@ function obtenerInsumosPorNombre($insumo, $ajustarStockVenta = false)
     $sentencia = $bd->prepare("SELECT insumos.*, IFNULL(categorias.nombre, 'NO DEFINIDA') AS categoria
 	FROM insumos
 	LEFT JOIN categorias ON categorias.id = insumos.categoria 
-	WHERE insumos.nombre LIKE ? ");
+	WHERE LOWER(insumos.nombre) LIKE LOWER(?) ");
     $sentencia->execute(['%' . $insumo . '%']);
     $filas = $sentencia->fetchAll();
     if ($ajustarStockVenta) {
@@ -846,7 +846,7 @@ function obtenerInsumos($filtros)
     }
 
     if ($filtros->nombre != "") {
-        $sql .= " AND  insumos.nombre LIKE ? OR insumos.codigo LIKE ?";
+        $sql .= " AND (LOWER(insumos.nombre) LIKE LOWER(?) OR LOWER(insumos.codigo) LIKE LOWER(?))";
         array_push($valoresAEjecutar, '%' . $filtros->nombre . '%');
         array_push($valoresAEjecutar, '%' . $filtros->nombre . '%');
     }
@@ -1427,7 +1427,7 @@ function obtenerClientes($q = '')
         $stmt = $bd->prepare(
             "SELECT id, nombre, apellido, telefono, email, nit, direccion, notas
              FROM clientes
-             WHERE nombre LIKE ? OR apellido LIKE ? OR nit LIKE ?
+             WHERE LOWER(nombre) LIKE LOWER(?) OR LOWER(apellido) LIKE LOWER(?) OR LOWER(nit) LIKE LOWER(?)
              ORDER BY nombre ASC
              LIMIT 20"
         );
@@ -1836,7 +1836,7 @@ function obtenerFacturas($filtros)
         $params[] = $filtros->hasta;
     }
     if (!empty($filtros->nitComprador)) {
-        $condiciones[] = "f.nitComprador LIKE ?";
+        $condiciones[] = "LOWER(f.nitComprador) LIKE LOWER(?)";
         $params[] = '%' . $filtros->nitComprador . '%';
     }
     if (!empty($filtros->estado)) {

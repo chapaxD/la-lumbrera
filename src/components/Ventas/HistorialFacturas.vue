@@ -7,7 +7,7 @@
             <b-icon icon="file-document-multiple-outline"
                     size="is-large"
                     type="is-primary"></b-icon>
-            Historial de Facturas
+            Historial de Notas de Venta
           </p>
         </div>
       </div>
@@ -25,7 +25,7 @@
                     icon-left="plus"
                     tag="router-link"
                     :to="{ name: 'Factura' }">
-            Nueva Factura
+            Nueva Nota
           </b-button>
         </div>
       </div>
@@ -84,13 +84,13 @@
       </div>
       <div class="column">
         <div class="box has-text-centered py-3">
-          <p class="heading">Monto total facturado</p>
+          <p class="heading">Monto total acumulado</p>
           <p class="title is-4 has-text-success">Bs {{ formatNum(totalFacturado) }}</p>
         </div>
       </div>
       <div class="column">
         <div class="box has-text-centered py-3">
-          <p class="heading">IVA total (13%)</p>
+          <p class="heading">Impuesto estimado (13%)</p>
           <p class="title is-4 has-text-info">Bs {{ formatNum(totalIVA) }}</p>
         </div>
       </div>
@@ -116,7 +116,7 @@
              detailed
              detail-key="id">
       <b-table-column field="numero"
-                      label="N° Factura"
+                      label="N° Nota"
                       sortable
                       numeric
                       v-slot="props">
@@ -230,7 +230,7 @@
         <div class="has-text-centered py-4 has-text-grey">
           <b-icon icon="file-document-multiple-outline"
                   size="is-large"></b-icon>
-          <p>No se encontraron facturas</p>
+          <p>No se encontraron notas de venta</p>
         </div>
       </template>
     </b-table>
@@ -308,8 +308,8 @@ export default {
 
     anular(factura) {
       this.$buefy.dialog.confirm({
-        title: `Anular Factura N° ${String(factura.numero).padStart(7, '0')}`,
-        message: '¿Seguro que deseas anular esta factura? El número quedará registrado como ANULADA en el libro.',
+        title: `Anular Nota N° ${String(factura.numero).padStart(7, '0')}`,
+        message: '¿Seguro que deseas anular esta nota? El número quedará registrado como ANULADA.',
         confirmText: 'Sí, anular',
         cancelText: 'Cancelar',
         type: 'is-danger',
@@ -359,97 +359,87 @@ export default {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Factura N° ${numFactura}</title>
+  <title>Nota de Venta N° ${numFactura}</title>
   <style>
-    @page{size:A4;margin:12mm 15mm}*{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000}
-    .factura{max-width:180mm;margin:0 auto;border:2px solid #000;padding:8mm;position:relative}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5mm}
-    .empresa h1{font-size:16px;font-weight:bold;text-transform:uppercase;margin-bottom:3px}
-    .empresa p{margin:2px 0;font-size:10px}.empresa .nit{font-size:13px;font-weight:bold;margin:4px 0}
-    .doc-box{border:2px solid #000;padding:5mm;text-align:center;min-width:70mm}
-    .doc-box .titulo{font-size:22px;font-weight:bold;text-transform:uppercase;letter-spacing:3px;margin:2px 0}
-    .doc-box .num{font-size:18px;font-weight:bold;margin:4px 0}
-    .doc-box p{font-size:10px;margin:2px 0}.doc-box .aut{font-size:8px;margin-top:5px}
-    .sep{border-top:1px solid #000;margin:4mm 0}.sep-doble{border-top:2px solid #000;margin:4mm 0}
-    .comprador .row{display:flex;gap:5mm;align-items:center;margin-bottom:3px}
-    .comprador .campo{font-weight:bold;white-space:nowrap}
-    .comprador .valor{border-bottom:1px solid #aaa;flex:1;min-height:14px;padding-bottom:1px}
-    .detalle table{width:100%;border-collapse:collapse}
-    .detalle thead tr{background:#000;color:#fff}
-    .detalle th{padding:3px 5px;font-size:10px;text-align:left}
-    .detalle td{border:1px solid #ccc;padding:3px 5px;font-size:11px;vertical-align:top}
-    .center{text-align:center}.right{text-align:right}
-    .totales-table{margin-left:auto;width:80mm;border-collapse:collapse}
-    .totales-table td{padding:2px 5px;font-size:11px}
-    .totales-table .linea-total td{font-size:14px;font-weight:bold;border-top:2px solid #000;padding-top:4px}
-    .leyenda{margin-top:5mm;font-size:8px;text-align:center;font-style:italic;border-top:1px dashed #000;padding-top:3mm;color:#333}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000; width: 80mm; padding: 2mm 3mm; }
+    
+    .ticket { width: 72mm; margin: 0 auto; text-align: center; position: relative; }
+    .header-nota { font-size: 14px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 4px; padding-bottom: 2px; }
+    .empresa h1 { font-size: 15px; font-weight: bold; text-transform: uppercase; margin: 2px 0; }
+    .empresa p { font-size: 11px; margin: 1px 0; line-height: 1.2; }
+    
+    .doc-box { margin: 4mm 0; text-align: left; font-size: 11px; line-height: 1.4; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 2mm 0; }
+    .doc-box strong { display: inline-block; width: 25mm; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 11px; }
+    th { border-bottom: 1px solid #000; padding: 2px 0; text-align: left; }
+    td { padding: 2px 0; vertical-align: top; text-align: left; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+    
+    .totales { margin-top: 2mm; text-align: right; line-height: 1.6; border-top: 1px solid #000; padding-top: 1mm; }
+    .fila-total { display: flex; justify-content: space-between; }
+    .total-grande { font-size: 14px; font-weight: bold; border-top: 1px double #000; margin-top: 1mm; padding-top: 1mm; }
+    .anulada-label { position: absolute; top: 30%; left: 0; width: 100%; font-size: 40px; color: rgba(255,0,0,0.2); font-weight: bold; transform: rotate(-20deg); text-align: center; pointer-events: none; }
+    
+    .leyenda { margin-top: 5mm; font-size: 10px; text-align: center; font-style: italic; }
   </style>
 </head>
 <body>
-<div class="factura">
-  ${anulada}
-  <div class="header">
+  <div class="ticket">
+    ${f.estado === 'ANULADA' ? '<div class="anulada-label">ANULADA</div>' : ''}
+    <div class="header-nota">--- NOTA DE VENTA ---</div>
     <div class="empresa">
-      <h1>${esc(c.razonSocial || 'NOMBRE DEL NEGOCIO')}</h1>
-      <p class="nit">NIT: ${esc(c.nit || '—————')}</p>
-      <p><strong>Actividad:</strong> ${esc(c.actividad || '—')}</p>
-      <p><strong>Dirección:</strong> ${esc(c.direccion || '—')}</p>
-      <p><strong>Ciudad:</strong> ${esc(c.ciudad || '—')}</p>
-      ${c.telefono ? `<p><strong>Tel.:</strong> ${esc(c.telefono)}</p>` : ''}
+      <h1>${esc(c.razonSocial || 'RESTO')}</h1>
+      <p>${esc(c.direccion || '')}</p>
+      <p>${esc(c.ciudad || '')} ${c.telefono ? '- Tel: ' + esc(c.telefono) : ''}</p>
     </div>
+
     <div class="doc-box">
-      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#555">Documento Fiscal</div>
-      <div class="titulo">FACTURA</div>
-      <div class="num">N° ${numFactura}</div>
-      ${c.numAutorizacion ? `<div class="aut"><strong>Autorización:</strong> ${esc(c.numAutorizacion)}</div>` : ''}
-      ${c.fechaLimite ? `<p style="font-size:8px">Límite emisión: ${c.fechaLimite}</p>` : ''}
-      <p><strong>Fecha:</strong> ${fechaDisplay}</p>
-      <p><strong>Hora:</strong> ${horaDisplay}</p>
-      ${f.codigoControl ? `<p style="font-size:8px;margin-top:3px"><strong>Cod. Control:</strong> ${esc(f.codigoControl)}</p>` : ''}
+      <p><strong>N° NOTA:</strong> ${numFactura}</p>
+      <p><strong>FECHA:</strong> ${fechaDisplay} ${horaDisplay}</p>
+      <p><strong>CLIENTE:</strong> ${esc(f.nombreComprador || 'S/N')}</p>
+      <p><strong>NIT/CI:</strong> ${esc(f.nitComprador || '—————')}</p>
     </div>
-  </div>
-  <div class="sep-doble"></div>
-  <div class="comprador">
-    <div class="row">
-      <span class="campo">NIT / CI:</span>
-      <span class="valor">${esc(f.nitComprador)}</span>
-      <span class="campo" style="margin-left:5mm">Nombre / Razón Social:</span>
-      <span class="valor">${esc(f.nombreComprador)}</span>
-    </div>
-  </div>
-  <div class="sep"></div>
-  <div class="detalle">
+
     <table>
       <thead>
         <tr>
-          <th style="width:12mm" class="center">Cant.</th>
-          <th>Descripción</th>
-          <th style="width:25mm" class="right">P. Unit. (Bs)</th>
-          <th style="width:22mm" class="right">Descuento</th>
-          <th style="width:25mm" class="right">Subtotal (Bs)</th>
+          <th style="width:10mm" class="center">Cant</th>
+          <th>Detalle</th>
+          <th style="width:18mm" class="right">Subt.</th>
         </tr>
       </thead>
-      <tbody>${filas}</tbody>
+      <tbody>
+        ${(f.items || []).map(i => `
+          <tr>
+            <td class="center">${i.cantidad}</td>
+            <td style="text-transform:uppercase">${esc(i.descripcion)}</td>
+            <td class="right">${fmt(i.subtotal)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
     </table>
+
+    <div class="totales">
+      <div class="fila-total"><span>Subtotal:</span><span>${fmt(f.subtotal)}</span></div>
+      ${parseFloat(f.descuentos) > 0 ? `<div class="fila-total"><span>Descuento:</span><span>-${fmt(f.descuentos)}</span></div>` : ''}
+      <div class="fila-total total-grande">
+        <span>TOTAL:</span>
+        <span>Bs ${fmt(f.total)}</span>
+      </div>
+    </div>
+
+    ${f.nota ? `<div style="text-align:left; margin-top:3mm; font-size:10px;"><strong>Nota:</strong> ${esc(f.nota)}</div>` : ''}
+
+    <div class="leyenda">
+      <p>¡Gracias por su preferencia!</p>
+      <p>Este documento no tiene validez fiscal</p>
+    </div>
   </div>
-  <div style="margin-top:4mm">
-    <table class="totales-table">
-      <tr><td>Subtotal bruto:</td><td class="right">Bs ${fmt(f.subtotal)}</td></tr>
-      ${parseFloat(f.descuentos) > 0 ? `<tr><td>Descuentos:</td><td class="right" style="color:#c00">- Bs ${fmt(f.descuentos)}</td></tr>` : ''}
-      <tr style="color:#555"><td>Importe Base Créd. Fiscal:</td><td class="right">Bs ${fmt(f.baseCredito)}</td></tr>
-      <tr style="color:#555"><td>IVA (13%):</td><td class="right">Bs ${fmt(f.iva)}</td></tr>
-      <tr class="linea-total"><td>TOTAL A PAGAR:</td><td class="right">Bs ${fmt(f.total)}</td></tr>
-    </table>
-  </div>
-  ${f.nota ? `<div class="sep"></div><p style="font-size:10px;margin-top:3mm"><strong>Nota:</strong> ${esc(f.nota)}</p>` : ''}
-  <div class="leyenda">
-    <p>"El IVA incluido en esta factura, podrá ser acreditado siempre que los datos del comprador se encuentren registrados en su declaración de impuestos conforme a la Ley 843."</p>
-    <p style="margin-top:2mm">${esc(c.ciudad || 'Bolivia')} — Este documento es válido para crédito fiscal</p>
-  </div>
-</div>
-<script>window.onload=function(){window.print()}<\/script>
+  <script>window.onload=function(){window.print(); setTimeout(window.close, 1500);}<\/script>
 </body></html>`
 
       const w = window.open('', '_blank', 'width=850,height=1000')

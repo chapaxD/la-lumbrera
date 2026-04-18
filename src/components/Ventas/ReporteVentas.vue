@@ -129,7 +129,7 @@
           <div class="buttons">
             <b-button size="is-small" type="is-info" icon-left="printer" title="Imprimir ticket"
               @click="imprimirComprobante(props.row)"></b-button>
-            <b-button size="is-small" type="is-warning" icon-left="file-document-outline" title="Generar factura"
+            <b-button size="is-small" type="is-warning" icon-left="file-document-outline" title="Emitir nota de venta"
               @click="generarFactura(props.row)"></b-button>
           </div>
         </b-table-column>

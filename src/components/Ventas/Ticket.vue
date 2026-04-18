@@ -1,6 +1,7 @@
 <template>
   <section style="display:none">
     <div id="comprobante">
+      <div class="header-nota">--- NOTA DE VENTA ---</div>
       <h2>{{ datosLocal.nombre }}</h2>
       <div v-if="venta.mesa" class="num-mesa">MESA #{{ venta.mesa }}</div>
 
@@ -101,6 +102,7 @@ export default {
         text-align: center;
       }
       h2 { font-size: 15px; font-weight: bold; margin: 2px 0; }
+      .header-nota { font-size: 14px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 3px; padding-bottom: 2px; }
       .num-mesa { font-size: 22px; font-weight: bold; margin: 4px 0; }
       .info { font-size: 11px; margin: 1px 0; }
       .separador { border-top: 1px dashed #000; margin: 4px 0; }

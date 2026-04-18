@@ -6,7 +6,7 @@
         <div class="level-item">
           <p class="title is-1 has-text-weight-bold">
             <b-icon icon="file-document-outline" size="is-large" type="is-primary"></b-icon>
-            Facturación Bolivia
+            Emisión de Nota de Venta
           </p>
         </div>
       </div>
@@ -18,7 +18,7 @@
             size="is-medium"
             :disabled="!puedeImprimir"
             @click="imprimirFactura"
-          >Imprimir Factura</b-button>
+          >Imprimir Nota</b-button>
         </div>
       </div>
     </nav>
@@ -29,7 +29,7 @@
         <header class="modal-card-head" style="background:var(--color-primario); box-shadow:none">
           <p class="modal-card-title" style="color:#fff">
             <b-icon icon="cart-outline" size="is-small" style="color:#fff"></b-icon>
-            Seleccionar venta para facturar
+            Seleccionar venta para emitir nota
           </p>
           <button class="delete" @click="modalVentas=false"></button>
         </header>
@@ -104,8 +104,8 @@
       >
         <p class="has-text-weight-bold">
           <b-icon icon="domain" size="is-small"></b-icon>
-          Datos del Emisor (Configuración Fiscal)
-          <b-tag v-if="!config.nit" type="is-warning" size="is-small" class="ml-2">¡Configura tu NIT!</b-tag>
+          Datos del Emisor (Configuración Nota)
+          <b-tag v-if="!config.nit" type="is-warning" size="is-small" class="ml-2">Opcional: configura tus datos</b-tag>
         </p>
         <b-icon :icon="configAbierto ? 'chevron-up' : 'chevron-down'"></b-icon>
       </div>
@@ -144,7 +144,7 @@
           </b-field>
         </b-field>
         <b-button type="is-primary" icon-left="content-save" @click="guardarConfig">
-          Guardar Configuración Fiscal
+          Guardar Configuración
         </b-button>
       </div>
     </div>
@@ -158,10 +158,10 @@
         <div class="box">
           <p class="has-text-weight-bold mb-3 is-size-6">
             <b-icon icon="file-edit-outline" size="is-small"></b-icon>
-            Datos de la Factura
+            Datos de la Nota
           </p>
           <b-field grouped>
-            <b-field label="N° Factura" style="min-width:140px">
+            <b-field label="N° Nota" style="min-width:140px">
               <b-input v-model.number="factura.numero" type="number" min="1" icon="pound"></b-input>
             </b-field>
             <b-field label="Fecha de Emisión">
@@ -175,7 +175,7 @@
             <b-field label="NIT / CI del Comprador" style="min-width:200px">
               <b-input
                 v-model="factura.nitComprador"
-                placeholder="99001 = anónimo"
+                placeholder="Opcional: NIT o CI"
                 icon="card-account-details-outline"
               ></b-input>
             </b-field>
@@ -335,7 +335,7 @@
             @click="imprimirFactura"
             class="mb-2"
           >
-            Imprimir Factura
+            Imprimir Nota
           </b-button>
 
           <b-button
@@ -344,7 +344,7 @@
             icon-left="file-plus-outline"
             @click="nuevaFactura"
           >
-            Nueva Factura
+            Nueva Nota
           </b-button>
 
           <!-- Aviso IVA -->
@@ -742,159 +742,88 @@ export default {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Factura N° ${numFactura}</title>
+  <title>Nota de Venta N° ${numFactura}</title>
   <style>
-    @page { size: A4; margin: 12mm 15mm; }
+    @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
-
-    .factura { max-width: 180mm; margin: 0 auto; border: 2px solid #000; padding: 8mm; }
-
-    /* Encabezado */
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5mm; }
-    .empresa h1 { font-size: 16px; font-weight: bold; text-transform: uppercase; margin-bottom: 3px; }
-    .empresa p { margin: 2px 0; font-size: 10px; }
-    .empresa .nit { font-size: 13px; font-weight: bold; margin: 4px 0; }
-
-    .doc-box { border: 2px solid #000; padding: 5mm; text-align: center; min-width: 70mm; }
-    .doc-box .label-fact { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #555; }
-    .doc-box .titulo { font-size: 22px; font-weight: bold; text-transform: uppercase; letter-spacing: 3px; margin: 2px 0; }
-    .doc-box .num { font-size: 18px; font-weight: bold; color: #000; margin: 4px 0; }
-    .doc-box .aut { font-size: 8px; margin-top: 5px; }
-    .doc-box p { font-size: 10px; margin: 2px 0; }
-
-    /* Separador */
-    .sep { border-top: 1px solid #000; margin: 4mm 0; }
-    .sep-doble { border-top: 2px solid #000; margin: 4mm 0; }
-
-    /* Comprador */
-    .comprador { margin-bottom: 4mm; }
-    .comprador .row { display: flex; gap: 5mm; align-items: center; margin-bottom: 3px; }
-    .comprador .campo { font-weight: bold; white-space: nowrap; }
-    .comprador .valor { border-bottom: 1px solid #aaa; flex: 1; min-height: 14px; padding-bottom: 1px; }
-
-    /* Detalle */
-    .detalle table { width: 100%; border-collapse: collapse; }
-    .detalle thead tr { background: #000; color: #fff; }
-    .detalle th { padding: 3px 5px; font-size: 10px; text-align: left; }
-    .detalle td { border: 1px solid #ccc; padding: 3px 5px; font-size: 11px; vertical-align: top; }
-    .center { text-align: center; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #000; width: 80mm; padding: 2mm 3mm; }
+    
+    .ticket { width: 72mm; margin: 0 auto; text-align: center; }
+    .header-nota { font-size: 14px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 4px; padding-bottom: 2px; }
+    .empresa h1 { font-size: 15px; font-weight: bold; text-transform: uppercase; margin: 2px 0; }
+    .empresa p { font-size: 11px; margin: 1px 0; line-height: 1.2; }
+    
+    .doc-box { margin: 4mm 0; text-align: left; font-size: 11px; line-height: 1.4; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 2mm 0; }
+    .doc-box strong { display: inline-block; width: 25mm; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 11px; }
+    th { border-bottom: 1px solid #000; padding: 2px 0; text-align: left; }
+    td { padding: 2px 0; vertical-align: top; text-align: left; }
     .right { text-align: right; }
-
-    /* Totales */
-    .totales { margin-top: 4mm; }
-    .totales-table { margin-left: auto; width: 80mm; border-collapse: collapse; }
-    .totales-table td { padding: 2px 5px; font-size: 11px; }
-    .totales-table .linea-total td {
-      font-size: 14px; font-weight: bold;
-      border-top: 2px solid #000; padding-top: 4px; margin-top: 2px;
-    }
-
-    /* Leyenda */
-    .leyenda {
-      margin-top: 5mm; font-size: 8px; text-align: center;
-      font-style: italic; border-top: 1px dashed #000; padding-top: 3mm;
-      color: #333;
-    }
-    .nota { font-size: 10px; margin-top: 3mm; }
-
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
+    .center { text-align: center; }
+    
+    .totales { margin-top: 2mm; text-align: right; line-height: 1.6; border-top: 1px solid #000; padding-top: 1mm; }
+    .fila-total { display: flex; justify-content: space-between; }
+    .total-grande { font-size: 14px; font-weight: bold; border-top: 1px double #000; margin-top: 1mm; padding-top: 1mm; }
+    
+    .leyenda { margin-top: 5mm; font-size: 10px; text-align: center; font-style: italic; }
   </style>
 </head>
 <body>
-<div class="factura">
-
-  <!-- ENCABEZADO -->
-  <div class="header">
+  <div class="ticket">
+    <div class="header-nota">--- NOTA DE VENTA ---</div>
     <div class="empresa">
-      <h1>${this.escapeHtml(c.razonSocial || 'NOMBRE DEL NEGOCIO')}</h1>
-      <p class="nit">NIT: ${this.escapeHtml(c.nit || '—————')}</p>
-      <p><strong>Actividad:</strong> ${this.escapeHtml(c.actividad || '—')}</p>
-      <p><strong>Dirección:</strong> ${this.escapeHtml(c.direccion || '—')}</p>
-      <p><strong>Ciudad:</strong> ${this.escapeHtml(c.ciudad || '—')}</p>
-      ${c.telefono ? `<p><strong>Tel.:</strong> ${this.escapeHtml(c.telefono)}</p>` : ''}
+      <h1>${this.escapeHtml(c.razonSocial || 'RESTO')}</h1>
+      <p>${this.escapeHtml(c.direccion || '')}</p>
+      <p>${this.escapeHtml(c.ciudad || '')} ${c.telefono ? '- Tel: ' + this.escapeHtml(c.telefono) : ''}</p>
     </div>
+
     <div class="doc-box">
-      <div class="label-fact">Documento Fiscal</div>
-      <div class="titulo">FACTURA</div>
-      <div class="num">N° ${numFactura}</div>
-      ${c.numAutorizacion ? `<div class="aut"><strong>Autorización:</strong> ${this.escapeHtml(c.numAutorizacion)}</div>` : ''}
-      ${c.fechaLimite ? `<p style="font-size:8px">Límite emisión: ${c.fechaLimite}</p>` : ''}
-      <p><strong>Fecha:</strong> ${fechaDisplay}</p>
-      <p><strong>Hora:</strong> ${horaDisplay}</p>
-      ${f.codigoControl ? `<p style="font-size:8px;margin-top:3px"><strong>Cod. Control:</strong> ${this.escapeHtml(f.codigoControl)}</p>` : ''}
+      <p><strong>N° NOTA:</strong> ${numFactura}</p>
+      <p><strong>FECHA:</strong> ${fechaDisplay} ${horaDisplay}</p>
+      <p><strong>CLIENTE:</strong> ${this.escapeHtml(f.nombreComprador || 'S/N')}</p>
+      <p><strong>NIT/CI:</strong> ${this.escapeHtml(f.nitComprador || '—————')}</p>
     </div>
-  </div>
 
-  <div class="sep-doble"></div>
-
-  <!-- DATOS DEL COMPRADOR -->
-  <div class="comprador">
-    <div class="row">
-      <span class="campo">NIT / CI:</span>
-      <span class="valor">${this.escapeHtml(f.nitComprador || '99001')}</span>
-      <span class="campo" style="margin-left:5mm">Nombre / Razón Social:</span>
-      <span class="valor">${this.escapeHtml(f.nombreComprador || 'SIN NOMBRE')}</span>
-    </div>
-  </div>
-
-  <div class="sep"></div>
-
-  <!-- DETALLE -->
-  <div class="detalle">
     <table>
       <thead>
         <tr>
-          <th style="width:12mm" class="center">Cant.</th>
-          <th>Descripción</th>
-          <th style="width:25mm" class="right">P. Unit. (Bs)</th>
-          <th style="width:22mm" class="right">Descuento</th>
-          <th style="width:25mm" class="right">Subtotal (Bs)</th>
+          <th style="width:10mm" class="center">Cant</th>
+          <th>Detalle</th>
+          <th style="width:18mm" class="right">Subt.</th>
         </tr>
       </thead>
       <tbody>
-        ${filas}
+        ${f.items
+          .filter(i => i.descripcion && i.descripcion.trim() && i.cantidad > 0)
+          .map(i => `
+            <tr>
+              <td class="center">${i.cantidad}</td>
+              <td style="text-transform:uppercase">${this.escapeHtml(i.descripcion)}</td>
+              <td class="right">${this.formatNum(this.subtotalLinea(i))}</td>
+            </tr>
+          `).join('')}
       </tbody>
     </table>
+
+    <div class="totales">
+      <div class="fila-total"><span>Subtotal:</span><span>${this.formatNum(t.subtotal)}</span></div>
+      ${t.descuentos > 0 ? `<div class="fila-total"><span>Descuento:</span><span>-${this.formatNum(t.descuentos)}</span></div>` : ''}
+      <div class="fila-total total-grande">
+        <span>TOTAL:</span>
+        <span>Bs ${this.formatNum(t.total)}</span>
+      </div>
+    </div>
+
+    ${f.nota ? `<div style="text-align:left; margin-top:3mm; font-size:10px;"><strong>Nota:</strong> ${this.escapeHtml(f.nota)}</div>` : ''}
+
+    <div class="leyenda">
+      <p>¡Gracias por su preferencia!</p>
+      <p>Este documento no tiene validez fiscal</p>
+    </div>
   </div>
-
-  <!-- TOTALES -->
-  <div class="totales">
-    <table class="totales-table">
-      <tr>
-        <td>Subtotal bruto:</td>
-        <td class="right">Bs ${this.formatNum(t.subtotal)}</td>
-      </tr>
-      ${t.descuentos > 0 ? `<tr><td>Descuentos:</td><td class="right" style="color:#c00">- Bs ${this.formatNum(t.descuentos)}</td></tr>` : ''}
-      <tr style="color:#555">
-        <td>Importe Base Créd. Fiscal:</td>
-        <td class="right">Bs ${this.formatNum(t.baseCredito)}</td>
-      </tr>
-      <tr style="color:#555">
-        <td>IVA (13%):</td>
-        <td class="right">Bs ${this.formatNum(t.iva)}</td>
-      </tr>
-      <tr class="linea-total">
-        <td>TOTAL A PAGAR:</td>
-        <td class="right">Bs ${this.formatNum(t.total)}</td>
-      </tr>
-    </table>
-  </div>
-
-  ${f.nota ? `<div class="sep"></div><p class="nota"><strong>Nota:</strong> ${this.escapeHtml(f.nota)}</p>` : ''}
-
-  <!-- LEYENDA BOLIVIANA -->
-  <div class="leyenda">
-    <p>"El IVA incluido en esta factura, podrá ser acreditado siempre que los datos del comprador se encuentren registrados en su declaración de impuestos conforme a la Ley 843."</p>
-    <p style="margin-top:2mm">${this.escapeHtml(c.ciudad || 'Bolivia')} — Este documento es válido para crédito fiscal</p>
-  </div>
-
-</div>
-<script>window.onload = function(){ window.print(); }<\/script>
-</body>
-</html>`
+  <script>window.onload=function(){window.print(); setTimeout(window.close, 1500);}<\/script>
+</body></html>`
 
       const w = window.open('', '_blank', 'width=850,height=1000')
       if (w) {

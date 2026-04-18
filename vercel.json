@@ -3,7 +3,13 @@
   "buildCommand": "npm run build",
   "version": 2,
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://la-lumbrera-resto.onrender.com/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://la-lumbrera-resto.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

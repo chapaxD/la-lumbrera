@@ -1,3 +1,13 @@
+
+# Etapa 1: Build de frontend
+FROM node:18 AS build-frontend
+WORKDIR /app
+COPY package*.json ./
+COPY src/ ./src/
+COPY public/ ./public/
+RUN npm install && npm run build
+
+# Etapa 2: PHP + Apache
 FROM php:8.1-apache
 
 # Instalar ca-certificates y extensiones necesarias
@@ -7,11 +17,11 @@ RUN docker-php-ext-install pdo pdo_mysql
 # Habilitar mod_rewrite y mod_headers para Apache
 RUN a2enmod rewrite headers
 
-# Copiar solo la carpeta api al directorio web
+# Copiar la API PHP
 COPY api/ /var/www/html/api/
 
-# Copiar el contenido de dist/ al directorio web para servir el frontend
-COPY dist/ /var/www/html/
+# Copiar el frontend compilado
+COPY --from=build-frontend /app/dist/ /var/www/html/
 
 # Configurar Apache para permitir .htaccess
 RUN echo '<Directory /var/www/html>\n\

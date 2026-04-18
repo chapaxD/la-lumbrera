@@ -96,7 +96,11 @@
 
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
-                                    </b-table-column>                                    
+                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                            <b-icon icon="food-variant" size="is-small"></b-icon>
+                                            {{ props.row.resumenCombo }}
+                                        </p>
+                                    </b-table-column>
                                     
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
                                         {{ props.row.cantidad }} X ${{  props.row.precio }}
@@ -198,7 +202,11 @@
                                 <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
-                                    </b-table-column>                                    
+                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                            <b-icon icon="food-variant" size="is-small"></b-icon>
+                                            {{ props.row.resumenCombo }}
+                                        </p>
+                                    </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
                                         {{ props.row.cantidad }} X ${{  props.row.precio }}
                                     </b-table-column>                                                                        
@@ -279,6 +287,10 @@
                                 <b-table :data="del.insumos" mobile-cards narrow>
                                     <b-table-column field="nombre" label="Nombre" v-slot="props">
                                         {{ props.row.nombre }}
+                                        <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+                                            <b-icon icon="food-variant" size="is-small"></b-icon>
+                                            {{ props.row.resumenCombo }}
+                                        </p>
                                     </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
                                         {{ props.row.cantidad }} X ${{ props.row.precio }}

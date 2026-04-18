@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section style="display:none">
     <div id="comprobante">
       <h2>{{ datosLocal.nombre }}</h2>
@@ -25,7 +25,12 @@
         </thead>
         <tbody>
           <tr v-for="(insumo, index) in insumos" :key="index">
-            <td>{{ insumo.nombre }}</td>
+            <td>
+              {{ insumo.nombre }}
+              <div v-if="insumo.resumenCombo" class="carac-combo">
+                {{ insumo.resumenCombo }}
+              </div>
+            </td>
             <td class="col-cant">{{ insumo.cantidad }}</td>
             <td class="col-sub">${{ formatNum(insumo.cantidad * insumo.precio) }}</td>
           </tr>
@@ -105,6 +110,16 @@ export default {
       td { padding: 2px 3px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; }
       .col-cant { text-align: center; width: 10mm; }
       .col-sub  { text-align: right;  width: 16mm; }
+      .carac-combo {
+        font-size: 10px;
+        font-weight: normal;
+        text-transform: none;
+        margin-top: 1px;
+        white-space: pre-line;
+        border-left: 1px solid #000;
+        padding-left: 4px;
+        font-style: italic;
+      }
       .totales { text-align: left; font-size: 12px; line-height: 1.7; }
       .fila-total { display: flex; justify-content: space-between; padding: 0; }
       .fila-total.grande {

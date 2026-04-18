@@ -7,6 +7,10 @@
             <b-table-column field="nombre" label="Nombre" v-slot="props">
             {{ props.row.nombre }}
             <span v-if="(props.row.tipoVenta || '') === 'COMBO'" class="is-size-7 has-text-grey"><br>Menú ({{ props.row.cantidad }} u.)</span>
+            <p v-if="props.row.resumenCombo" class="is-size-7 has-text-info mt-1" style="white-space: pre-line;">
+              <b-icon icon="food-variant" size="is-small"></b-icon>
+              {{ props.row.resumenCombo }}
+            </p>
           </b-table-column>
 
           <b-table-column field="precio" label="Precio" v-slot="props">

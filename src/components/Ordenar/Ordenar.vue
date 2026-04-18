@@ -553,17 +553,32 @@ export default {
       const n = this.comboNumMenus
       if (!ins || !this.plantillaCombo) return
       const slots = this.plantillaCombo.slots || []
+      
+      // Validación y generación de resumen
+      const bloques = []
       for (let i = 0; i < this.comboElecciones.length; i++) {
         const row = this.comboElecciones[i]
+        const partes = []
         for (const s of slots) {
-          if (row[String(s.id)] == null || row[String(s.id)] === '') {
+          const val = row[String(s.id)]
+          if (val == null || val === '') {
             this.$toast({ message: 'Completá todas las opciones en cada menú', type: 'is-warning' })
             return
           }
+          // Buscar nombre de la opción elegida
+          const op = s.opciones.find(o => String(o.id_insumo) === String(val))
+          const nomInsumo = op ? op.nombre_insumo : ('#' + val)
+          partes.push(`${s.etiqueta}: ${nomInsumo}`)
+        }
+        if (partes.length > 0) {
+          bloques.push(`Menú ${i + 1}: ${partes.join(' · ')}`)
         }
       }
+
       const menus = this.comboElecciones.map((row) => ({ slots: { ...row } }))
       const detalleJson = { menus }
+      const resumenCombo = bloques.join('\n')
+
       this.insumosOrden.push({
         _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
         id: ins.id,
@@ -573,6 +588,7 @@ export default {
         tipo: ins.tipo,
         tipoVenta: 'COMBO',
         detalleJson,
+        resumenCombo,
         caracteristicas: '',
         cantidad: n,
         estado: 'pendiente',

@@ -214,6 +214,7 @@ $tablas = [
         nota             TEXT,
         idVenta          BIGINT UNSIGNED DEFAULT NULL,
         idUsuario        BIGINT UNSIGNED NOT NULL,
+        metodoPago       VARCHAR(20)     NOT NULL DEFAULT 'EFECTIVO',
         estado           ENUM('EMITIDA','ANULADA') NOT NULL DEFAULT 'EMITIDA',
         createdAt        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uq_numero_factura (numero)
@@ -339,6 +340,7 @@ $migraciones = [
     "idx_ordenes_activas_tipo_ref"  => "ALTER TABLE ordenes_activas ADD UNIQUE INDEX idx_ordenes_tipo_ref (tipo, referencia)",
     "idx_reservas_fecha"            => "ALTER TABLE reservas ADD INDEX idx_reservas_fecha (fecha)",
     "idx_cancelaciones_fecha"       => "ALTER TABLE cancelaciones ADD INDEX idx_cancelaciones_fecha (fecha)",
+    "facturas_metodoPago"           => "ALTER TABLE facturas ADD COLUMN IF NOT EXISTS metodoPago VARCHAR(20) DEFAULT 'EFECTIVO' AFTER idUsuario",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

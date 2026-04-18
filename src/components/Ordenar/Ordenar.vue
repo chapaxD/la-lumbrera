@@ -91,27 +91,51 @@
         <section class="modal-card-body" style="position: relative; min-height: 120px; overflow-x: hidden;">
           <b-loading :is-full-page="false" :active="cargandoPlantillaCombo"></b-loading>
           <template v-if="plantillaCombo && !cargandoPlantillaCombo">
-            <b-field label="Cantidad de menús" class="mb-4">
-              <b-numberinput v-model="comboNumMenus" :min="1" :max="20" controls-position="compact" @input="sincronizarMatricesCombo"></b-numberinput>
+            <b-field label="Cantidad de almuerzos a armar" class="mb-5">
+              <b-numberinput v-model="comboNumMenus" :min="1" :max="50" controls-position="compact" @input="resetearEleccionesCombo" size="is-medium"></b-numberinput>
             </b-field>
 
-            <div class="columns is-multiline">
-              <div class="column is-12-mobile is-6-tablet is-6-desktop" v-for="(menu, mi) in comboElecciones" :key="'m' + mi">
-                <div class="box py-3 mb-0" style="height: 100%;">
-                  <p class="has-text-weight-semibold mb-2 is-size-5 has-text-primary">
-                    <b-icon icon="food" size="is-small" class="mr-1"></b-icon> Menú {{ mi + 1 }}
-                  </p>
-                  <b-field v-for="slot in plantillaCombo.slots || []" :key="'sl' + slot.id" :label="slot.etiqueta">
-                    <b-select v-model="menu[String(slot.id)]" expanded placeholder="Elegir">
-                      <option v-for="op in slot.opciones || []" :key="'op' + op.id" :value="op.id_insumo" :disabled="op.stock !== undefined && op.stock <= 0">
-                        {{ op.nombre_insumo || ('#' + op.id_insumo) }} {{ op.stock !== undefined ? (op.stock <= 0 ? '— 🚫 Agotado' : '— ' + op.stock + ' disp.') : '' }}
-                      </option>
-                    </b-select>
-                  </b-field>
+            <div class="notification is-info is-light py-2 px-3 mb-4">
+              <b-icon icon="information" size="is-small" class="mr-1"></b-icon>
+              Selecciona el total de platos para los <strong>{{ comboNumMenus }}</strong> almuerzos.
+            </div>
+
+            <div v-for="slot in plantillaCombo.slots || []" :key="'sl' + slot.id" class="mb-5">
+              <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+                <h3 class="title is-5 mb-0 has-text-primary">
+                  {{ slot.etiqueta }}
+                </h3>
+                <b-tag :type="totalElegidoEnSlot(slot.id) === comboNumMenus ? 'is-success' : 'is-warning'" size="is-medium" rounded>
+                   {{ totalElegidoEnSlot(slot.id) }} / {{ comboNumMenus }}
+                </b-tag>
+              </div>
+
+              <div class="columns is-multiline">
+                <div v-for="op in slot.opciones" :key="'op' + op.id" class="column is-6-tablet is-12-mobile">
+                  <div class="box p-3 is-flex is-justify-content-space-between is-align-items-center" 
+                       :style="obtenerCantidadElegida(slot.id, op.id_insumo) > 0 ? 'border: 2px solid #48c78e; background: #f6fffa;' : ''">
+                    <div style="flex: 1;">
+                      <p class="has-text-weight-bold is-size-6">{{ op.nombre_insumo }}</p>
+                      <p class="is-size-7 has-text-grey">
+                        Disp: {{ obtenerStockDisponible(op.id_insumo, op.stock, slot.id) }}
+                      </p>
+                    </div>
+                    <div class="is-flex is-align-items-center">
+                      <b-button size="is-small" icon-left="minus" 
+                                :disabled="obtenerCantidadElegida(slot.id, op.id_insumo) <= 0"
+                                @click="ajustarCantidadOpcion(slot.id, op, -1)"></b-button>
+                      <span class="mx-3 has-text-weight-bold is-size-5" style="min-width: 20px; text-align: center;">
+                        {{ obtenerCantidadElegida(slot.id, op.id_insumo) }}
+                      </span>
+                      <b-button type="is-primary" size="is-small" icon-left="plus"
+                                :disabled="totalElegidoEnSlot(slot.id) >= comboNumMenus || (op.stock !== undefined && (op.stock - obtenerCantidadElegida(slot.id, op.id_insumo) <= 0))"
+                                @click="ajustarCantidadOpcion(slot.id, op, 1)"></b-button>
+                    </div>
+                  </div>
                 </div>
               </div>
+              <hr class="my-4">
             </div>
-            
           </template>
         </section>
         <footer class="modal-card-foot is-justify-content-flex-end">
@@ -243,6 +267,7 @@ export default {
     plantillaCombo: null,
     comboNumMenus: 1,
     comboElecciones: [],
+    eleccionesBulk: {}, // Estructura: { [slotId]: { [idInsumo]: cantidad, ... } }
   }),
 
   mounted() {
@@ -519,7 +544,13 @@ export default {
         }
         this.plantillaCombo = pl
         this.comboNumMenus = 1
-        this.$nextTick(() => this.sincronizarMatricesCombo())
+        // Inicializar eleccionesBulk
+        const bulk = {}
+        pl.slots.forEach(s => {
+          bulk[String(s.id)] = {}
+        })
+        this.eleccionesBulk = bulk
+        // this.$nextTick(() => this.sincronizarMatricesCombo()) // Ya no es necesario
       } catch (e) {
         this.$toast({ message: 'No se pudo cargar la plantilla del combo', type: 'is-danger' })
         this.modalCombo = false
@@ -527,25 +558,50 @@ export default {
       this.cargandoPlantillaCombo = false
     },
 
-    sincronizarMatricesCombo() {
+    resetearEleccionesCombo() {
       if (!this.plantillaCombo || !this.plantillaCombo.slots) return
-      let n = parseInt(this.comboNumMenus, 10)
-      if (!Number.isFinite(n) || n < 1) n = 1
-      if (n > 20) n = 20
-      this.comboNumMenus = n
-      const slots = this.plantillaCombo.slots || []
-      const nuevos = []
-      for (let i = 0; i < n; i++) {
-        const prev = this.comboElecciones[i] || {}
-        const row = {}
-        slots.forEach((s) => {
-          const k = String(s.id)
-          if (prev[k] != null && prev[k] !== '') row[k] = prev[k]
-          else row[k] = s.opciones && s.opciones[0] ? s.opciones[0].id_insumo : null
-        })
-        nuevos.push(row)
+      const bulk = {}
+      this.plantillaCombo.slots.forEach(s => {
+        bulk[String(s.id)] = {}
+      })
+      this.eleccionesBulk = bulk
+    },
+
+    obtenerStockDisponible(idInsumo, stockBase, slotId) {
+      if (stockBase === undefined) return 999;
+      let consumidoEnEsteId = 0;
+      const slotChoices = this.eleccionesBulk[String(slotId)] || {};
+      Object.keys(slotChoices).forEach(id => {
+        if (String(id) === String(idInsumo)) consumidoEnEsteId = slotChoices[id];
+      });
+      return stockBase - consumidoEnEsteId;
+    },
+
+    ajustarCantidadOpcion(slotId, opcion, delta) {
+      const sid = String(slotId);
+      const oid = String(opcion.id_insumo);
+      const actual = this.eleccionesBulk[sid][oid] || 0;
+      const nuevo = actual + delta;
+      
+      if (nuevo < 0) return;
+      if (delta > 0) {
+        // Validar stock
+        if (opcion.stock !== undefined && actual >= opcion.stock) return;
+        // Validar que no pase del total de menus
+        if (this.totalElegidoEnSlot(slotId) >= this.comboNumMenus) return;
       }
-      this.comboElecciones = nuevos
+      
+      this.$set(this.eleccionesBulk[sid], oid, nuevo);
+    },
+
+    totalElegidoEnSlot(slotId) {
+      const choices = this.eleccionesBulk[String(slotId)] || {};
+      return Object.values(choices).reduce((sum, val) => sum + val, 0);
+    },
+
+    obtenerCantidadElegida(slotId, idInsumo) {
+      const slot = this.eleccionesBulk[String(slotId)];
+      return (slot && slot[String(idInsumo)]) || 0;
     },
 
     confirmarComboAlPedido() {
@@ -554,28 +610,55 @@ export default {
       if (!ins || !this.plantillaCombo) return
       const slots = this.plantillaCombo.slots || []
       
-      // Validación y generación de resumen
-      const bloques = []
-      for (let i = 0; i < this.comboElecciones.length; i++) {
-        const row = this.comboElecciones[i]
-        const partes = []
-        for (const s of slots) {
-          const val = row[String(s.id)]
-          if (val == null || val === '') {
-            this.$toast({ message: 'Completá todas las opciones en cada menú', type: 'is-warning' })
-            return
-          }
-          // Buscar nombre de la opción elegida
-          const op = s.opciones.find(o => String(o.id_insumo) === String(val))
-          const nomInsumo = op ? op.nombre_insumo : ('#' + val)
-          partes.push(`${s.etiqueta}: ${nomInsumo}`)
-        }
-        if (partes.length > 0) {
-          bloques.push(`Menú ${i + 1}: ${partes.join(' · ')}`)
+      // 1. Validar que todos los slots estén completos
+      for (const s of slots) {
+        if (this.totalElegidoEnSlot(s.id) !== n) {
+          this.$buefy.toast.open({
+            message: `Por favor completa la selección de ${s.etiqueta} (${this.totalElegidoEnSlot(s.id)}/${n})`,
+            type: 'is-warning'
+          })
+          return
         }
       }
 
-      const menus = this.comboElecciones.map((row) => ({ slots: { ...row } }))
+      // 2. Transformar eleccionesBulk en Array de Menús (Legado)
+      // Generar listas planas de IDs por slot
+      const listasPorSlot = {}
+      slots.forEach(s => {
+        const sid = String(s.id)
+        const lista = []
+        const choices = this.eleccionesBulk[sid] || {}
+        Object.keys(choices).forEach(oid => {
+          for (let i = 0; i < choices[oid]; i++) {
+            lista.push(oid)
+          }
+        })
+        listasPorSlot[sid] = lista
+      })
+
+      // Reconstruir comboElecciones
+      const menusTraducidos = []
+      for (let i = 0; i < n; i++) {
+        const row = {}
+        slots.forEach(s => {
+          row[String(s.id)] = listasPorSlot[String(s.id)][i]
+        })
+        menusTraducidos.push(row)
+      }
+
+      // 3. Generar Resumen y Detalle
+      const bloques = []
+      menusTraducidos.forEach((row, i) => {
+        const partes = []
+        slots.forEach(s => {
+          const val = row[String(s.id)]
+          const op = s.opciones.find(o => String(o.id_insumo) === String(val))
+          partes.push(op ? op.nombre_insumo : ('#' + val))
+        })
+        bloques.push(`Menú ${i + 1}: ${partes.join(' - ')}`)
+      })
+
+      const menus = menusTraducidos.map((row) => ({ slots: { ...row } }))
       const detalleJson = { menus }
       const resumenCombo = bloques.join('\n')
 

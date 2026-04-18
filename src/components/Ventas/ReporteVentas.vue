@@ -113,6 +113,13 @@
           {{ props.row.cliente || '-' }}
         </b-table-column>
 
+        <b-table-column field="metodoPago" label="Método" sortable v-slot="props">
+          <b-tag type="is-info is-light" v-if="props.row.metodoPago === 'EFECTIVO'">{{ props.row.metodoPago }}</b-tag>
+          <b-tag type="is-success is-light" v-else-if="props.row.metodoPago === 'TARJETA'">{{ props.row.metodoPago }}</b-tag>
+          <b-tag type="is-warning is-light" v-else-if="props.row.metodoPago === 'QR'">{{ props.row.metodoPago }}</b-tag>
+          <b-tag type="is-link is-light" v-else>{{ props.row.metodoPago }}</b-tag>
+        </b-table-column>
+
         <b-table-column field="pagado" label="Pago" numeric v-slot="props">
           ${{ props.row.pagado }}
         </b-table-column>
@@ -254,7 +261,7 @@ export default {
 
     exportarPDF() {
       if (this.ventas.length === 0) return;
-      let columnas = ["ID Ticket", "Tipo", "Mesa / Ref", "Fecha", "Atendio", "Cliente", "Total Comprado"];
+      let columnas = ["ID Ticket", "Tipo", "Mesa / Ref", "Fecha", "Atendio", "Cliente", "Método", "Total Comprado"];
       let filas = this.ventas.map(v => [
         "#" + v.id,
         v.tipo_orden || "LOCAL",
@@ -262,6 +269,7 @@ export default {
         this.$options.filters.formatFecha(v.fecha),
         v.atendio,
         v.cliente || "-",
+        v.metodoPago || "EFECTIVO",
         "$" + v.total
       ]);
       ReportesPdfService.generar("Reporte Resumido de Ventas", columnas, filas, "Total Acumulado Generado: $" + this.totalVentas);
@@ -281,8 +289,13 @@ export default {
         atendio: venta.atendio,
         cliente: venta.cliente,
         fecha: venta.fecha,
-        pagado: venta.pagado,
         total: venta.total,
+        pagado: venta.pagado,
+        metodoPago: venta.metodoPago,
+        montoEfectivo: venta.montoEfectivo,
+        montoTarjeta: venta.montoTarjeta,
+        montoQR: venta.montoQR,
+        adelanto: venta.adelanto,
         mesa: parseInt(venta.idMesa) > 0 ? parseInt(venta.idMesa) : null,
       };
 

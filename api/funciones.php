@@ -1775,8 +1775,8 @@ function guardarFactura($datos)
         $stmt = $bd->prepare("
             INSERT INTO facturas
                 (numero, fechaHora, nitComprador, nombreComprador, codigoControl,
-                 subtotal, descuentos, baseCredito, iva, total, nota, idVenta, idUsuario)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 subtotal, descuentos, baseCredito, iva, total, nota, idVenta, idUsuario, metodoPago)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $datos->numero,
@@ -1791,7 +1791,8 @@ function guardarFactura($datos)
             $datos->total,
             $datos->nota ?? null,
             $datos->idVenta ?? null,
-            $datos->idUsuario
+            $datos->idUsuario,
+            $datos->metodoPago ?? 'EFECTIVO'
         ]);
         $idFactura = $bd->lastInsertId();
 

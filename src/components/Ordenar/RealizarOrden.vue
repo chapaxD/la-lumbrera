@@ -98,7 +98,7 @@
                                         {{ props.row.nombre }}
                                         <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
-                                            {{ props.row.resumenCombo }}
+                                            {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
                                         </p>
                                     </b-table-column>
                                     
@@ -204,7 +204,7 @@
                                         {{ props.row.nombre }}
                                         <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
-                                            {{ props.row.resumenCombo }}
+                                            {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
                                         </p>
                                     </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
@@ -289,7 +289,7 @@
                                         {{ props.row.nombre }}
                                         <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
                                             <b-icon icon="food-variant" size="is-small"></b-icon>
-                                            {{ props.row.resumenCombo }}
+                                            {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
                                         </p>
                                     </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
@@ -466,6 +466,7 @@ export default {
 
     data() {
         return {
+            Utiles,
             datos: {},
             logo: null,
             checkboxPosition: 'left',

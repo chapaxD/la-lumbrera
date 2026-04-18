@@ -144,6 +144,13 @@
         {{ props.row.nombreComprador }}
       </b-table-column>
 
+      <b-table-column field="metodoPago"
+                      label="Método"
+                      sortable
+                      v-slot="props">
+        <b-tag type="is-info is-light">{{ props.row.metodoPago || 'EFECTIVO' }}</b-tag>
+      </b-table-column>
+
       <b-table-column field="total"
                       label="Total (Bs)"
                       sortable
@@ -424,11 +431,15 @@ export default {
     </table>
 
     <div class="totales">
-      <div class="fila-total"><span>Subtotal:</span><span>${fmt(f.subtotal)}</span></div>
+      ${parseFloat(f.descuentos) > 0 ? `<div class="fila-total"><span>Subtotal:</span><span>${fmt(f.subtotal)}</span></div>` : ''}
       ${parseFloat(f.descuentos) > 0 ? `<div class="fila-total"><span>Descuento:</span><span>-${fmt(f.descuentos)}</span></div>` : ''}
       <div class="fila-total total-grande">
         <span>TOTAL:</span>
         <span>Bs ${fmt(f.total)}</span>
+      </div>
+      <div class="fila-total" style="border-top: 1px dashed #000; margin-top: 2mm; padding-top: 1mm;">
+        <span>MÉTODO DE PAGO:</span>
+        <span>${f.metodoPago || 'EFECTIVO'}</span>
       </div>
     </div>
 

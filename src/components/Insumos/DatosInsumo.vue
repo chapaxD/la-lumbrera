@@ -128,8 +128,8 @@
                     <option value="COMBO">Menú / combo (opciones por plantilla)</option>
                 </b-select>
             </b-field>
-            <b-field v-if="insumo.tipoVenta === 'COMBO'" label="Plantilla de menú" :label-position="'inside'" class="mb-3">
-                <b-select v-model="insumo.idComboPlantilla" expanded placeholder="Creá plantillas en Inventario → Menús / combos">
+            <b-field v-if="insumo.tipoVenta === 'COMBO'" label="Plantilla de menú (Obligatorio)" :label-position="'inside'" class="mb-3" type="is-info" message="Define qué slots tiene este combo">
+                <b-select v-model="insumo.idComboPlantilla" expanded placeholder="-- Selecciona una plantilla --">
                     <option v-for="p in plantillasCombo" :key="'pc' + p.id" :value="normalizarId(p.id)">{{ p.nombre }}</option>
                 </b-select>
             </b-field>

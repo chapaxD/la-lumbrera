@@ -115,16 +115,16 @@
                             </div>
                             <!-- Características / instrucciones especiales -->
                             <p v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
-                                class="is-size-6 has-text-dark ml-5 mt-1"
-                                style="border-left: 3px solid #f5a623; padding-left: 8px;">
-                                <b-icon icon="note-text-outline" size="is-small"></b-icon>
+                                class="is-size-4 has-text-black has-text-weight-bold ml-5 mt-1 mb-2"
+                                style="border-left: 5px solid #f5a623; padding-left: 12px; background-color: rgba(245, 166, 35, 0.15); border-radius: 0 4px 4px 0;">
+                                <b-icon icon="note-text-outline" size="is-small" class="mr-1"></b-icon>
                                 {{ insumo.caracteristicas }}
                             </p>
                             <p v-if="insumo.resumenCombo && insumo.resumenCombo.trim() !== ''"
-                                class="is-size-5 has-text-black has-text-weight-bold ml-5 mt-1"
-                                style="border-left: 3px solid #000; padding-left: 8px; white-space: pre-line;">
-                                <b-icon icon="food-variant" size="is-small"></b-icon>
-                                {{ insumo.resumenCombo }}
+                                class="is-size-4 has-text-black has-text-weight-bold ml-5 mt-2"
+                                style="border-left: 5px solid #000; padding-left: 12px; background-color: rgba(0,0,0,0.05); border-radius: 0 4px 4px 0; white-space: pre-line;">
+                                <b-icon icon="food-variant" size="is-small" class="mr-1"></b-icon>
+                                {{ Utiles.formatearResumenCombo(insumo.resumenCombo) }}
                             </p>
                         </div>
                     </div>
@@ -184,10 +184,12 @@
 
 <script>
 import HttpService from '../../Servicios/HttpService'
+import Utiles from '../../Servicios/Utiles'
 
 export default {
     name: 'Cocina',
     data: () => ({
+        Utiles,
         ordenes: [],
         cargando: true,
         ahora: Date.now(),
@@ -431,10 +433,10 @@ export default {
                 const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d">[LISTO]</span>' : ''
                 let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
                 if (ins.caracteristicas && ins.caracteristicas.trim()) {
-                    html += `<div class="carac">&rarr; ${esc(ins.caracteristicas)}</div>`
+                    html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-weight:bold; font-size:16px; margin-bottom:4px;">&iexcl;OJO! ${esc(ins.caracteristicas)}</div>`
                 }
                 if (ins.resumenCombo && ins.resumenCombo.trim()) {
-                    html += `<div class="carac" style="white-space:pre-line;border-left:2px solid #000;padding-left:6px;margin-top:2px;font-weight:bold;font-size:14px">${esc(ins.resumenCombo)}</div>`
+                    html += `<div class="carac" style="white-space:pre-line;border-left:3px solid #000;padding-left:8px;margin-top:3px;font-weight:bold;font-size:16px;background:#f9f9f9;">${esc(this.Utiles.formatearResumenCombo(ins.resumenCombo))}</div>`
                 }
                 return html
             }).join('')
@@ -461,6 +463,7 @@ export default {
     .item { font-size: 15px; margin: 5px 0 2px; }
     .cant { font-weight: bold; }
     .carac { font-size: 12px; margin-left: 24px; font-style: italic; margin-bottom: 3px; color: #333; }
+    .carac-instruccion { text-transform: uppercase; }
     .pie { text-align: center; font-size: 11px; margin-top: 8px; color: #777; }
   </style>
 </head>

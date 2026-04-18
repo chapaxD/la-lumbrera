@@ -154,9 +154,15 @@ const Utiles =  {
 		return arreglo
 	},
 
-
-	
+	formatearResumenCombo(texto){
+		if (!texto) return '';
+		// Limpia el formato viejo: "Menú 1: Sopa: [X] · Segundo: [Y]" -> "Menú 1: [X] - [Y]"
+		return texto
+			.replace(/ · [^:]+: /g, ' - ') // Reemplaza separadores intermedios
+			.replace(/(Menú \d+: )[^:]+: /g, '$1') // Limpia el primer tag del menú
+			.replace(/ · /g, ' - '); // Por si acaso quedaron separadores viejos sin tag
+	},
 
 }
 
-export default  Utiles 
+export default Utiles

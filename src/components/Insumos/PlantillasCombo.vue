@@ -173,20 +173,32 @@ export default {
     cerrarModal() {},
     async guardar() {
       if (!this.borrador.nombre.trim()) {
-        this.$toast({ message: 'El nombre es obligatorio', type: 'is-warning' })
+        this.$toast({ message: 'El nombre de la plantilla es obligatorio', type: 'is-warning' })
         return
       }
-      const slotsPayload = this.borrador.slots
-        .filter(s => (s.etiqueta || '').trim())
-        .map((s, idx) => ({
-          etiqueta: s.etiqueta.trim(),
-          orden: s.orden != null ? s.orden : idx,
-          opciones: (s._tags || []).map(t => ({ id_insumo: t.id })).filter(o => o.id_insumo)
-        }))
-      if (slotsPayload.some(s => s.opciones.length === 0)) {
-        this.$toast({ message: 'Cada slot debe tener al menos un insumo permitido', type: 'is-warning' })
+      if (!this.borrador.slots || this.borrador.slots.length === 0) {
+        this.$toast({ message: 'La plantilla debe tener al menos un slot (ej. Sopa, Segundo)', type: 'is-warning' })
         return
       }
+
+      // Validar que cada slot tenga etiqueta e insumos
+      for (let i = 0; i < this.borrador.slots.length; i++) {
+        const s = this.borrador.slots[i]
+        if (!(s.etiqueta || '').trim()) {
+          this.$toast({ message: `¡Falta la etiqueta en el slot #${i + 1}! (Ej: Sopa, Segundo, Postre...)`, type: 'is-danger', duration: 5000 })
+          return
+        }
+        if (!s._tags || s._tags.length === 0) {
+          this.$toast({ message: `El slot «${s.etiqueta}» no tiene insumos permitidos.`, type: 'is-warning' })
+          return
+        }
+      }
+
+      const slotsPayload = this.borrador.slots.map((s, idx) => ({
+        etiqueta: s.etiqueta.trim(),
+        orden: s.orden != null ? s.orden : idx,
+        opciones: (s._tags || []).map(t => ({ id_insumo: t.id })).filter(o => o.id_insumo)
+      }))
       this.guardando = true
       try {
         const res = await HttpService.registrar(

@@ -29,7 +29,7 @@
             <td>
               {{ insumo.nombre }}
               <div v-if="insumo.resumenCombo" class="carac-combo">
-                {{ insumo.resumenCombo }}
+                {{ Utiles.formatearResumenCombo(insumo.resumenCombo) }}
               </div>
             </td>
             <td class="col-cant">{{ insumo.cantidad }}</td>
@@ -53,9 +53,14 @@
           <span class="has-text-success">A devolver al cliente</span>
           <span class="has-text-success">${{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
         </div>
-        <div class="fila-total" v-if="venta.total > 0">
-          <span>Total a pagar</span>
-          <span>${{ formatNum(venta.total) }}</span>
+        
+        <div class="separador"></div>
+        <div class="fila-total" v-if="venta.metodoPago && venta.metodoPago !== 'MIXTO'">
+          <span>METODO PAGO:</span>
+          <span>{{ venta.metodoPago }}</span>
+        </div>
+        <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
+          <span style="font-weight:bold">PAGO MIXTO:</span>
         </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
           <span>Efectivo</span><span>${{ formatNum(venta.montoEfectivo) }}</span>
@@ -75,6 +80,7 @@
 
 <script>
 import Printd from "printd";
+import Utiles from "../../Servicios/Utiles";
 
 export default {
   name: "Ticket",
@@ -87,6 +93,7 @@ export default {
   },
 
   data: () => ({
+    Utiles,
     cssText: `
       @page {
         size: 80mm auto;

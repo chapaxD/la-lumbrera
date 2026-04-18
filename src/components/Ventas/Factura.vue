@@ -327,6 +327,15 @@
             ></b-input>
           </b-field>
 
+          <b-field label="Método de Pago" class="mt-2">
+            <b-select v-model="factura.metodoPago" expanded size="is-small">
+              <option value="EFECTIVO">EFECTIVO</option>
+              <option value="TARJETA">TARJETA</option>
+              <option value="QR">QR</option>
+              <option value="MIXTO">MIXTO</option>
+            </b-select>
+          </b-field>
+
           <b-button
             expanded
             type="is-success"
@@ -399,6 +408,7 @@ export default {
         nombreComprador: 'SIN NOMBRE',
         codigoControl: '',
         nota: '',
+        metodoPago: 'EFECTIVO',
         items: [{ cantidad: 1, descripcion: '', precioUnitario: 0, descuento: 0 }],
       },
       totales: {
@@ -650,6 +660,7 @@ export default {
           this.sincronizarFechaHora()
         }
       }
+      this.factura.metodoPago = venta.metodoPago || 'EFECTIVO'
       this.calcularTotales()
       this.modalVentas = false
       this.$buefy.toast.open({ message: `${items.length} ítem(s) cargados desde venta #${venta.id}`, type: 'is-success' })
@@ -671,6 +682,7 @@ export default {
         nombreComprador: 'SIN NOMBRE',
         codigoControl: '',
         nota: '',
+        metodoPago: 'EFECTIVO',
         items: [{ cantidad: 1, descripcion: '', precioUnitario: 0, descuento: 0 }],
       }
       this.calcularTotales()
@@ -696,6 +708,7 @@ export default {
         nota: this.factura.nota || null,
         idVenta: this.factura.idVenta || null,
         idUsuario: parseInt(localStorage.getItem('idUsuario')),
+        metodoPago: this.factura.metodoPago || 'EFECTIVO',
         items: this.factura.items.filter(i => i.descripcion && i.descripcion.trim() && i.cantidad > 0),
       }
 
@@ -807,11 +820,15 @@ export default {
     </table>
 
     <div class="totales">
-      <div class="fila-total"><span>Subtotal:</span><span>${this.formatNum(t.subtotal)}</span></div>
+      ${t.descuentos > 0 ? `<div class="fila-total"><span>Subtotal:</span><span>${this.formatNum(t.subtotal)}</span></div>` : ''}
       ${t.descuentos > 0 ? `<div class="fila-total"><span>Descuento:</span><span>-${this.formatNum(t.descuentos)}</span></div>` : ''}
       <div class="fila-total total-grande">
         <span>TOTAL:</span>
         <span>Bs ${this.formatNum(t.total)}</span>
+      </div>
+      <div class="fila-total" style="border-top: 1px dashed #000; margin-top: 2mm; padding-top: 1mm;">
+        <span>MÉTODO DE PAGO:</span>
+        <span>${f.metodoPago || 'EFECTIVO'}</span>
       </div>
     </div>
 

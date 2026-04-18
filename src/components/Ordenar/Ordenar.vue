@@ -647,20 +647,25 @@ export default {
       }
 
       // 3. Generar Resumen y Detalle
-      const bloques = []
-      menusTraducidos.forEach((row, i) => {
-        const partes = []
+      const conteos = {}
+      const ordenComponentes = []
+      
+      menusTraducidos.forEach((row) => {
         slots.forEach(s => {
           const val = row[String(s.id)]
           const op = s.opciones.find(o => String(o.id_insumo) === String(val))
-          partes.push(op ? op.nombre_insumo : ('#' + val))
+          const nombre = op ? op.nombre_insumo : ('#' + val)
+          if (!conteos[nombre]) {
+            conteos[nombre] = 0
+            ordenComponentes.push(nombre)
+          }
+          conteos[nombre]++
         })
-        bloques.push(`Menú ${i + 1}: ${partes.join(' - ')}`)
       })
 
       const menus = menusTraducidos.map((row) => ({ slots: { ...row } }))
       const detalleJson = { menus }
-      const resumenCombo = bloques.join('\n')
+      const resumenCombo = ordenComponentes.map(nom => `${conteos[nom]} ${nom}`).join('\n')
 
       this.insumosOrden.push({
         _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),

@@ -154,13 +154,51 @@ const Utiles =  {
 		return arreglo
 	},
 
-	formatearResumenCombo(texto){
+	formatearResumenCombo(texto) {
 		if (!texto) return '';
-		// Limpia el formato viejo: "Menú 1: Sopa: [X] · Segundo: [Y]" -> "Menú 1: [X] - [Y]"
-		return texto
-			.replace(/ · [^:]+: /g, ' - ') // Reemplaza separadores intermedios
-			.replace(/(Menú \d+: )[^:]+: /g, '$1') // Limpia el primer tag del menú
-			.replace(/ · /g, ' - '); // Por si acaso quedaron separadores viejos sin tag
+
+		// Si el texto ya viene agrupado (sin "Menú X:") y no tiene caracteres viejos como " · ", 
+		// lo devolvemos tal cual. Si tiene " · ", lo limpiamos.
+		if (!texto.includes('Menú ') && !texto.includes(' · ')) {
+			return texto;
+		}
+
+		// Si viene en formato "Menú X: ...", o tiene " · ", lo procesamos para agrupar
+		const lineas = texto.split('\n');
+		const conteos = {};
+		const orden = [];
+
+		lineas.forEach(linea => {
+			// Eliminar prefijo de menú si existe: "Menú 1: "
+			const contenido = linea.replace(/^Menú \d+: /, '');
+			
+			// Separar componentes por ' - ' o ' · '
+			const partes = contenido.split(/ - | · /);
+			
+			partes.forEach(p => {
+				let item = p.trim();
+				
+				// Si el componente tiene un tag tipo "Sopa: Maní", quedarnos solo con "Maní"
+				if (item.includes(':')) {
+					item = item.split(':').pop().trim();
+				}
+
+				if (item && !item.match(/^Menú \d+$/)) {
+					if (!conteos[item]) {
+						conteos[item] = 0;
+						orden.push(item);
+					}
+					conteos[item]++;
+				}
+			});
+		});
+
+		// Si después de procesar no pudimos extraer nada (raro), devolvemos el original
+		if (orden.length === 0) return texto;
+
+		return orden
+			.map(item => `${conteos[item]} ${item}`)
+			.join('\n');
 	},
 
 }

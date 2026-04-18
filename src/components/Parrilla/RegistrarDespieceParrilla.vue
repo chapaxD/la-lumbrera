@@ -167,10 +167,8 @@
 
               <!-- Gramos x porción (2 cols) -->
               <div class="column is-6-mobile is-2-tablet is-2-desktop pb-2">
-                <b-field label="g / porción"
-                  :type="ln.gramos_porcion > 0 ? 'is-success' : 'is-warning'">
-                  <b-input type="number" min="1" step="1" v-model.number="ln.gramos_porcion"
-                    placeholder="Ej: 350"
+                <b-field label="g / porción" :type="ln.gramos_porcion > 0 ? 'is-success' : 'is-warning'">
+                  <b-input type="number" min="1" step="1" v-model.number="ln.gramos_porcion" placeholder="Ej: 350"
                     @input.native="recalcularPorciones(idx)"></b-input>
                 </b-field>
               </div>
@@ -192,7 +190,7 @@
 
               <!-- Sobras calculadas (3 cols) — read-only, misma altura que un input -->
               <div class="column is-12-mobile is-3-tablet is-3-desktop pb-2">
-                <b-field label="Sobras (g)">
+                <b-field label="Reutilizable (g)">
                   <div class="control">
                     <div class="sobras-display input"
                       :class="sobrasLinea(idx) < 0 ? 'sobras-negativo' : (sobrasLinea(idx) === 0 ? 'sobras-cero' : 'sobras-positivo')">
@@ -211,8 +209,7 @@
 
             <!-- 🥩 Banner de sobras inteligentes — aparece siempre que haya sobras > 0 -->
             <transition name="slide-down">
-              <div v-if="sobrasLinea(idx) > 0"
-                class="sobras-banner mt-3 p-3 rounded">
+              <div v-if="sobrasLinea(idx) > 0" class="sobras-banner mt-3 p-3 rounded">
                 <div class="is-flex is-align-items-flex-start is-justify-content-space-between">
                   <div class="is-flex is-align-items-flex-start" style="flex:1">
                     <b-icon icon="food-variant" type="is-success" class="mr-3 mt-1" style="flex-shrink:0"></b-icon>
@@ -225,7 +222,8 @@
                       <template v-if="ln.gramos_porcion > 0">
                         <p class="is-size-7 mb-1 has-text-grey-dark">
                           Con {{ sobrasLinea(idx) }}g podés sacar:
-                          <strong class="has-text-primary">{{ Math.floor(sobrasLinea(idx) / ln.gramos_porcion) }} porción(es) más de {{ ln.gramos_porcion }}g</strong>
+                          <strong class="has-text-primary">{{ Math.floor(sobrasLinea(idx) / ln.gramos_porcion) }}
+                            porción(es) más de {{ ln.gramos_porcion }}g</strong>
                           <template v-if="sobrasLinea(idx) % ln.gramos_porcion > 0">
                             y quedarían <strong>{{ sobrasLinea(idx) % ln.gramos_porcion }}g</strong> adicionales.
                           </template>
@@ -235,13 +233,12 @@
                       <!-- Alternativas de destino -->
                       <p class="is-size-7 mb-0 has-text-grey">
                         💡 <em>Estas sobras podés aprovecharlas en otro corte, para moler
-                        (hamburguesas, milanesas, relleno) o registrarlas como merma si no se aprovechan.</em>
+                          (hamburguesas, milanesas, relleno) o registrarlas como merma si no se aprovechan.</em>
                       </p>
                     </div>
                   </div>
                   <b-button size="is-small" type="is-success is-light" icon-left="plus-circle" class="ml-3 sobras-btn"
-                    style="flex-shrink:0"
-                    @click.prevent="agregarLineaDesdeSobras(idx)">
+                    style="flex-shrink:0" @click.prevent="agregarLineaDesdeSobras(idx)">
                     Usar en otro corte
                   </b-button>
                 </div>
@@ -481,7 +478,7 @@ export default {
       nuevaLinea.kg_asignado = parseFloat((sobras / 1000).toFixed(3));
       // Heredar el mismo tamaño de porción del corte actual como sugerencia
       nuevaLinea.gramos_porcion = ln.gramos_porcion || 0;
-      
+
       // Reducir kg de la línea original
       const kgOriginal = parseFloat(ln.kg_asignado) || 0;
       ln.kg_asignado = (kgOriginal - (sobras / 1000)).toFixed(3);
@@ -677,14 +674,17 @@ export default {
   min-height: 2.5rem;
   font-size: 1rem;
 }
+
 .sobras-chip--ok {
   background: #effaf3;
   border-color: #48c774;
 }
+
 .sobras-chip--positivo {
   background: #eff8ff;
   border-color: #3298dc;
 }
+
 .sobras-chip--negativo {
   background: #fff0f0;
   border-color: #f14668;
@@ -699,16 +699,19 @@ export default {
   font-size: 1rem;
   font-weight: 600;
 }
+
 .sobras-cero {
   background: #effaf3 !important;
   border-color: #48c774 !important;
   color: #257942;
 }
+
 .sobras-positivo {
   background: #eff8ff !important;
   border-color: #3298dc !important;
   color: #1d72aa;
 }
+
 .sobras-negativo {
   background: #fff0f0 !important;
   border-color: #f14668 !important;

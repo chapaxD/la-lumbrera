@@ -1,7 +1,7 @@
 <template>
   <section style="display:none">
     <div id="comprobante">
-      <div class="header-nota">--- NOTA DE VENTA ---</div>
+      <!-- <div class="header-nota">--- NOTA DE VENTA ---</div> -->
       <h2>{{ datosLocal.nombre }}</h2>
       <div v-if="venta.mesa" class="num-mesa">MESA #{{ venta.mesa }}</div>
 
@@ -49,11 +49,12 @@
           <span>Adelanto aplicado</span>
           <span>- ${{ formatNum(venta.adelanto) }}</span>
         </div>
-        <div class="fila-total" v-if="venta.total === 0 && venta.adelanto && venta.adelanto > (venta.total + (venta.adelanto || 0))">
+        <div class="fila-total"
+          v-if="venta.total === 0 && venta.adelanto && venta.adelanto > (venta.total + (venta.adelanto || 0))">
           <span class="has-text-success">A devolver al cliente</span>
           <span class="has-text-success">${{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
         </div>
-        
+
         <div class="separador"></div>
         <div class="fila-total" v-if="venta.metodoPago && venta.metodoPago !== 'MIXTO'">
           <span>METODO PAGO:</span>

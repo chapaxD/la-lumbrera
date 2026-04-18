@@ -4,7 +4,7 @@ FROM node:18 AS build-frontend
 WORKDIR /app
 COPY package*.json ./
 COPY src/ ./src/
-COPY public/ ./public/
+# No se copia public/ porque no existe
 RUN npm install && npm run build
 
 # Etapa 2: PHP + Apache

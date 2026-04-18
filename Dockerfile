@@ -10,8 +10,8 @@ RUN a2enmod rewrite headers
 # Copiar solo la carpeta api al directorio web
 COPY api/ /var/www/html/api/
 
-# Copiar index.html a la raíz del directorio web
-COPY index.html /var/www/html/index.html
+# Copiar el contenido de dist/ al directorio web para servir el frontend
+COPY dist/ /var/www/html/
 
 # Configurar Apache para permitir .htaccess
 RUN echo '<Directory /var/www/html>\n\

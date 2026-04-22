@@ -739,7 +739,14 @@ export default {
 
         marcarInsumosEntregados(mesa){
             let marcados = this.checkedRowsMap[mesa.mesa.idMesa] || []
-            const pendientes = marcados.filter(m => m.estado === 'pendiente')
+            const pendientes = marcados.filter(m => {
+                const esCarnes = (m.categoria || '').toLowerCase() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+
+                if (esCarnes && usaParrilla) return m.acompanamiento_listo === 0
+                return usaCocina && m.estado === 'pendiente'
+            })
 
             if (pendientes.length > 0) {
                 this.$buefy.dialog.confirm({
@@ -1294,7 +1301,14 @@ export default {
         },
 
         tienePendiente(insumos) {
-            return (insumos || []).some(i => i.estado === 'pendiente')
+            return (insumos || []).some(i => {
+                const esCarnes = (i.categoria || '').toLowerCase() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+
+                if (esCarnes && usaParrilla) return i.acompanamiento_listo === 0
+                return usaCocina && i.estado === 'pendiente'
+            })
         },
 
         async entregarOrdenPagada(tipo, id) {

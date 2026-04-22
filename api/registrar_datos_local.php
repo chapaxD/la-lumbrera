@@ -1,4 +1,5 @@
 <?php
+include_once "encabezado.php";
 
 $informacion = json_decode(file_get_contents("php://input"));
 if (!$informacion) {
@@ -6,7 +7,6 @@ if (!$informacion) {
     exit;
 }
 
-include_once "encabezado.php";
 include_once "funciones.php";
 
 $hayAjustes = obtenerInformacionLocal();

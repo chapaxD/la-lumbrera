@@ -1,6 +1,6 @@
 <?php
+include_once "encabezado.php";
 include_once "funciones.php";
-header('Content-Type: application/json');
 
 // Asegurar columnas nuevas (idempotente — solo corre 1 vez por proceso)
 _asegurarColumnasDespieceLinea();

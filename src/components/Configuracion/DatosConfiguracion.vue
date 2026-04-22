@@ -16,6 +16,15 @@
             <b-input type="textarea" placeholder="Dirección de tu local (se usará en los tickets)" v-model="datos.direccion"></b-input>
         </b-field>
 
+        <b-field label="Pantallas adicionales">
+            <b-switch v-model="datos.usa_pantalla_parrilla" :true-value="1" :false-value="0" type="is-danger">
+                Usar Pantalla de Parrilla (Desactivar si no tienes monitor en parrilla)
+            </b-switch>
+            <b-switch v-model="datos.usa_pantalla_cocina" :true-value="1" :false-value="0" type="is-danger" class="ml-4">
+                Usar Pantalla de Cocina (Desactivar si no tienes monitor en cocina)
+            </b-switch>
+        </b-field>
+
         <div class="field is-horizontal">
 			<div class="field-body">
 			    <div class="file is-primary">

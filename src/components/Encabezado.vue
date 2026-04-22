@@ -17,11 +17,11 @@
             </b-navbar-item>
 
             <!-- Nav para rol parrillero -->
-            <b-navbar-item v-if="rol === 'parrillero'" tag="router-link" :to="{ path: '/parrilla' }">
+            <b-navbar-item v-if="rol === 'parrillero' && parseInt(datosLocal.usa_pantalla_parrilla) !== 0" tag="router-link" :to="{ path: '/parrilla' }">
                 <b-icon icon="fire"></b-icon>
                 <span>&nbsp;Pantalla Parrilla</span>
             </b-navbar-item>
-            <b-navbar-item v-if="rol === 'parrillero'" tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }">
+            <b-navbar-item v-if="rol === 'parrillero' && parseInt(datosLocal.usa_pantalla_parrilla) !== 0" tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }">
                 <b-icon icon="clipboard-text-outline"></b-icon>
                 <span>&nbsp;Registrar despiece</span>
             </b-navbar-item>
@@ -34,11 +34,11 @@
                     <span></span>
                     Inicio
                 </b-navbar-item>
-                <b-navbar-item tag="router-link" :to="{ path: '/cocina' }" v-if="rol === 'admin'">
+                <b-navbar-item tag="router-link" :to="{ path: '/cocina' }" v-if="rol === 'admin' && parseInt(datosLocal.usa_pantalla_cocina) !== 0">
                     <b-icon icon="silverware-fork-knife" size="is-small"></b-icon>
                     <span>&nbsp;Cocina</span>
                 </b-navbar-item>
-                <b-navbar-dropdown collapsible v-model="ddParrilla" v-if="rol === 'admin'">
+                <b-navbar-dropdown collapsible v-model="ddParrilla" v-if="rol === 'admin' && parseInt(datosLocal.usa_pantalla_parrilla) !== 0">
                     <template #label>
                         <b-icon icon="fire" size="is-small"></b-icon>
                         &nbsp;Registro parrilla
@@ -232,7 +232,7 @@
                         <hr class="dropdown-divider" v-if="reportesCocina.length > 0">
 
                         <!-- Reportes de cocina -->
-                        <template v-if="reportesCocina.length > 0">
+                        <template v-if="reportesCocina.length > 0 && parseInt(datosLocal.usa_pantalla_cocina) !== 0">
                             <b-dropdown-item custom aria-role="menuitem">
                                 <div class="is-flex is-align-items-center is-justify-content-space-between"
                                     style="min-width:280px">

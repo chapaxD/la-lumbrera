@@ -341,6 +341,8 @@ $migraciones = [
     "idx_reservas_fecha"            => "ALTER TABLE reservas ADD INDEX idx_reservas_fecha (fecha)",
     "idx_cancelaciones_fecha"       => "ALTER TABLE cancelaciones ADD INDEX idx_cancelaciones_fecha (fecha)",
     "facturas_metodoPago"           => "ALTER TABLE facturas ADD COLUMN IF NOT EXISTS metodoPago VARCHAR(20) DEFAULT 'EFECTIVO' AFTER idUsuario",
+    "info_usa_parrilla"             => "ALTER TABLE informacion_negocio ADD COLUMN IF NOT EXISTS usa_pantalla_parrilla TINYINT(1) DEFAULT 1",
+    "info_usa_cocina"               => "ALTER TABLE informacion_negocio ADD COLUMN IF NOT EXISTS usa_pantalla_cocina TINYINT(1) DEFAULT 1",
 ];
 foreach ($migraciones as $nombre => $sql) {
     try {

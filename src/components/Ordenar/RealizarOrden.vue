@@ -143,6 +143,9 @@
                             <p class="control">
                                 <b-button type="is-danger" icon-left="close"  @click="cancelarOrden(mesa.mesa.idMesa)">Cancelar</b-button>
                             </p>
+                            <p class="control">
+                                <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaMesa(mesa)" title="Imprimir comanda para cocina">Comanda</b-button>
+                            </p>
                         </div>
                         <p class="has-text-danger" v-if="mesa.mesa.estado === 'ocupada' && !puedeAccederOrden(mesa.mesa.idUsuario)">
                             Sin acceso a esta orden
@@ -235,6 +238,9 @@
                                 <p class="control">
                                     <b-button type="is-danger" icon-left="close" @click="cancelarDelivery(del.delivery.idDelivery)">Cancelar</b-button>
                                 </p>
+                                <p class="control">
+                                    <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaDelivery(del)" title="Imprimir comanda para cocina">Comanda</b-button>
+                                </p>
                             </div>
                             <p class="has-text-danger" v-else>
                                 Sin acceso a este delivery
@@ -319,6 +325,9 @@
                                 </p>
                                 <p class="control">
                                     <b-button type="is-danger" icon-left="close" @click="cancelarDelivery(del.delivery.idDelivery)">Cancelar</b-button>
+                                </p>
+                                <p class="control">
+                                    <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaDelivery(del)" title="Imprimir comanda para cocina">Comanda</b-button>
                                 </p>
                             </div>
                             <p class="has-text-danger" v-else>
@@ -706,6 +715,26 @@ export default {
 
             this.insumosSeleccionados = venta.insumos
             this.mostrarTicket = true
+        },
+
+        imprimirComandaMesa(mesa) {
+            const orden = {
+                id: mesa.mesa.idMesa,
+                tipo: 'LOCAL',
+                cliente: mesa.mesa.cliente,
+                insumos: mesa.insumos
+            }
+            this.Utiles.imprimirComanda(orden)
+        },
+
+        imprimirComandaDelivery(del) {
+            const orden = {
+                id: del.delivery.idDelivery,
+                tipo: del.delivery.tipo_orden || 'DELIVERY',
+                cliente: del.delivery.cliente,
+                insumos: del.insumos
+            }
+            this.Utiles.imprimirComanda(orden)
         },
 
         marcarInsumosEntregados(mesa){

@@ -740,15 +740,15 @@ function obtenerInsumosPorNombre($insumo, $ajustarStockVenta = false)
 function actualizarInformacionLocal($datos)
 {
     $bd = conectarBaseDatos();
-    $sentencia = $bd->prepare("UPDATE informacion_negocio SET nombre = ?, telefono = ?, numeroMesas = ?, logo = ?, direccion = ?, nit_emisor = ?, razon_social = ?, actividad = ?, ciudad = ?, num_autorizacion = ?, fecha_limite_emision = ?");
-    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
+    $sentencia = $bd->prepare("UPDATE informacion_negocio SET nombre = ?, telefono = ?, numeroMesas = ?, logo = ?, direccion = ?, nit_emisor = ?, razon_social = ?, actividad = ?, ciudad = ?, num_autorizacion = ?, fecha_limite_emision = ?, usa_pantalla_parrilla = ?, usa_pantalla_cocina = ?");
+    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null, $datos->usa_pantalla_parrilla ?? 1, $datos->usa_pantalla_cocina ?? 1]);
 }
 
 function registrarInformacionLocal($datos)
 {
     $bd = conectarBaseDatos();
-    $sentencia = $bd->prepare("INSERT INTO informacion_negocio (nombre, telefono, numeroMesas, logo, direccion, nit_emisor, razon_social, actividad, ciudad, num_autorizacion, fecha_limite_emision) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null]);
+    $sentencia = $bd->prepare("INSERT INTO informacion_negocio (nombre, telefono, numeroMesas, logo, direccion, nit_emisor, razon_social, actividad, ciudad, num_autorizacion, fecha_limite_emision, usa_pantalla_parrilla, usa_pantalla_cocina) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    return $sentencia->execute([$datos->nombre, $datos->telefono, $datos->numeroMesas, $datos->logo, $datos->direccion ?? '', $datos->nit_emisor ?? null, $datos->razon_social ?? null, $datos->actividad ?? null, $datos->ciudad ?? null, $datos->num_autorizacion ?? null, $datos->fecha_limite_emision ?? null, $datos->usa_pantalla_parrilla ?? 1, $datos->usa_pantalla_cocina ?? 1]);
 }
 
 function obtenerInformacionLocal()

@@ -201,6 +201,77 @@ const Utiles =  {
 			.join('\n');
 	},
 
+    imprimirComanda(orden) {
+        const ahora = new Date()
+        const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+        const fecha = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        
+        let encabezadoTipo = ''
+        if (orden.tipo === 'LOCAL') encabezadoTipo = `&#x1F4CB; MESA ${orden.id}`
+        else if (orden.tipo === 'LLEVAR') encabezadoTipo = `&#x1F6B6; PARA LLEVAR #${orden.id}`
+        else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
+
+        const esc = (t) => String(t || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+        
+        const itemsHtml = orden.insumos.map(ins => {
+            const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d">[LISTO]</span>' : ''
+            let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
+            if (ins.caracteristicas && ins.caracteristicas.trim()) {
+                html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-weight:bold; font-size:16px; margin-bottom:4px;">&iexcl;OJO! ${esc(ins.caracteristicas)}</div>`
+            }
+            if (ins.resumenCombo && ins.resumenCombo.trim()) {
+                html += `<div class="carac" style="white-space:pre-line;border-left:3px solid #000;padding-left:8px;margin-top:3px;font-weight:bold;font-size:16px;background:#f9f9f9;">${esc(this.formatearResumenCombo(ins.resumenCombo))}</div>`
+            }
+            return html
+        }).join('')
+
+        const ventana = window.open('', '_blank', 'width=420,height=640')
+        if (!ventana) {
+            alert('El navegador bloqueó la ventana. Permití las ventanas emergentes.')
+            return
+        }
+        ventana.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Comanda</title>
+    <style>
+    @page { size: 80mm auto; margin: 3mm 2mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 76mm; }
+    h2 { text-align: center; font-size: 17px; letter-spacing: 2px; margin-bottom: 3px; }
+    .linea { border-top: 1px dashed #000; margin: 6px 0; }
+    .tipo { text-align: center; font-size: 20px; font-weight: bold; margin: 5px 0 3px; }
+    .cliente { text-align: center; font-size: 12px; margin-bottom: 2px; }
+    .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 4px; }
+    .item { font-size: 15px; margin: 5px 0 2px; }
+    .cant { font-weight: bold; }
+    .carac { font-size: 12px; margin-left: 24px; font-style: italic; margin-bottom: 3px; color: #333; }
+    .carac-instruccion { text-transform: uppercase; }
+    .pie { text-align: center; font-size: 11px; margin-top: 8px; color: #777; }
+    </style>
+</head>
+<body>
+    <h2>--- COCINA ---</h2>
+    <div class="linea"></div>
+    <div class="tipo">${encabezadoTipo}</div>
+    ${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}
+    <div class="meta">${fecha} &bull; ${hora}</div>
+    <div class="linea"></div>
+    ${itemsHtml}
+    <div class="linea"></div>
+    <div class="pie">Impreso a las ${hora}</div>
+</body>
+</html>`)
+        ventana.document.close()
+        ventana.focus()
+        setTimeout(() => { ventana.print() }, 300)
+    },
+
+
 }
 
 export default Utiles

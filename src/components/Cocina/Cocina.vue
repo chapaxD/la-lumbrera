@@ -76,26 +76,26 @@
                     <!-- Ítems de la orden -->
                     <div class="card-content p-3">
                         <div v-for="insumo in orden.insumos" :key="insumo._originalIndex" class="box p-3 mb-2" :class="{
-                            'has-background-danger-light': (insumo.categoria || '').toLowerCase() !== 'carnes' ? insumo.estado === 'pendiente' : insumo.acompanamiento_listo === 0,
-                            'has-background-success-light': (insumo.categoria || '').toLowerCase() !== 'carnes' ? insumo.estado === 'listo' : insumo.acompanamiento_listo === 1,
-                            'has-background-info-light': (insumo.categoria || '').toLowerCase() === 'carnes' && insumo.acompanamiento_listo === 0
+                            'has-background-danger-light': ((insumo.categoria || '').toLowerCase() !== 'carnes' || !usaParrilla) ? insumo.estado === 'pendiente' : insumo.acompanamiento_listo === 0,
+                            'has-background-success-light': ((insumo.categoria || '').toLowerCase() !== 'carnes' || !usaParrilla) ? insumo.estado === 'listo' : insumo.acompanamiento_listo === 1,
+                            'has-background-info-light': (insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla && insumo.acompanamiento_listo === 0
                         }">
                             <div
                                 style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
-                                <b-icon :icon="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'check-circle' : 'clock-alert-outline'"
-                                    :type="((insumo.categoria || '').toLowerCase() === 'carnes' ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'is-success' : (insumo.categoria || '').toLowerCase() === 'carnes' ? 'is-info' : 'is-danger'"
+                                <b-icon :icon="(((insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla) ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'check-circle' : 'clock-alert-outline'"
+                                    :type="(((insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla) ? insumo.acompanamiento_listo === 1 : insumo.estado === 'listo') ? 'is-success' : ((insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla) ? 'is-info' : 'is-danger'"
                                     style="flex-shrink:0;">
                                 </b-icon>
                                 <span class="has-text-weight-bold is-size-5"
                                     style="flex:1; min-width:0; word-break:break-word;">
                                     {{ insumo.cantidad }}x {{ insumo.nombre }}
-                                    <b-tag v-if="(insumo.categoria || '').toLowerCase() === 'carnes'" type="is-info"
+                                    <b-tag v-if="(insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla" type="is-info"
                                         size="is-small" class="ml-1" rounded>
                                         ACOMPAÑAMIENTO / PARRILLA
                                     </b-tag>
                                 </span>
                                 <div style="flex-shrink:0; margin-left:4px;">
-                                    <template v-if="(insumo.categoria || '').toLowerCase() === 'carnes'">
+                                    <template v-if="(insumo.categoria || '').toLowerCase() === 'carnes' && usaParrilla">
                                         <b-button v-if="insumo.acompanamiento_listo === 0" type="is-success" size="is-small"
                                             icon-left="check" :loading="insumo.cargando"
                                             @click="marcarListo(orden, insumo)">
@@ -208,10 +208,12 @@ export default {
             nombreInsumo: '',
             tipo: 'FALTANTE',
             nota: ''
-        }
+        },
+        usaParrilla: true
     }),
 
     mounted() {
+        this.obtenerConfiguracion()
         this.cargarOrdenes()
         this.intervaloPolling = setInterval(() => {
             this.ahora = Date.now()
@@ -226,6 +228,17 @@ export default {
     },
 
     methods: {
+        async obtenerConfiguracion() {
+            try {
+                const config = await HttpService.obtener('obtener_datos_local.php')
+                if (config) {
+                    this.usaParrilla = parseInt(config.usa_pantalla_parrilla) !== 0
+                }
+            } catch (e) {
+                console.error("Error al obtener config", e)
+            }
+        },
+
         async cargarOrdenes() {
             try {
                 const [mesas, deliveries] = await Promise.all([
@@ -333,7 +346,7 @@ export default {
             insumo.cargando = true
             // Pausar polling para evitar que revierta el cambio visual
             clearInterval(this.intervaloPolling)
-            const esCarnes = (insumo.categoria || '').toLowerCase() === 'carnes'
+            const esCarnes = (insumo.categoria || '').toLowerCase() === 'carnes' && this.usaParrilla
             const ok = await HttpService.registrar({
                 tipo: orden.tipo,
                 id: orden.id,
@@ -345,10 +358,10 @@ export default {
                 else insumo.estado = 'listo'
                 
                 orden.pendientes = orden.insumos.filter(i => 
-                    (i.categoria || '').toLowerCase() === 'carnes' ? i.acompanamiento_listo === 0 : i.estado === 'pendiente'
+                    ((i.categoria || '').toLowerCase() === 'carnes' && this.usaParrilla) ? i.acompanamiento_listo === 0 : i.estado === 'pendiente'
                 ).length
                 orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => 
-                    (i.categoria || '').toLowerCase() === 'carnes' ? i.acompanamiento_listo === 1 : i.estado === 'listo'
+                    ((i.categoria || '').toLowerCase() === 'carnes' && this.usaParrilla) ? i.acompanamiento_listo === 1 : i.estado === 'listo'
                 )
             }
             insumo.cargando = false
@@ -415,73 +428,7 @@ export default {
         },
 
         imprimirComanda(orden) {
-            const ahora = new Date()
-            const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
-            const fecha = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            const espera = this.minutosEspera(orden.horaInicio)
-
-            let encabezadoTipo = ''
-            if (orden.tipo === 'LOCAL') encabezadoTipo = `&#x1F4CB; MESA ${orden.id}`
-            else if (orden.tipo === 'LLEVAR') encabezadoTipo = `&#x1F6B6; PARA LLEVAR #${orden.id}`
-            else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
-
-            const esc = (t) => String(t || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-            const itemsHtml = orden.insumos.map(ins => {
-                const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d">[LISTO]</span>' : ''
-                let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
-                if (ins.caracteristicas && ins.caracteristicas.trim()) {
-                    html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-weight:bold; font-size:16px; margin-bottom:4px;">&iexcl;OJO! ${esc(ins.caracteristicas)}</div>`
-                }
-                if (ins.resumenCombo && ins.resumenCombo.trim()) {
-                    html += `<div class="carac" style="white-space:pre-line;border-left:3px solid #000;padding-left:8px;margin-top:3px;font-weight:bold;font-size:16px;background:#f9f9f9;">${esc(this.Utiles.formatearResumenCombo(ins.resumenCombo))}</div>`
-                }
-                return html
-            }).join('')
-
-            const ventana = window.open('', '_blank', 'width=420,height=640')
-            if (!ventana) {
-                this.$buefy.toast.open({ message: 'El navegador bloqueó la ventana. Permití las ventanas emergentes.', type: 'is-warning', duration: 5000 })
-                return
-            }
-            ventana.document.write(`<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Comanda</title>
-  <style>
-    @page { size: 80mm auto; margin: 3mm 2mm; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 76mm; }
-    h2 { text-align: center; font-size: 17px; letter-spacing: 2px; margin-bottom: 3px; }
-    .linea { border-top: 1px dashed #000; margin: 6px 0; }
-    .tipo { text-align: center; font-size: 20px; font-weight: bold; margin: 5px 0 3px; }
-    .cliente { text-align: center; font-size: 12px; margin-bottom: 2px; }
-    .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 4px; }
-    .item { font-size: 15px; margin: 5px 0 2px; }
-    .cant { font-weight: bold; }
-    .carac { font-size: 12px; margin-left: 24px; font-style: italic; margin-bottom: 3px; color: #333; }
-    .carac-instruccion { text-transform: uppercase; }
-    .pie { text-align: center; font-size: 11px; margin-top: 8px; color: #777; }
-  </style>
-</head>
-<body>
-  <h2>--- COCINA ---</h2>
-  <div class="linea"></div>
-  <div class="tipo">${encabezadoTipo}</div>
-  ${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}
-  <div class="meta">${fecha} &bull; ${hora}${espera > 0 ? ` &bull; Espera: ${espera} min` : ''}</div>
-  <div class="linea"></div>
-  ${itemsHtml}
-  <div class="linea"></div>
-  <div class="pie">Impreso a las ${hora}</div>
-</body>
-</html>`)
-            ventana.document.close()
-            ventana.focus()
-            setTimeout(() => { ventana.print() }, 300)
+            this.Utiles.imprimirComanda(orden)
         },
 
         async enviarReporte() {

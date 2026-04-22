@@ -802,7 +802,17 @@ export default {
                 return
             }
             const totalACobrar = insumosACobrar.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0)
-            const pendientes = insumosACobrar.filter(i => i.estado === 'pendiente')
+            const pendientes = insumosACobrar.filter(i => {
+                const esCarnes = (i.categoria || '').toLowerCase() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+
+                // Si la parrilla está activa, las carnes se bloquean si no tienen acompañamiento listo
+                if (esCarnes && usaParrilla) return i.acompanamiento_listo === 0
+                
+                // En cualquier otro caso (item normal, o carne con parrilla apagada), solo bloquea si cocina está activa
+                return usaCocina && i.estado === 'pendiente'
+            })
             const abrirCobro = () => {
                 this.elementoCobro = mesa
                 this.tipoCobro = 'LOCAL'
@@ -837,7 +847,14 @@ export default {
                 return
             }
             const totalACobrar = insumosACobrar.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0)
-            const pendientes = insumosACobrar.filter(i => i.estado === 'pendiente')
+            const pendientes = insumosACobrar.filter(i => {
+                const esCarnes = (i.categoria || '').toLowerCase() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+
+                if (esCarnes && usaParrilla) return i.acompanamiento_listo === 0
+                return usaCocina && i.estado === 'pendiente'
+            })
             const abrirCobro = () => {
                 this.elementoCobro = del
                 this.tipoCobro = del.delivery.tipo_orden || 'DELIVERY'

@@ -239,10 +239,16 @@ const Utiles = {
     <meta charset="UTF-8">
     <title>Comanda</title>
     <style>
-    @page { size: 80mm auto; margin: 3mm 2mm; }
+    @page { size: 80mm auto; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; font-size: 13px; width: 76mm; }
-    h2 { text-align: center; font-size: 17px; letter-spacing: 2px; margin-bottom: 3px; }
+    body { 
+      font-family: 'Courier New', Courier, monospace; 
+      font-size: 12px; 
+      width: 72mm; 
+      margin: 0 auto;
+      padding: 4mm 2mm;
+    }
+    h2 { text-align: center; font-size: 16px; letter-spacing: 2px; margin-bottom: 3px; }
     .linea { border-top: 1px dashed #000; margin: 6px 0; }
     .tipo { text-align: center; font-size: 20px; font-weight: bold; margin: 5px 0 3px; }
     .cliente { text-align: center; font-size: 12px; margin-bottom: 2px; }

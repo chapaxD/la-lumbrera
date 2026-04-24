@@ -97,15 +97,20 @@ export default {
     cssText: `
       @page {
         size: 80mm auto;
-        margin: 3mm 2mm;
+        margin: 0;
       }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { 
         margin: 0; 
         padding: 0; 
         font-family: 'Courier New', Courier, monospace; 
-        font-size: 13px; 
-        width: 76mm; 
+        font-size: 12px; 
+        width: 72mm; 
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 2mm;
+        padding-right: 2mm;
+        padding-top: 4mm;
         -webkit-print-color-adjust: exact;
       }
       #comprobante {

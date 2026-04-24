@@ -1,7 +1,7 @@
 <template>
   <section style="display:none">
     <div id="comprobante">
-      <!-- <div class="header-nota">--- NOTA DE VENTA ---</div> -->
+      <div v-if="venta.metodoPago === 'PRE-CUENTA'" class="header-nota">--- DETALLE DE PEDIDO ---</div>
       <h2>{{ datosLocal.nombre }}</h2>
       <div v-if="venta.mesa" class="num-mesa">MESA #{{ venta.mesa }}</div>
 

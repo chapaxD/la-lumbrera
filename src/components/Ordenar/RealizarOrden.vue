@@ -128,8 +128,11 @@
                           <b>Mesa {{ mesa.mesa.reserva.estado === 'PENDIENTE' ? 'en espera de confirmación' : 'confirmada' }}</b> — solo puede abrirse desde <b>Gestión de Reservas</b>
                         </div>
                         <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="mesa.mesa.estado === 'ocupada' && puedeAccederOrden(mesa.mesa.idUsuario)">
-                            <p class="control">
+                            <p class="control" v-if="rol !== 'mesero'">
                                 <b-button type="is-success" icon-left="cash" @click="cobrar(mesa)">Cobrar</b-button>
+                            </p>
+                            <p class="control">
+                                <b-button type="is-info" icon-left="printer" is-light @click="imprimirPrecuenta(mesa, 'LOCAL')" title="Imprimir detalle para el cliente">Detalle</b-button>
                             </p>
                             <p class="control">
                                 <b-button type="is-info" icon-left="plus" @click="ocuparMesa(mesa)">Agregar</b-button>
@@ -229,8 +232,11 @@
                     <div class="has-text-centered">
                         <template v-if="del.delivery.estado_orden !== 'pagada'">
                             <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                <p class="control">
+                                <p class="control" v-if="rol !== 'mesero'">
                                     <b-button type="is-success" icon-left="cash" @click="cobrarDelivery(del)">Cobrar</b-button>
+                                </p>
+                                <p class="control">
+                                    <b-button type="is-info" icon-left="printer" is-light @click="imprimirPrecuenta(del, del.delivery.tipo_orden || 'DELIVERY')" title="Imprimir detalle para el cliente">Detalle</b-button>
                                 </p>
                                 <p class="control">
                                     <b-button type="is-info" icon-left="plus" @click="editarDelivery(del)">Agregar</b-button>
@@ -317,8 +323,11 @@
                     <div class="has-text-centered">
                         <template v-if="del.delivery.estado_orden !== 'pagada'">
                             <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                <p class="control">
+                                <p class="control" v-if="rol !== 'mesero'">
                                     <b-button type="is-success" icon-left="cash" @click="cobrarDelivery(del)">Cobrar</b-button>
+                                </p>
+                                <p class="control">
+                                    <b-button type="is-info" icon-left="printer" is-light @click="imprimirPrecuenta(del, 'LLEVAR')" title="Imprimir detalle para el cliente">Detalle</b-button>
                                 </p>
                                 <p class="control">
                                     <b-button type="is-info" icon-left="plus" @click="editarParaLlevar(del)">Agregar</b-button>
@@ -710,11 +719,24 @@ export default {
                 montoEfectivo: venta.montoEfectivo || 0,
                 montoTarjeta: venta.montoTarjeta || 0,
                 montoQR: venta.montoQR || 0,
-                mesa: parseInt(venta.idMesa) > 0 ? parseInt(venta.idMesa) : null,
+                mesa: (venta.idMesa && parseInt(venta.idMesa) > 0) ? String(venta.idMesa) : null,
             }
 
             this.insumosSeleccionados = venta.insumos
             this.mostrarTicket = true
+        },
+
+        imprimirPrecuenta(elemento, tipo) {
+            const esMesa = tipo === 'LOCAL';
+            const datosVenta = {
+                atendio: esMesa ? elemento.mesa.atiende : elemento.delivery.atiende,
+                cliente: esMesa ? (elemento.mesa.cliente || 'S/N') : (elemento.delivery.cliente || 'S/N'),
+                idMesa: esMesa ? elemento.mesa.idMesa : (tipo === 'LLEVAR' ? 'PARA LLEVAR' : 'DELIVERY'),
+                total: parseFloat(esMesa ? elemento.mesa.total : elemento.delivery.total) || 0,
+                insumos: elemento.insumos,
+                metodoPago: 'PRE-CUENTA'
+            };
+            this.imprimirComprobante(datosVenta);
         },
 
         imprimirComandaMesa(mesa) {

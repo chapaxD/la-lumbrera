@@ -2,8 +2,8 @@
 // JWT nativo con PHP puro — no requiere librerías externas
 
 // Cambia esta clave por una cadena larga, aleatoria y secreta
-define('JWT_SECRET', 'B0tan3r0_Ventas_S3cr3t_K3y_2026!');
-define('JWT_EXPIRATION', 43200); // 12 horas en segundos
+define('JWT_SECRET', 'B0tan3r0_V3nt4s_S3cr3t_K3y_2026!');
+define('JWT_EXPIRATION', 21600); // 6 horas en segundos
 
 function base64url_encode($data) {
     return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');

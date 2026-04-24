@@ -99,42 +99,46 @@ export default {
         size: 80mm auto;
         margin: 3mm 2mm;
       }
-      * { box-sizing: border-box; }
-      body { margin: 0; padding: 0; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { 
+        margin: 0; 
+        padding: 0; 
+        font-family: 'Courier New', Courier, monospace; 
+        font-size: 13px; 
+        width: 76mm; 
+        -webkit-print-color-adjust: exact;
+      }
       #comprobante {
-        width: 72mm;
-        margin: 0 auto;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 12px;
+        width: 100%;
         text-align: center;
       }
-      h2 { font-size: 15px; font-weight: bold; margin: 2px 0; }
-      .header-nota { font-size: 14px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 3px; padding-bottom: 2px; }
-      .num-mesa { font-size: 22px; font-weight: bold; margin: 4px 0; }
-      .info { font-size: 11px; margin: 1px 0; }
-      .separador { border-top: 1px dashed #000; margin: 4px 0; }
-      .datos-venta { text-align: left; font-size: 11px; line-height: 1.5; }
-      table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 2px 0; }
-      th { border-bottom: 1px solid #000; padding: 2px 3px; text-align: left; }
-      td { padding: 2px 3px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; }
-      .col-cant { text-align: center; width: 10mm; }
-      .col-sub  { text-align: right;  width: 16mm; }
+      h2 { font-size: 17px; font-weight: bold; margin: 3px 0; letter-spacing: 1px; }
+      .header-nota { font-size: 15px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 5px; padding-bottom: 2px; }
+      .num-mesa { font-size: 22px; font-weight: bold; margin: 5px 0; }
+      .info { font-size: 12px; margin: 2px 0; }
+      .separador { border-top: 1px dashed #000; margin: 6px 0; }
+      .datos-venta { text-align: left; font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0; table-layout: fixed; }
+      th { border-bottom: 1px solid #000; padding: 3px 2px; text-align: left; font-weight: bold; }
+      td { padding: 4px 2px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; word-wrap: break-word; }
+      .col-cant { text-align: center; width: 12mm; }
+      .col-sub  { text-align: right;  width: 20mm; }
       .carac-combo {
         font-size: 12px;
         font-weight: bold;
         text-transform: none;
-        margin-top: 1px;
+        margin-top: 2px;
         white-space: pre-line;
-        border-left: 1px solid #000;
-        padding-left: 4px;
+        border-left: 2px solid #000;
+        padding-left: 5px;
         font-style: italic;
       }
-      .totales { text-align: left; font-size: 12px; line-height: 1.7; }
-      .fila-total { display: flex; justify-content: space-between; padding: 0; }
+      .totales { text-align: left; font-size: 13px; line-height: 1.6; margin-top: 6px; }
+      .fila-total { display: flex; justify-content: space-between; padding: 1px 0; }
       .fila-total.grande {
-        font-size: 14px; font-weight: bold;
+        font-size: 16px; font-weight: bold;
         border-top: 1px solid #000; border-bottom: 1px solid #000;
-        padding: 2px 0; margin: 2px 0;
+        padding: 4px 0; margin: 4px 0;
       }
     `,
   }),

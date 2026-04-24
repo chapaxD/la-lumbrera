@@ -118,11 +118,11 @@ export default {
       .info { font-size: 12px; margin: 2px 0; }
       .separador { border-top: 1px dashed #000; margin: 6px 0; }
       .datos-venta { text-align: left; font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
-      table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0; table-layout: fixed; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0; }
       th { border-bottom: 1px solid #000; padding: 3px 2px; text-align: left; font-weight: bold; }
       td { padding: 4px 2px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; word-wrap: break-word; }
-      .col-cant { text-align: center; width: 12mm; }
-      .col-sub  { text-align: right;  width: 20mm; }
+      .col-cant { text-align: center; width: 10mm; }
+      .col-sub  { text-align: right;  width: 25mm; }
       .carac-combo {
         font-size: 12px;
         font-weight: bold;

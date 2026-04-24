@@ -256,7 +256,7 @@ const Utiles = {
     </style>
 </head>
 <body>
-    <h2>--- COCINA ---</h2>
+    <h2>--- COMANDA ---</h2>
     <div class="linea"></div>
     <div class="tipo">${encabezadoTipo}</div>
     ${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}

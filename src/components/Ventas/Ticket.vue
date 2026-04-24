@@ -80,7 +80,6 @@
 </template>
 
 <script>
-import Printd from "printd";
 import Utiles from "../../Servicios/Utiles";
 
 export default {
@@ -141,17 +140,40 @@ export default {
   }),
 
   mounted() {
-    this.d = new Printd();
     this.imprimir();
   },
 
   methods: {
     imprimir() {
       const zona = document.getElementById("comprobante");
+      if (!zona) return;
+      const html = zona.innerHTML;
+      const ventana = window.open('', '_blank', 'width=420,height=640');
+      if (!ventana) {
+          alert('El navegador bloqueó la ventana emergente. Por favor, actívalas para poder imprimir.');
+          this.$emit("impreso", false);
+          return;
+      }
+      ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Ticket</title>
+            <style>${this.cssText}</style>
+          </head>
+          <body>
+            ${html}
+          </body>
+        </html>
+      `);
+      ventana.document.close();
+      ventana.focus();
       setTimeout(() => {
-        this.d.print(zona, [this.cssText]);
+        ventana.print();
+        ventana.close();
         this.$emit("impreso", false);
-      }, 50);
+      }, 500);
     },
     formatNum(n) {
       return Math.round(parseFloat(n || 0));

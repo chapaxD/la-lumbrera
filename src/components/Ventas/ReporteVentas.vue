@@ -59,7 +59,7 @@
       <div class="column">
         <div class="notification is-primary is-light py-4 has-text-centered">
           <p class="heading">Total recaudado</p>
-          <p class="title is-3 has-text-primary-dark">${{ totalVentas }}</p>
+          <p class="title is-3 has-text-primary-dark">{{ Utiles.formatearDinero(totalVentas) }}</p>
         </div>
       </div>
       <div class="column">
@@ -121,15 +121,15 @@
         </b-table-column>
 
         <b-table-column field="pagado" label="Pago" numeric v-slot="props">
-          ${{ props.row.pagado }}
+          {{ Utiles.formatearDinero(props.row.pagado) }}
         </b-table-column>
 
         <b-table-column field="cambio" label="Cambio" numeric sortable v-slot="props">
-          ${{ (props.row.pagado - props.row.total).toFixed(2) }}
+          {{ Utiles.formatearDinero(props.row.pagado - props.row.total) }}
         </b-table-column>
 
         <b-table-column field="total" label="Total" numeric sortable v-slot="props">
-          <strong>${{ props.row.total }}</strong>
+          <strong>{{ Utiles.formatearDinero(props.row.total) }}</strong>
         </b-table-column>
 
         <b-table-column label="Acciones" v-slot="props">
@@ -147,9 +147,9 @@
             <b-table-column field="codigo" label="Código" v-slot="p">{{ p.row.codigo }}</b-table-column>
             <b-table-column field="nombre" label="Producto" v-slot="p">{{ p.row.nombre }}</b-table-column>
             <b-table-column field="cantidad" label="Cant." numeric v-slot="p">{{ p.row.cantidad }}</b-table-column>
-            <b-table-column field="precio" label="Precio unit." numeric v-slot="p">${{ p.row.precio }}</b-table-column>
+            <b-table-column field="precio" label="Precio unit." numeric v-slot="p">{{ Utiles.formatearDinero(p.row.precio) }}</b-table-column>
             <b-table-column field="subtotal" label="Subtotal" numeric v-slot="p">
-              <strong>${{ (p.row.cantidad * p.row.precio).toFixed(2) }}</strong>
+              <strong>{{ Utiles.formatearDinero(p.row.cantidad * p.row.precio) }}</strong>
             </b-table-column>
           </b-table>
           <div v-if="props.row.tipo_orden === 'DELIVERY'" class="mt-2 is-size-7 has-text-grey">
@@ -184,7 +184,7 @@
               {{ props.row.totalVendidos }}
             </b-table-column>
             <b-table-column field="totalDinero" label="Recaudado" numeric v-slot="props">
-              <strong>${{ props.row.totalDinero }}</strong>
+              <strong>{{ Utiles.formatearDinero(props.row.totalDinero) }}</strong>
             </b-table-column>
           </b-table>
         </div>
@@ -205,16 +205,8 @@ export default {
   name: "ReporteVentas",
   components: { Ticket },
 
-  computed: {
-    ventasLocales() {
-      return this.ventas.filter(v => v.tipo_orden !== 'DELIVERY').length
-    },
-    ventasDelivery() {
-      return this.ventas.filter(v => v.tipo_orden === 'DELIVERY').length
-    },
-  },
-
   data: () => ({
+    Utiles,
     usuarios: [],
     filtrar: false,
     datos: {},
@@ -270,9 +262,9 @@ export default {
         v.atendio,
         v.cliente || "-",
         v.metodoPago || "EFECTIVO",
-        "$" + v.total
+        Utiles.formatearDinero(v.total)
       ]);
-      ReportesPdfService.generar("Reporte Resumido de Ventas", columnas, filas, "Total Acumulado Generado: $" + this.totalVentas);
+      ReportesPdfService.generar("Reporte Resumido de Ventas", columnas, filas, "Total Acumulado Generado: " + Utiles.formatearDinero(this.totalVentas));
     },
 
     onImpreso(resultado) {

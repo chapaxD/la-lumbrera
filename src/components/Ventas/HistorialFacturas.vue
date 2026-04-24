@@ -85,13 +85,13 @@
       <div class="column">
         <div class="box has-text-centered py-3">
           <p class="heading">Monto total acumulado</p>
-          <p class="title is-4 has-text-success">Bs {{ formatNum(totalFacturado) }}</p>
+          <p class="title is-4 has-text-success">Bs. {{ formatNum(totalFacturado) }}</p>
         </div>
       </div>
       <div class="column">
         <div class="box has-text-centered py-3">
           <p class="heading">Impuesto estimado (13%)</p>
-          <p class="title is-4 has-text-info">Bs {{ formatNum(totalIVA) }}</p>
+          <p class="title is-4 has-text-info">Bs. {{ formatNum(totalIVA) }}</p>
         </div>
       </div>
       <div class="column">
@@ -156,14 +156,14 @@
                       sortable
                       numeric
                       v-slot="props">
-        <strong>Bs {{ formatNum(props.row.total) }}</strong>
+        <strong>Bs. {{ formatNum(props.row.total) }}</strong>
       </b-table-column>
 
       <b-table-column field="iva"
                       label="IVA 13% (Bs)"
                       numeric
                       v-slot="props">
-        <span class="has-text-grey">Bs {{ formatNum(props.row.iva) }}</span>
+        <span class="has-text-grey">Bs. {{ formatNum(props.row.iva) }}</span>
       </b-table-column>
 
       <b-table-column field="usuarioNombre"
@@ -347,7 +347,7 @@ export default {
       const horaDisplay = `${pad(dt.getHours())}:${pad(dt.getMinutes())}`
 
       const esc = str => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      const fmt = n => parseFloat(n || 0).toFixed(2)
+      const fmt = n => Math.round(parseFloat(n || 0))
 
       const filas = (f.items || []).map(i => `
         <tr>
@@ -435,7 +435,7 @@ export default {
       ${parseFloat(f.descuentos) > 0 ? `<div class="fila-total"><span>Descuento:</span><span>-${fmt(f.descuentos)}</span></div>` : ''}
       <div class="fila-total total-grande">
         <span>TOTAL:</span>
-        <span>Bs ${fmt(f.total)}</span>
+        <span>Bs. ${fmt(f.total)}</span>
       </div>
       <div class="fila-total" style="border-top: 1px dashed #000; margin-top: 2mm; padding-top: 1mm;">
         <span>MÉTODO DE PAGO:</span>
@@ -458,7 +458,7 @@ export default {
     },
 
     formatNum(n) {
-      return parseFloat(n || 0).toFixed(2)
+      return Math.round(parseFloat(n || 0))
     },
 
     formatFecha(str) {

@@ -21,7 +21,7 @@
                 <b-icon icon="fire"></b-icon>
                 <span>&nbsp;Pantalla Parrilla</span>
             </b-navbar-item>
-            <b-navbar-item v-if="rol === 'parrillero' && parseInt(datosLocal.usa_pantalla_parrilla) !== 0" tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }">
+            <b-navbar-item v-if="rol === 'parrillero'" tag="router-link" :to="{ path: '/registrar-despiece-parrilla' }">
                 <b-icon icon="clipboard-text-outline"></b-icon>
                 <span>&nbsp;Registrar despiece</span>
             </b-navbar-item>
@@ -38,12 +38,12 @@
                     <b-icon icon="silverware-fork-knife" size="is-small"></b-icon>
                     <span>&nbsp;Cocina</span>
                 </b-navbar-item>
-                <b-navbar-dropdown collapsible v-model="ddParrilla" v-if="rol === 'admin' && parseInt(datosLocal.usa_pantalla_parrilla) !== 0">
+                <b-navbar-dropdown collapsible v-model="ddParrilla" v-if="rol === 'admin'">
                     <template #label>
                         <b-icon icon="fire" size="is-small"></b-icon>
                         &nbsp;Registro parrilla
                     </template>
-                    <b-navbar-item tag="router-link" :to="{ path: '/parrilla' }" @click.native="ddParrilla = false">
+                    <b-navbar-item v-if="parseInt(datosLocal.usa_pantalla_parrilla) !== 0" tag="router-link" :to="{ path: '/parrilla' }" @click.native="ddParrilla = false">
                         <b-icon icon="grill" size="is-small"></b-icon>
                         <span>&nbsp;Pantalla parrilla</span>
                     </b-navbar-item>

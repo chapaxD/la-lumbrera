@@ -33,7 +33,7 @@
               </div>
             </td>
             <td class="col-cant">{{ insumo.cantidad }}</td>
-            <td class="col-sub">${{ formatNum(insumo.cantidad * insumo.precio) }}</td>
+            <td class="col-sub">Bs. {{ formatNum(insumo.cantidad * insumo.precio) }}</td>
           </tr>
         </tbody>
       </table>
@@ -43,16 +43,16 @@
       <div class="totales">
         <div class="fila-total grande">
           <span>TOTAL</span>
-          <span>${{ formatNum(venta.total + (venta.adelanto || 0)) }}</span>
+          <span>Bs. {{ formatNum(venta.total + (venta.adelanto || 0)) }}</span>
         </div>
         <div class="fila-total" v-if="venta.adelanto">
           <span>Adelanto aplicado</span>
-          <span>- ${{ formatNum(venta.adelanto) }}</span>
+          <span>- Bs. {{ formatNum(venta.adelanto) }}</span>
         </div>
         <div class="fila-total"
           v-if="venta.total === 0 && venta.adelanto && venta.adelanto > (venta.total + (venta.adelanto || 0))">
           <span class="has-text-success">A devolver al cliente</span>
-          <span class="has-text-success">${{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
+          <span class="has-text-success">Bs. {{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
         </div>
 
         <div class="separador"></div>
@@ -64,13 +64,13 @@
           <span style="font-weight:bold">PAGO MIXTO:</span>
         </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>Efectivo</span><span>${{ formatNum(venta.montoEfectivo) }}</span>
+          <span>Efectivo</span><span>Bs. {{ formatNum(venta.montoEfectivo) }}</span>
         </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>Tarjeta</span><span>${{ formatNum(venta.montoTarjeta) }}</span>
+          <span>Tarjeta</span><span>Bs. {{ formatNum(venta.montoTarjeta) }}</span>
         </div>
         <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>QR</span><span>${{ formatNum(venta.montoQR) }}</span>
+          <span>QR</span><span>Bs. {{ formatNum(venta.montoQR) }}</span>
         </div>
       </div>
 
@@ -154,7 +154,7 @@ export default {
       }, 50);
     },
     formatNum(n) {
-      return parseFloat(n || 0).toFixed(2);
+      return Math.round(parseFloat(n || 0));
     }
   },
 };

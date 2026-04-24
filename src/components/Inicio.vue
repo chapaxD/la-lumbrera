@@ -124,14 +124,14 @@
                     </div>
                     <b-table :data="alertasStock" :bordered="true" :striped="true">
                         <b-table-column field="codigo" label="Código" v-slot="props">{{ props.row.codigo
-                            }}</b-table-column>
+                        }}</b-table-column>
                         <b-table-column field="nombre" label="Nombre" v-slot="props">{{ props.row.nombre
-                            }}</b-table-column>
+                        }}</b-table-column>
                         <b-table-column field="stock" label="Stock actual" v-slot="props">
                             <b-tag type="is-danger" size="is-medium">{{ props.row.stock }}</b-tag>
                         </b-table-column>
                         <b-table-column field="stockMinimo" label="Stock mínimo" v-slot="props">{{ props.row.stockMinimo
-                            }}</b-table-column>
+                        }}</b-table-column>
                         <b-table-column field="acciones" label="" v-slot="props">
                             <b-button tag="router-link" :to="'/editar-insumo/' + props.row.id" type="is-primary"
                                 size="is-small" icon-left="pen">Editar y reabastecer</b-button>
@@ -351,7 +351,7 @@ export default ({
                         {
                             encabezado: "Ventas del día",
                             titulo: "Ventas hoy",
-                            total: this.resultadoCartas.totalVentasDia > 0 ? "$" + this.resultadoCartas.totalVentasDia : "$0 — ¡Vamos por esa primera venta! 💪",
+                            total: this.resultadoCartas.totalVentasDia > 0 ? "$" + this.resultadoCartas.totalVentasDia : "$0 — ¡Sin ventas aún!",
                             icono: "cart-outline",
                             colorTexto: "has-text-info",
                             ruta: "/reporte-ventas"

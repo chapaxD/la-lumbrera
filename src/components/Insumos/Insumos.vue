@@ -115,7 +115,7 @@
         </b-table-column>
 
         <b-table-column field="precio" label="Precio" sortable numeric v-slot="props">
-          <strong>${{ props.row.precio }}</strong>
+          <strong>{{ formatearDinero(props.row.precio) }}</strong>
         </b-table-column>
 
         <b-table-column field="stock" label="Stock" sortable numeric v-slot="props">
@@ -128,20 +128,20 @@
           <template v-else>
             <b-tag :type="tipoAlertaStock(props.row)">
               <b-icon icon="alert-circle" size="is-small" v-if="props.row.stock <= props.row.stockMinimo"></b-icon>
-              {{ props.row.stock }} uds.
+              {{ formatearCantidad(props.row.stock) }} uds.
             </b-tag>
-            <span class="is-size-7 has-text-grey"> mín: {{ props.row.stockMinimo }}</span>
+            <span class="is-size-7 has-text-grey"> mín: {{ formatearCantidad(props.row.stockMinimo) }}</span>
           </template>
         </b-table-column>
 
         <b-table-column field="porciones" label="Porciones / Unidades" v-slot="props">
           <template v-if="props.row.tipo === 'PLATILLO' && props.row.tipoCorte > 0">
-            <b-tag type="is-primary">{{ props.row.stock }} listas</b-tag>
+            <b-tag type="is-primary">{{ formatearCantidad(props.row.stock) }} listas</b-tag>
             <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) /
               props.row.tipoCorte) }}</strong> posibles</span>
           </template>
           <template v-else-if="props.row.tipo === 'BEBIDA' && props.row.tipoCorte > 0">
-            <b-tag type="is-info">{{ props.row.stock }} uds.</b-tag>
+            <b-tag type="is-info">{{ formatearCantidad(props.row.stock) }} uds.</b-tag>
             <span class="is-size-7">&nbsp;+&nbsp;<strong>{{ Math.floor((props.row.stockMateria * 1000) /
               props.row.tipoCorte) }}</strong> posibles</span>
           </template>
@@ -254,6 +254,7 @@
 <script>
 import HttpService from "../../Servicios/HttpService";
 import ReportesPdfService from "../../Servicios/ReportesPdfService";
+import Utiles from "../../Servicios/Utiles";
 import DatosInsumo from './DatosInsumo.vue';
 
 export default {
@@ -400,9 +401,9 @@ export default {
         ins.codigo,
         ins.nombre,
         ins.categoria || '-',
-        "$" + ins.precio,
-        ins.stock + " uds",
-        ins.stockMinimo + " uds"
+        this.formatearDinero(ins.precio),
+        this.formatearCantidad(ins.stock) + " uds",
+        this.formatearCantidad(ins.stockMinimo) + " uds"
       ]);
       let totalStockInfo = "Total Productos en Catálogo: " + this.insumos.length;
       ReportesPdfService.generar("Inventario General en Catálogo", columnas, filas, totalStockInfo);
@@ -524,6 +525,8 @@ export default {
         this.categorias = [];
       });
     },
+    formatearDinero(m) { return Utiles.formatearDinero(m) },
+    formatearCantidad(c) { return Utiles.formatearCantidad(c) }
   },
 };
 </script>

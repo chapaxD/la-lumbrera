@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="section">
     <div class="container is-fluid">
       <nav class="level">
@@ -85,7 +85,7 @@
                           centered>
             <b-tag v-if="props.row.adelanto > 0"
                    type="is-success"
-                   size="is-small">Bs. {{ parseFloat(props.row.adelanto).toFixed(2) }}</b-tag>
+                   size="is-small">Bs. {{ Math.round(props.row.adelanto) }}</b-tag>
             <span v-else class="has-text-grey-light">—</span>
           </b-table-column>
           <b-table-column field="estado"
@@ -173,7 +173,7 @@
             <p v-if="reservaASentar.telefono"><b>Teléfono:</b> {{ reservaASentar.telefono }}</p>
             <p><b>Mesa:</b> {{ reservaASentar.idMesa ? 'Mesa #' + reservaASentar.idMesa : 'Restaurante completo' }}</p>
             <p><b>Personas:</b> {{ reservaASentar.personas }}</p>
-            <p v-if="reservaASentar.adelanto > 0"><b>Adelanto:</b> <b-tag type="is-success">Bs. {{ parseFloat(reservaASentar.adelanto).toFixed(2) }}</b-tag></p>
+            <p v-if="reservaASentar.adelanto > 0"><b>Adelanto:</b> <b-tag type="is-success">Bs. {{ Math.round(reservaASentar.adelanto) }}</b-tag></p>
             <p v-if="reservaASentar.notas"><b>Notas:</b> {{ reservaASentar.notas }}</p>
           </div>
           <b-field label="Asignar mesero">
@@ -289,8 +289,8 @@
             <b-input v-model="form.adelanto"
                      type="number"
                      min="0"
-                     step="0.01"
-                     placeholder="0.00"
+                     step="1"
+                     placeholder="0"
                      icon="cash"></b-input>
           </b-field>
         </section>

@@ -38,8 +38,8 @@
                                     <div>
                                         <p class="heading">Precio</p>
                                         <p class="title is-4" style="color: var(--color-primario)">
-                                            Bs. {{ insumo.precio || '0' }}
-                                        </p>
+                                             {{ formatearDinero(insumo.precio) }}
+                                         </p>
                                     </div>
                                 </div>
                             </div>
@@ -48,8 +48,8 @@
                                     <div>
                                         <p class="heading">Stock</p>
                                         <b-tag :type="stockTagType" size="is-medium">
-                                            {{ insumo.stock || 0 }} uds
-                                        </b-tag>
+                                             {{ formatearCantidad(insumo.stock) }} uds
+                                         </b-tag>
                                     </div>
                                 </div>
                             </div>
@@ -61,11 +61,11 @@
                             <p class="is-size-7 has-text-grey">
                                 <b-icon icon="information-outline" size="is-small"></b-icon>
                                 <span v-if="insumo.tipo === 'PLATILLO'">
-                                    {{ insumo.stockMateria }} kg →
+                                    {{ formatearCantidad(insumo.stockMateria) }} kg →
                                     <strong>{{ Math.floor((insumo.stockMateria * 1000) / insumo.tipoCorte) }} porciones</strong> disponibles
                                 </span>
                                 <span v-else-if="insumo.tipo === 'BEBIDA'">
-                                    {{ insumo.stockMateria }} L →
+                                    {{ formatearCantidad(insumo.stockMateria) }} L →
                                     <strong>{{ Math.floor((insumo.stockMateria * 1000) / insumo.tipoCorte) }} unidades</strong> disponibles
                                 </span>
                             </p>
@@ -155,7 +155,7 @@
                                         <div class="media-content">
                                             <strong>{{ props.option.nombre }}</strong>
                                             <br>
-                                            <small class="has-text-grey">Cod: {{ props.option.codigo || '—' }} | Stock: {{ props.option.stock }}</small>
+                                            <small class="has-text-grey">Cod: {{ props.option.codigo || '—' }} | Stock: {{ formatearCantidad(props.option.stock) }}</small>
                                         </div>
                                     </div>
                                 </template>
@@ -270,14 +270,23 @@ export default {
                 if (val.idComboPlantilla === undefined || val.idComboPlantilla === null) this.$set(val, 'idComboPlantilla', '')
                 if (!Array.isArray(val.receta)) this.$set(val, 'receta', [])
                 
-                if (Array.isArray(val.receta) && this.insumosComponentes && this.insumosComponentes.length > 0) {
+                if (Array.isArray(val.receta)) {
                     val.receta.forEach(r => {
-                        if (r.idInsumoHijo && !r.nombreBusqueda) {
+                        if (r.idInsumoHijo && !r.nombreBusqueda && this.insumosComponentes && this.insumosComponentes.length > 0) {
                             const found = this.insumosComponentes.find(x => String(x.id) === String(r.idInsumoHijo))
                             if (found) this.$set(r, 'nombreBusqueda', found.nombre)
                         }
+                        // Limpiar decimales redundantes en la cantidad al cargar
+                        if (r.cantidad !== undefined && r.cantidad !== null) {
+                            r.cantidad = parseFloat(parseFloat(r.cantidad).toFixed(3))
+                        }
                     })
                 }
+                // Limpiar decimales en stock y materia prima
+                if (val.stock !== undefined) val.stock = parseFloat(parseFloat(val.stock).toFixed(3))
+                if (val.stockMinimo !== undefined) val.stockMinimo = parseFloat(parseFloat(val.stockMinimo).toFixed(3))
+                if (val.stockMateria !== undefined) val.stockMateria = parseFloat(parseFloat(val.stockMateria).toFixed(3))
+                if (val.tipoCorte !== undefined) val.tipoCorte = parseFloat(parseFloat(val.tipoCorte).toFixed(3))
             }
         },
         'insumo.tipo': {
@@ -420,7 +429,9 @@ export default {
             if (!Number.isFinite(idNum)) return
             const existe = this.categorias.some((cat) => parseInt(cat.id, 10) === idNum)
             if (existe) this.$set(this.insumo, 'categoria', idNum)
-        }
+        },
+        formatearDinero(m) { return Utiles.formatearDinero(m) },
+        formatearCantidad(c) { return Utiles.formatearCantidad(c) }
     }
 }
 </script>

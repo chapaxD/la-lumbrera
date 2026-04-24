@@ -92,14 +92,14 @@ class ReportesPdfService {
         // Resumen de ventas
         doc.autoTable({
             startY: y,
-            head: [['Concepto', 'Monto ($)']],
+            head: [['Concepto', 'Monto (Bs.)']],
             body: [
-                ['Fondo Inicial', Number(datos.montoApertura).toFixed(2)],
-                ['Ventas — Efectivo', Number(datos.ventasEfectivo).toFixed(2)],
-                ['Ventas — Tarjeta / Transferencia', Number(datos.ventasTarjeta).toFixed(2)],
-                ['Ventas — QR', Number(datos.ventasQR).toFixed(2)],
-                ['TOTAL VENTAS', Number(datos.ventasTotales).toFixed(2)],
-                ['Gastos / Retiros', '-' + Number(datos.gastosTotal).toFixed(2)],
+                ['Fondo Inicial', Math.round(Number(datos.montoApertura))],
+                ['Ventas — Efectivo', Math.round(Number(datos.ventasEfectivo))],
+                ['Ventas — Tarjeta / Transferencia', Math.round(Number(datos.ventasTarjeta))],
+                ['Ventas — QR', Math.round(Number(datos.ventasQR))],
+                ['TOTAL VENTAS', Math.round(Number(datos.ventasTotales))],
+                ['Gastos / Retiros', '-' + Math.round(Number(datos.gastosTotal))],
             ],
             theme: 'grid',
             headStyles: { fillColor: [41, 128, 185] },
@@ -125,9 +125,9 @@ class ReportesPdfService {
             startY: y,
             head: [['Efectivo Calculado', 'Efectivo Declarado', 'Diferencia']],
             body: [[
-                `$${esperado.toFixed(2)}`,
-                `$${declarado.toFixed(2)}`,
-                `${diferencia >= 0 ? '+' : ''}$${diferencia.toFixed(2)}`
+                `Bs. ${Math.round(esperado)}`,
+                `Bs. ${Math.round(declarado)}`,
+                `${diferencia >= 0 ? '+' : ''}Bs. ${Math.round(diferencia)}`
             ]],
             theme: 'grid',
             headStyles: { fillColor: [52, 73, 94] },
@@ -149,10 +149,10 @@ class ReportesPdfService {
             y += 2;
             doc.autoTable({
                 startY: y,
-                head: [['Concepto', 'Monto ($)', 'Hora']],
+                head: [['Concepto', 'Monto (Bs.)', 'Hora']],
                 body: datos.gastos.map(g => [
                     g.concepto,
-                    Number(g.monto).toFixed(2),
+                    Math.round(Number(g.monto)),
                     g.fecha ? g.fecha.substring(11, 16) : ''
                 ]),
                 theme: 'striped',

@@ -285,24 +285,24 @@
             <tbody>
               <tr>
                 <td>Subtotal bruto</td>
-                <td class="has-text-right">Bs {{ formatNum(totales.subtotal) }}</td>
+                <td class="has-text-right">Bs. {{ formatNum(totales.subtotal) }}</td>
               </tr>
               <tr v-if="totales.descuentos > 0">
                 <td class="has-text-danger">Descuentos</td>
-                <td class="has-text-right has-text-danger">- Bs {{ formatNum(totales.descuentos) }}</td>
+                <td class="has-text-right has-text-danger">- Bs. {{ formatNum(totales.descuentos) }}</td>
               </tr>
               <tr>
                 <td class="has-text-grey">Base Cred. Fiscal (÷1.13)</td>
-                <td class="has-text-right has-text-grey">Bs {{ formatNum(totales.baseCredito) }}</td>
+                <td class="has-text-right has-text-grey">Bs. {{ formatNum(totales.baseCredito) }}</td>
               </tr>
               <tr>
                 <td class="has-text-grey">IVA 13%</td>
-                <td class="has-text-right has-text-grey">Bs {{ formatNum(totales.iva) }}</td>
+                <td class="has-text-right has-text-grey">Bs. {{ formatNum(totales.iva) }}</td>
               </tr>
               <tr class="has-background-success-light">
                 <td><strong>TOTAL A PAGAR</strong></td>
                 <td class="has-text-right">
-                  <strong class="is-size-5">Bs {{ formatNum(totales.total) }}</strong>
+                  <strong class="is-size-5">Bs. {{ formatNum(totales.total) }}</strong>
                 </td>
               </tr>
             </tbody>
@@ -689,7 +689,7 @@ export default {
     },
 
     formatNum(n) {
-      return parseFloat(n || 0).toFixed(2)
+      return Math.round(parseFloat(n || 0))
     },
 
     async imprimirFactura() {

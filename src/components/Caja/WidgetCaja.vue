@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="card">
         <header class="card-header" style="background:var(--color-primario); box-shadow:none; border-radius:4px 4px 0 0">
             <p class="card-header-title" style="color:#fff">
@@ -13,8 +13,8 @@
         <!-- CAJA CERRADA -->
         <div v-if="!cajaAbierta" class="has-text-centered p-4 rounded" style="background-color: #fcebeb;">
             <p class="is-size-5 has-text-danger mb-4"><strong>La caja está CERRADA</strong></p>
-            <b-field label="Monto físico inicial ($)" class="mx-auto" style="max-width: 300px;">
-                <b-input type="number" v-model="montoApertura" step="0.01" min="0" required></b-input>
+            <b-field label="Monto físico inicial (Bs.)" class="mx-auto" style="max-width: 300px;">
+                <b-input type="number" v-model="montoApertura" step="1" min="0" required></b-input>
             </b-field>
             <b-button type="is-primary is-large" icon-left="lock-open" @click="abrirCaja">Iniciar Turno</b-button>
         </div>
@@ -23,28 +23,28 @@
         <div v-else class="has-text-centered p-4 rounded" style="background-color: #eefcf3;">
             <p class="is-size-5 has-text-success mb-2"><strong>La caja está ABIERTA</strong></p>
             <p class="mb-1">Iniciada el: <strong>{{ caja.fechaApertura | formatFecha }}</strong></p>
-            <p class="mb-4">Fondo inicial: <strong>${{ caja.montoApertura }}</strong></p>
+            <p class="mb-4">Fondo inicial: <strong>Bs. {{ Math.round(caja.montoApertura) }}</strong></p>
             
             <div class="columns is-mobile is-multiline mb-4">
                 <div class="column is-6">
                     <p class="is-size-7">Ventas Diarias (Total)</p>
-                    <p class="is-size-4 has-text-weight-bold has-text-primary">${{ caja.ventasAcumuladas || '0.00' }}</p>
+                    <p class="is-size-4 has-text-weight-bold has-text-primary">Bs. {{ Math.round(caja.ventasAcumuladas || 0) }}</p>
                 </div>
                 <div class="column is-6">
                     <p class="is-size-7">Ventas en Efectivo</p>
-                    <p class="is-size-4 has-text-weight-bold has-text-success">${{ caja.ventasEfectivo || '0.00' }}</p>
+                    <p class="is-size-4 has-text-weight-bold has-text-success">Bs. {{ Math.round(caja.ventasEfectivo || 0) }}</p>
                 </div>
                 <div class="column is-6">
                     <p class="is-size-7">Tarjeta / Transf.</p>
-                    <p class="is-size-4 has-text-weight-bold has-text-info">${{ caja.ventasTarjeta || '0.00' }}</p>
+                    <p class="is-size-4 has-text-weight-bold has-text-info">Bs. {{ Math.round(caja.ventasTarjeta || 0) }}</p>
                 </div>
                 <div class="column is-6">
                     <p class="is-size-7">Pago con QR</p>
-                    <p class="is-size-4 has-text-weight-bold has-text-link">${{ caja.ventasQR || '0.00' }}</p>
+                    <p class="is-size-4 has-text-weight-bold has-text-link">Bs. {{ Math.round(caja.ventasQR || 0) }}</p>
                 </div>
                 <div class="column is-12">
                     <p class="is-size-7">Gastos Totales (Retiros del día)</p>
-                    <p class="is-size-4 has-text-weight-bold has-text-danger">-${{ caja.gastosAcumulados || '0.00' }}</p>
+                    <p class="is-size-4 has-text-weight-bold has-text-danger">-Bs. {{ Math.round(caja.gastosAcumulados || 0) }}</p>
                 </div>
             </div>
             
@@ -168,13 +168,13 @@ export default {
             });
         },
         mostrarPromptCierre() {
-            let totalEsperado = parseFloat(this.caja.montoApertura) + parseFloat(this.caja.ventasEfectivo || 0) - parseFloat(this.caja.gastosAcumulados || 0);
+            let totalEsperado = Math.round(parseFloat(this.caja.montoApertura) + parseFloat(this.caja.ventasEfectivo || 0) - parseFloat(this.caja.gastosAcumulados || 0));
             
-            let message = `<p>Fondo Inicial: <b>$${this.caja.montoApertura}</b></p>
-                           <p>Ingresos a Cajón (Efectivo): <b>$${this.caja.ventasEfectivo || '0.00'}</b></p>
-                           <p>Retiros y Gastos: <b class="has-text-danger">-$${this.caja.gastosAcumulados || '0.00'}</b></p>
+            let message = `<p>Fondo Inicial: <b>Bs. ${Math.round(this.caja.montoApertura)}</b></p>
+                           <p>Ingresos a Cajón (Efectivo): <b>Bs. ${Math.round(this.caja.ventasEfectivo || 0)}</b></p>
+                           <p>Retiros y Gastos: <b class="has-text-danger">-Bs. ${Math.round(this.caja.gastosAcumulados || 0)}</b></p>
                            <hr>
-                           <p class="is-size-5">Efectivo Físico Esperado: <b>$${totalEsperado.toFixed(2)}</b></p>
+                           <p class="is-size-5">Efectivo Físico Esperado: <b>Bs. ${totalEsperado}</b></p>
                            <br>
                            <p>¿Cuánto dinero FÍSICO hay en el cajón en este momento?</p>`;
 
@@ -205,10 +205,10 @@ export default {
                     .then(resultado => {
                         this.cargando = false;
                         if(resultado && resultado.ok) {
-                            let fisico = parseFloat(value);
+                            let fisico = Math.round(parseFloat(value));
                             let diferencia = fisico - totalEsperado;
-                            let msj = `Caja Cerrada. <br>Efectivo declarado: $${fisico.toFixed(2)} <br>Efectivo calculado: $${totalEsperado.toFixed(2)} <br><br>`
-                            msj += diferencia === 0 ? "<b>¡El cuadre de efectivo es EXACTO!</b>" : `<b>Diferencia reportada: $${diferencia.toFixed(2)}</b>`
+                            let msj = `Caja Cerrada. <br>Efectivo declarado: Bs. ${fisico} <br>Efectivo calculado: Bs. ${totalEsperado} <br><br>`
+                            msj += diferencia === 0 ? "<b>¡El cuadre de efectivo es EXACTO!</b>" : `<b>Diferencia reportada: Bs. ${diferencia}</b>`
                             this.$buefy.dialog.alert({
                                 title: 'Corte Exitoso',
                                 message: msj,

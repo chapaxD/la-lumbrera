@@ -44,7 +44,7 @@
                     <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
                         <p class="title is-2 has-text-grey mb-0">Mesa #{{ mesa.mesa.idMesa }}</p>
                         <span class="title is-1 has-text-weight-bold" v-if="mesa.mesa.total && puedeAccederOrden(mesa.mesa.idUsuario)">
-                            ${{ mesa.mesa.total }}
+                            {{ Utiles.formatearDinero(mesa.mesa.total) }}
                         </span>
                     </div>
                     <p v-if="mesa.mesa.atiende">
@@ -103,11 +103,11 @@
                                     </b-table-column>
                                     
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                        {{ props.row.cantidad }} X ${{  props.row.precio }}
+                                        {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
                                     </b-table-column>                                        
                                     
                                     <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                        ${{ props.row.cantidad * props.row.precio }}
+                                        {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
                                     </b-table-column>                                                                
                                     <b-table-column field="estado" label="" v-slot="props">
                                         <b-icon icon="alert" type="is-danger" v-if="props.row.estado ==='pendiente'"></b-icon>
@@ -211,10 +211,10 @@
                                         </p>
                                     </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                        {{ props.row.cantidad }} X ${{  props.row.precio }}
+                                        {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
                                     </b-table-column>                                                                        
                                     <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                        ${{ props.row.cantidad * props.row.precio }}
+                                        {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
                                     </b-table-column>
                                     <b-table-column field="estado" label="" v-slot="props">
                                         <b-icon icon="alert" type="is-danger" v-if="props.row.estado ==='pendiente'"></b-icon>
@@ -299,10 +299,10 @@
                                         </p>
                                     </b-table-column>
                                     <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                        {{ props.row.cantidad }} X ${{ props.row.precio }}
+                                        {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
                                     </b-table-column>
                                     <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                        ${{ props.row.cantidad * props.row.precio }}
+                                        {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
                                     </b-table-column>
                                     <b-table-column field="estado" label="" v-slot="props">
                                         <b-icon icon="alert" type="is-danger" v-if="props.row.estado ==='pendiente'"></b-icon>
@@ -359,7 +359,7 @@
                 </header>
                 <section class="modal-card-body">
                     <p class="is-size-4 has-text-centered mb-4">
-                        Total a pagar: <strong>${{ totalACobrar.toFixed(2) }}</strong>
+                        Total a pagar: <strong>{{ Utiles.formatearDinero(totalACobrar) }}</strong>
                     </p>
                     
                     <b-field label="Método de pago principal">
@@ -373,26 +373,26 @@
 
                     <div v-if="pago.metodo === 'MIXTO'" class="box mt-4">
                         <p class="has-text-weight-bold mb-2">Desglose de montos:</p>
-                        <b-field label="Efectivo ($)">
+                        <b-field label="Efectivo (Bs.)">
                             <b-input type="number" step="0.01" min="0" v-model="pago.montoEfectivo"></b-input>
                         </b-field>
-                        <b-field label="Tarjeta/Transf. ($)">
+                        <b-field label="Tarjeta/Transf. (Bs.)">
                             <b-input type="number" step="0.01" min="0" v-model="pago.montoTarjeta"></b-input>
                         </b-field>
-                        <b-field label="Código QR ($)">
+                        <b-field label="Código QR (Bs.)">
                             <b-input type="number" step="0.01" min="0" v-model="pago.montoQR"></b-input>
                         </b-field>
                         <p class="is-size-6 mt-3" :class="{'has-text-danger': totalDesglose < totalACobrar, 'has-text-success': totalDesglose >= totalACobrar}">
-                            Suma total devengada: ${{ totalDesglose.toFixed(2) }} / ${{ totalACobrar.toFixed(2) }}
+                            Suma total devengada: {{ Utiles.formatearDinero(totalDesglose) }} / {{ Utiles.formatearDinero(totalACobrar) }}
                         </p>
                     </div>
 
                     <div v-else class="mt-4">
-                        <b-field label="Monto Recibido en Físico ($)">
+                        <b-field label="Monto Recibido en Físico (Bs.)">
                             <b-input type="number" step="0.01" :min="totalACobrar" v-model="pago.montoRecibido"></b-input>
                         </b-field>
                         <p v-if="cambioIndividual >= 0" class="has-text-success is-size-5 mt-2">
-                            Cambio a devolver: <b>${{ cambioIndividual.toFixed(2) }}</b>
+                            Cambio a devolver: <b>{{ Utiles.formatearDinero(cambioIndividual) }}</b>
                         </p>
                     </div>
 

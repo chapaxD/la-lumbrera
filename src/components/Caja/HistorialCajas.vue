@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="section">
     <div class="container is-fluid">
 
@@ -82,30 +82,30 @@
           </b-table-column>
 
           <b-table-column field="montoApertura" label="Fondo Inicial" sortable v-slot="props">
-            ${{ props.row.montoApertura }}
+            Bs. {{ Math.round(props.row.montoApertura) }}
           </b-table-column>
 
           <b-table-column field="ventasAcumuladas" label="Ingresos" v-slot="props">
             <div v-if="props.row.estado === 'CERRADA'">
-              <p class="is-size-7">Total Ventas: <b>${{ props.row.ventasTotales }}</b></p>
-              <p class="is-size-7 has-text-success">EFECTIVO: <b>${{ (parseFloat(props.row.ventasTotales) - parseFloat(props.row.ventasTarjeta || 0) - parseFloat(props.row.ventasQR || 0)).toFixed(2) }}</b></p>
-              <p class="is-size-7">TARJETA: <b>${{ props.row.ventasTarjeta || '0.00' }}</b></p>
-              <p class="is-size-7">QR: <b>${{ props.row.ventasQR || '0.00' }}</b></p>
+              <p class="is-size-7">Total Ventas: <b>Bs. {{ Math.round(props.row.ventasTotales) }}</b></p>
+              <p class="is-size-7 has-text-success">EFECTIVO: <b>Bs. {{ Math.round(parseFloat(props.row.ventasTotales) - parseFloat(props.row.ventasTarjeta || 0) - parseFloat(props.row.ventasQR || 0)) }}</b></p>
+              <p class="is-size-7">TARJETA: <b>Bs. {{ Math.round(props.row.ventasTarjeta || 0) }}</b></p>
+              <p class="is-size-7">QR: <b>Bs. {{ Math.round(props.row.ventasQR || 0) }}</b></p>
             </div>
             <span v-else class="has-text-grey">--</span>
           </b-table-column>
 
           <b-table-column field="gastosTotales" label="Egresos (Gastos)" sortable v-slot="props">
-             <span v-if="props.row.estado === 'CERRADA'" class="has-text-danger">-${{ props.row.gastosTotales || '0.00' }}</span>
+             <span v-if="props.row.estado === 'CERRADA'" class="has-text-danger">-Bs. {{ Math.round(props.row.gastosTotales || 0) }}</span>
              <span v-else class="has-text-grey">--</span>
           </b-table-column>
           
           <b-table-column field="diferencia" label="Cuadre" v-slot="props">
             <template v-if="props.row.estado === 'CERRADA'">
-              <p class="is-size-7">Físico Registrado: <b>${{ props.row.montoCierre }}</b></p>
+              <p class="is-size-7">Físico Registrado: <b>Bs. {{ Math.round(props.row.montoCierre) }}</b></p>
               <p class="mt-1">
                 <b-tag :type="calcularDiferencia(props.row) >= 0 ? 'is-success' : 'is-danger'">
-                    Diferencia: ${{ calcularDiferencia(props.row).toFixed(2) }}
+                    Diferencia: Bs. {{ Math.round(calcularDiferencia(props.row)) }}
                 </b-tag>
               </p>
             </template>
@@ -229,10 +229,10 @@ export default {
         "#" + c.id,
         `${this.$options.filters.formatFecha(c.fechaApertura)}\n(${c.usuarioApertura})`,
         c.estado === 'CERRADA' ? `${this.$options.filters.formatFecha(c.fechaCierre)}\n(${c.usuarioCierre})` : "AÚN ABIERTA",
-        "$" + c.montoApertura,
-        c.estado === 'CERRADA' ? "Bruto: $" + c.ventasTotales : "--",
-        c.estado === 'CERRADA' ? "-$" + c.gastosTotales : "--",
-        c.estado === 'CERRADA' ? (this.calcularDiferencia(c) === 0 ? "EXACTO: $0" : "Diferencia: $" + this.calcularDiferencia(c).toFixed(2)) : "--"
+        "Bs. " + Math.round(c.montoApertura),
+        c.estado === 'CERRADA' ? "Bruto: Bs. " + Math.round(c.ventasTotales) : "--",
+        c.estado === 'CERRADA' ? "-Bs. " + Math.round(c.gastosTotales || 0) : "--",
+        c.estado === 'CERRADA' ? (this.calcularDiferencia(c) === 0 ? "EXACTO: Bs. 0" : "Diferencia: Bs. " + Math.round(this.calcularDiferencia(c))) : "--"
       ]);
       ReportesPdfService.generar("Auditoria de Cortes de Caja (Arqueos)", columnas, filas);
     }

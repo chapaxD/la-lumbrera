@@ -395,18 +395,49 @@ export default {
 
     exportarPDF() {
       if (this.insumos.length === 0) return;
-      let columnas = ["Tipo", "Código", "Nombre", "Categoría", "Precio Unit.", "Stock", "Límite Mínimo"];
-      let filas = this.insumos.map(ins => [
-        ins.tipo,
-        ins.codigo,
-        ins.nombre,
-        ins.categoria || '-',
-        this.formatearDinero(ins.precio),
-        this.formatearCantidad(ins.stock) + " uds",
-        this.formatearCantidad(ins.stockMinimo) + " uds"
-      ]);
+
+      // Agrupar por categoría
+      const agrupados = {};
+      this.insumos.forEach(ins => {
+        const cat = ins.categoria || 'Sin Categoría';
+        if (!agrupados[cat]) agrupados[cat] = [];
+        agrupados[cat].push(ins);
+      });
+
+      // Ordenar categorías: 'Carnes' primero, luego el resto alfabéticamente
+      const categoriasOrdenadas = Object.keys(agrupados).sort((a, b) => {
+        if (a.toLowerCase() === 'carnes') return -1;
+        if (b.toLowerCase() === 'carnes') return 1;
+        return a.localeCompare(b);
+      });
+
+      let columnas = ["Tipo", "Código", "Nombre", "Precio Unit.", "Stock", "Límite Mínimo"];
+      let filas = [];
+
+      categoriasOrdenadas.forEach(cat => {
+        // Fila de encabezado de categoría (Sección)
+        filas.push([
+          {
+            content: `CATEGORÍA: ${cat.toUpperCase()}`,
+            colSpan: 6,
+            styles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [44, 62, 80] }
+          }
+        ]);
+
+        agrupados[cat].forEach(ins => {
+          filas.push([
+            ins.tipo,
+            ins.codigo,
+            ins.nombre,
+            this.formatearDinero(ins.precio),
+            this.formatearCantidad(ins.stock) + " uds",
+            this.formatearCantidad(ins.stockMinimo) + " uds"
+          ]);
+        });
+      });
+
       let totalStockInfo = "Total Productos en Catálogo: " + this.insumos.length;
-      ReportesPdfService.generar("Inventario General en Catálogo", columnas, filas, totalStockInfo);
+      ReportesPdfService.generar("Inventario de Insumos por Categoría", columnas, filas, totalStockInfo);
     },
 
     busquedaAvanzada(tipo) {

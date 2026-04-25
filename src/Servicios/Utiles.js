@@ -212,9 +212,7 @@ const Utiles = {
 			.replace(/>/g, '&gt;')
 
 		// Agrupar productos:
-		// Para Cocina enviamos TODO (para visibilidad), para Parrilla solo Carnes
-		const cocinaItems = orden.insumos
-		const parrillaItems = orden.insumos.filter(i => (i.categoria || '').toLowerCase() === 'carnes')
+		// Se envía todo en una sola sección por pedido del usuario
 
 		const generarSeccionHtml = (items, destino) => {
 			if (items.length === 0) return ''
@@ -225,16 +223,9 @@ const Utiles = {
 			else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
 
 			const itemsHtml = items.map(ins => {
-				const esCarnes = (ins.categoria || '').toLowerCase() === 'carnes'
 				const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d"></span>' : ''
 
-				// Si es Cocina y el ítem es de Parrilla (Carne), avisamos que es solo para acompañamiento
-				const avisoAcomp = (destino === 'COCINA' && esCarnes)
-					? '<div style="font-weight:bold; color:#000000; font-size:14px; margin-top:-2px; margin-bottom:4px;">*** SOLO ACOMPAÑAMIENTOS ***</div>'
-					: ''
-
 				let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
-				html += avisoAcomp
 
 				if (ins.caracteristicas && ins.caracteristicas.trim()) {
 					html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-size:14px; margin-bottom:4px;"> ${esc(ins.caracteristicas)}</div>`
@@ -266,17 +257,7 @@ const Utiles = {
 			return
 		}
 
-		let fullBodyHtml = ''
-		if (cocinaItems.length > 0) {
-			fullBodyHtml += generarSeccionHtml(cocinaItems, 'COCINA')
-		}
-		// Si hay de ambos, insertar salto de página para que la impresora corte
-		if (cocinaItems.length > 0 && parrillaItems.length > 0) {
-			fullBodyHtml += '<div style="page-break-after: always; height: 1px;"></div>'
-		}
-		if (parrillaItems.length > 0) {
-			fullBodyHtml += generarSeccionHtml(parrillaItems, 'PARRILLA')
-		}
+		let fullBodyHtml = generarSeccionHtml(orden.insumos, 'COMANDA')
 
 		ventana.document.write(`<!DOCTYPE html>
 <html lang="es">

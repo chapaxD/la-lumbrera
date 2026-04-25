@@ -272,3 +272,26 @@ function ocuparMesa($mesa)
     return true;
 }
 
+function cambiarMesa($tipoActual, $refActual, $nuevaRef)
+{
+    $bd = conectarBaseDatos();
+
+    // 1. Verificar si la mesa destino ya está ocupada
+    $stmtCheck = $bd->prepare("SELECT id FROM ordenes_activas WHERE tipo='LOCAL' AND referencia=?");
+    $stmtCheck->execute([(string)$nuevaRef]);
+    if ($stmtCheck->fetch()) {
+        return ["ok" => false, "error" => "MESA_OCUPADA"];
+    }
+
+    // 2. Actualizar la orden activa
+    // Si viene de DELIVERY, cambiamos el tipo a LOCAL y reseteamos campos de delivery
+    $stmt = $bd->prepare("
+        UPDATE ordenes_activas 
+        SET tipo='LOCAL', referencia=?, tipo_orden='LOCAL', direccion=NULL, telefono=NULL 
+        WHERE tipo=? AND referencia=?
+    ");
+    $ok = $stmt->execute([(string)$nuevaRef, $tipoActual, (string)$refActual]);
+
+    return ["ok" => $ok];
+}
+

@@ -163,3 +163,47 @@ function editarDelivery($delivery)
 {
     return ocuparDelivery($delivery);
 }
+
+function cancelarDelivery($id, $idUsuario = null, $motivo = null)
+{
+    $bd = conectarBaseDatos();
+
+    // Obtener orden e items antes de eliminar
+    $stmtOrden = $bd->prepare("SELECT id FROM ordenes_activas WHERE tipo='DELIVERY' AND referencia=?");
+    $stmtOrden->execute([(string)$id]);
+    $orden = $stmtOrden->fetch();
+
+    if ($orden) {
+        $idOrden = $orden->id;
+
+        // Registrar en tabla cancelaciones
+        $bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('DELIVERY', ?, ?, ?, ?, ?)")
+            ->execute([(string)$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
+
+        // Solo descontar stock para ítems que ya fueron preparados o entregados
+        $stmtItems = $bd->prepare("
+            SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
+            FROM items_orden io
+            LEFT JOIN insumos i ON i.id = io.idInsumo
+            WHERE io.idOrden=? AND (
+                io.estado = 'entregado' 
+                OR (io.estado = 'listo' AND io.tipo != 'BEBIDA')
+            )
+        ");
+        $stmtItems->execute([$idOrden]);
+        $items = $stmtItems->fetchAll(PDO::FETCH_OBJ);
+        foreach ($items as $item) {
+            if ($item->idInsumo) {
+                $ex = expandirNecesidadesDesdeFilaItemOrden($bd, $item);
+                aplicarDescuentoStockPorMapa($bd, $ex, $idUsuario, 'CANCELACION', $motivo);
+            }
+        }
+    }
+
+    $stmt = $bd->prepare("DELETE FROM ordenes_activas WHERE tipo='DELIVERY' AND referencia=?");
+    $resultado = $stmt->execute([(string)$id]);
+    if ($orden) {
+        $bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$orden->id]);
+    }
+    return $resultado;
+}

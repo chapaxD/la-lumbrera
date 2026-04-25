@@ -154,6 +154,9 @@
                             <p class="control">
                                 <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaMesa(mesa)" title="Imprimir comanda para cocina">Comanda</b-button>
                             </p>
+                            <p class="control">
+                                <b-button type="is-link" is-light icon-left="swap-horizontal" @click="solicitarCambioMesa(mesa, 'LOCAL')" title="Cambiar de mesa">Cambiar</b-button>
+                            </p>
                         </div>
                         <p class="has-text-danger" v-if="mesa.mesa.estado === 'ocupada' && !puedeAccederOrden(mesa.mesa.idUsuario)">
                             Sin acceso a esta orden
@@ -253,6 +256,9 @@
                                 <p class="control">
                                     <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaDelivery(del)" title="Imprimir comanda para cocina">Comanda</b-button>
                                 </p>
+                                <p class="control">
+                                    <b-button type="is-link" is-light icon-left="swap-horizontal" @click="solicitarCambioMesa(del, 'DELIVERY')" title="Asignar a una mesa">Cambiar</b-button>
+                                </p>
                             </div>
                             <p class="has-text-danger" v-else>
                                 Sin acceso a este delivery
@@ -344,6 +350,9 @@
                                 </p>
                                 <p class="control">
                                     <b-button type="is-info" is-light icon-left="printer" @click="imprimirComandaDelivery(del)" title="Imprimir comanda para cocina">Comanda</b-button>
+                                </p>
+                                <p class="control">
+                                    <b-button type="is-link" is-light icon-left="swap-horizontal" @click="solicitarCambioMesa(del, 'DELIVERY')" title="Asignar a una mesa">Cambiar</b-button>
                                 </p>
                             </div>
                             <p class="has-text-danger" v-else>
@@ -989,11 +998,29 @@ export default {
             HttpService.registrar(payload, "registrar_venta.php")
             .then(registrado => {
                 if(registrado){
-                    this.$buefy.dialog.alert({
-                        title: 'Venta registrada',
-                        message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b>',
-                        confirmText: 'OK'
-                    })
+                    if (payload.tipo_orden === 'LLEVAR' || payload.tipo_orden === 'DELIVERY') {
+                        this.$buefy.dialog.confirm({
+                            title: 'Venta registrada',
+                            message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b><br><br>¿Deseas imprimir la <b>Comanda</b> para cocina?',
+                            confirmText: 'Imprimir Comanda',
+                            cancelText: 'Cerrar',
+                            type: 'is-info',
+                            onConfirm: () => {
+                                this.Utiles.imprimirComanda({
+                                    id: payload.idDelivery,
+                                    tipo: payload.tipo_orden,
+                                    cliente: payload.cliente,
+                                    insumos: payload.insumos
+                                });
+                            }
+                        })
+                    } else {
+                        this.$buefy.dialog.alert({
+                            title: 'Venta registrada',
+                            message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b>',
+                            confirmText: 'OK'
+                        })
+                    }
                     if (this.imprimirAlFinal) {
                         this.imprimirComprobante(payload)
                     }
@@ -1358,6 +1385,47 @@ export default {
             } else {
                 this.$toast({ message: 'Error al entregar', type: 'is-danger' })
             }
+        },
+
+        solicitarCambioMesa(elemento, tipo) {
+            const refActual = tipo === 'LOCAL' ? elemento.mesa.idMesa : elemento.delivery.idDelivery;
+            const cliente = tipo === 'LOCAL' ? elemento.mesa.cliente : elemento.delivery.cliente;
+
+            this.$buefy.dialog.prompt({
+                title: 'Cambiar Mesa',
+                message: `Mover la orden de <b>${cliente || 'Sin nombre'}</b> a una nueva mesa.`,
+                inputAttrs: {
+                    placeholder: 'Número de mesa (ej: 5)',
+                    type: 'text'
+                },
+                trapFocus: true,
+                confirmText: 'Cambiar',
+                onConfirm: (nuevaMesa) => {
+                    if (!nuevaMesa || nuevaMesa.trim() === "") return;
+                    
+                    this.cargando = true;
+                    HttpService.registrar({
+                        tipoActual: tipo,
+                        referenciaActual: refActual,
+                        nuevaMesa: nuevaMesa.trim()
+                    }, 'cambiar_mesa.php')
+                    .then(res => {
+                        if (res.ok) {
+                            this.$toast({ message: 'Mesa cambiada con éxito', type: 'is-success' });
+                            this.cargarDatos();
+                        } else {
+                            const msg = res.error === 'MESA_OCUPADA' ? 'La mesa destino ya está ocupada' : 'Error al cambiar mesa';
+                            this.$toast({ message: msg, type: 'is-danger' });
+                        }
+                    })
+                    .catch(() => {
+                        this.$toast({ message: 'Error de conexión', type: 'is-danger' });
+                    })
+                    .finally(() => {
+                        this.cargando = false;
+                    });
+                }
+            });
         }
     }
 }

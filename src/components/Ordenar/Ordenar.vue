@@ -433,6 +433,13 @@ export default {
             message: resultado.mensaje || "Stock insuficiente para completar el pedido.",
             type: "is-danger",
           });
+        } else if (resultado && resultado.error === "MESA_RESERVADA") {
+          this.$buefy.dialog.alert({
+            title: 'Mesa reservada',
+            message: `Esta mesa está reservada hoy para <b>${resultado.cliente}</b> a las <b>${resultado.hora}</b>.<br><br>Solo puede abrirse desde la sección de <b>Gestión de Reservas</b> para asegurar que sea el cliente correcto.`,
+            type: 'is-danger',
+            confirmText: 'Entendido'
+          });
         } else if (!resultado || resultado === false || (resultado && resultado.status === false)) {
           this.$toast({
             message: "No se pudo registrar el pedido.",

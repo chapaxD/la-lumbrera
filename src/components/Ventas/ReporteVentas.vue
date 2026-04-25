@@ -218,6 +218,8 @@ export default {
     cargando: false,
     ventas: [],
     topInsumos: [],
+    ventasLocales: 0,
+    ventasDelivery: 0,
     totalVentas: 0,
     totalRegistros: 0,
     resumenPorDia: [],
@@ -328,6 +330,8 @@ export default {
           this.ventas = resultado.ventas;
           this.totalRegistros = resultado.totalRegistros || 0;
           this.totalVentas = resultado.totalPeriodo || 0;
+          this.ventasLocales = resultado.totalLocales || 0;
+          this.ventasDelivery = resultado.totalDelivery || 0;
           this.topInsumos = resultado.topInsumos || [];
           this.usuarios = resultado.usuarios;
           this.resumenPorDia = resultado.resumenPorDia || [];

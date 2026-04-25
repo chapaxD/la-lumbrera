@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section>
     <!-- Encabezado -->
     <nav class="level mb-4">
@@ -64,7 +64,7 @@
       <b-table :data="usuariosFiltrados"
                :loading="cargando"
                paginated
-               :per-page="10"
+               :per-page="perPage"
                striped
                hoverable
                mobile-cards>

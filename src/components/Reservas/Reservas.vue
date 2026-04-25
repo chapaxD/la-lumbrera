@@ -416,6 +416,13 @@ export default {
         idUsuario: localStorage.getItem("idUsuario")
       };
 
+      // Verificar si la mesa está ocupada ahora mismo (si la reserva es para hoy)
+      if (!this.esEventoTotal && fechaLocal === new Date().toISOString().split('T')[0]) {
+          const mesaOcupada = this.$parent.$parent.mesas && this.$parent.$parent.mesas.find(m => m.mesa.idMesa == this.form.idMesa && m.mesa.estado === 'ocupada');
+          // Nota: El acceso a mesas via parent puede ser fragil dependiendo de la estructura, 
+          // pero para este caso intentaremos una validacion simple o solo procederemos al backend.
+      }
+
       HttpService.registrar(payload, "registrar_reserva.php").then(resultado => {
         if (resultado && resultado.ok) {
           this.$toast({ message: "Reserva registrada correctamente", type: "is-success" });
@@ -429,6 +436,15 @@ export default {
             type: 'is-warning',
             confirmText: 'Entendido'
           });
+        } else if (resultado && resultado.error === 'MESA_OCUPADA_AHORA') {
+          this.$buefy.dialog.alert({
+            title: 'Mesa ocupada actualmente',
+            message: `No puedes reservar la <b>Mesa ${this.form.idMesa}</b> para hoy porque ya tiene clientes sentados con un pedido activo.<br><br>Primero deben cobrar o liberar la mesa.`,
+            type: 'is-warning',
+            confirmText: 'Entendido'
+          });
+        } else if (resultado && resultado.error === 'MESA_OCUPADA') {
+            this.$toast({ message: "La mesa ya tiene clientes sentados ahora mismo", type: "is-warning" });
         } else {
           this.$toast({ message: "Error al registrar la reserva", type: "is-danger" });
         }
@@ -473,10 +489,6 @@ export default {
       const atiende = mesero ? mesero.nombre : (localStorage.getItem('nombre') || 'Reserva');
       const idUsuario = mesero ? mesero.id : localStorage.getItem('idUsuario');
 
-      reserva.estado = 'SENTADA';
-      this.cambiarEstado(reserva);
-      this.mostrarModalSentar = false;
-
       if (reserva.idMesa) {
         const payload = {
           id: reserva.idMesa,
@@ -488,11 +500,35 @@ export default {
           cliente: reserva.nombre_cliente,
           insumos: []
         };
-        HttpService.registrar(payload, 'ocupar_mesa.php').then(ok => {
-          if (!ok) {
-            this.$toast({ message: 'Reserva SENTADA, pero la mesa ya estaba ocupada por otro usuario', type: 'is-warning' });
+        HttpService.registrar(payload, 'ocupar_mesa.php').then(resultado => {
+          // Si el backend devuelve un objeto con error o un false directamente
+          if (resultado === false || (resultado && resultado.ok === false)) {
+            const msg = (resultado && resultado.error === 'MESA_OCUPADA_ACTIVA') 
+                ? '¡Error! La mesa ya tiene un pedido activo. Debe cobrar o cancelar la mesa antes de sentar la reserva.'
+                : 'Reserva SENTADA, pero la mesa ya estaba ocupada por otro usuario.';
+            
+            this.$buefy.dialog.alert({
+                title: 'Mesa ocupada',
+                message: msg,
+                type: 'is-danger',
+                hasIcon: true,
+                icon: 'alert-circle',
+                confirmText: 'Entendido'
+            });
+          } else {
+            // Solo cambiamos el estado si se pudo ocupar la mesa
+            reserva.estado = 'SENTADA';
+            this.cambiarEstado(reserva);
+            this.mostrarModalSentar = false;
+            this.$toast({ message: 'Cliente sentado correctamente', type: 'is-success' });
+            this.obtenerReservas();
           }
         });
+      } else {
+        // Evento total o similar sin mesa fija
+        reserva.estado = 'SENTADA';
+        this.cambiarEstado(reserva);
+        this.mostrarModalSentar = false;
       }
     },
     autoCheckNoShow() {

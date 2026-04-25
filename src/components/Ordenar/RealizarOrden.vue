@@ -53,9 +53,14 @@
                     <p v-if="mesa.mesa.cliente && puedeAccederOrden(mesa.mesa.idUsuario)">
                         <strong>Cliente</strong>: {{ mesa.mesa.cliente }}
                     </p>
-                    <div v-if="mesa.mesa.reserva" class="notification is-warning is-light py-2 px-3 mt-2 mb-0">
-                        <b-icon icon="calendar-clock" size="is-small"></b-icon>
-                        <span v-if="mesa.mesa.reserva.idMesa"> Reservada hoy <b>{{ mesa.mesa.reserva.hora }}</b> - {{ mesa.mesa.reserva.nombre_cliente }}</span>
+                    <div v-if="mesa.mesa.reserva" 
+                         class="notification py-2 px-3 mt-2 mb-0"
+                         :class="mesa.mesa.reserva.estado === 'SENTADA' ? 'is-success is-light' : 'is-warning is-light'">
+                        <b-icon :icon="mesa.mesa.reserva.estado === 'SENTADA' ? 'account-check' : 'calendar-clock'" size="is-small"></b-icon>
+                        <span v-if="mesa.mesa.reserva.idMesa"> 
+                            {{ mesa.mesa.reserva.estado === 'SENTADA' ? 'Cliente sentado:' : 'Reservada hoy' }} 
+                            <b>{{ mesa.mesa.reserva.hora }}</b> - {{ mesa.mesa.reserva.nombre_cliente }}
+                        </span>
                         <span v-else> <b>EVENTO TOTAL: {{ mesa.mesa.reserva.hora }}</b> </span>
                     </div>
                     <b-collapse 

@@ -47,7 +47,7 @@
       <b-table :data="clientes"
                :loading="cargando"
                paginated
-               :per-page="10"
+               :per-page="perPage"
                striped
                hoverable
                mobile-cards>
@@ -221,6 +221,7 @@ const FORM_VACIO = () => ({
 export default {
   data: () => ({
     clientes: [],
+    perPage: 10,
     cargando: false,
     guardando: false,
     mostrarModal: false,

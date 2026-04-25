@@ -29,6 +29,8 @@ try {
         "ventas" => $ventasCount,
         "totalRegistros" => (int)$resumen->total,
         "totalPeriodo" => (float)$resumen->totalDinero,
+        "totalLocales" => (int)$resumen->totalLocales,
+        "totalDelivery" => (int)$resumen->totalDelivery,
         "ventasPorUsuario" => $ventasPorUsuario,
         "resumenPorDia" => $resumenPorDia,
         "topInsumos" => $topInsumos,

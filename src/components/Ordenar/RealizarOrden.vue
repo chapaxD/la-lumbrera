@@ -405,6 +405,12 @@
                         </p>
                     </div>
 
+                    <div class="field mt-4">
+                        <b-checkbox v-model="imprimirAlFinal">
+                            Imprimir ticket de venta
+                        </b-checkbox>
+                    </div>
+
                 </section>
                 <footer class="modal-card-foot">
                     <b-button label="Cancelar" type="is-dark" @click="mostrarModalCobro = false" />
@@ -497,6 +503,7 @@ export default {
             ventaSeleccionada: {},
             insumosSeleccionados: [],
             mostrarModalCobro: false,
+            imprimirAlFinal: false,
             elementoCobro: null, // Puede ser mesa o delivery
             tipoCobro: 'LOCAL',
             rol: localStorage.getItem('rol') || '',
@@ -979,7 +986,9 @@ export default {
                         message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b>',
                         confirmText: 'OK'
                     })
-                    this.imprimirComprobante(payload)
+                    if (this.imprimirAlFinal) {
+                        this.imprimirComprobante(payload)
+                    }
                     this.cargarDatos()
                     this.verificarCaja()
                 }

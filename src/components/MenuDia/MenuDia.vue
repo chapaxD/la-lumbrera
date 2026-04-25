@@ -39,6 +39,10 @@
               </div>
               <div class="level-right">
                 <div class="level-item">
+                  <b-button v-if="menuDelDia.length > 0" type="is-success" icon-left="whatsapp" @click="enviarPorWhatsApp"
+                    class="mr-3">
+                    Enviar por WhatsApp
+                  </b-button>
                   <b-field>
                     <b-autocomplete v-model="busqueda" :data="insumosFiltrados"
                       placeholder="Buscar producto para añadir..." field="nombre" icon="magnify" clearable
@@ -211,6 +215,45 @@ export default {
       } finally {
         this.cargando = false;
       }
+    },
+    enviarPorWhatsApp() {
+      if (this.menuDelDia.length === 0) return;
+
+      let mensaje = `🍽️ *MENÚ DEL DÍA: ${this.nombreDiaSeleccionado.toUpperCase()}* 🍽️\n\n`;
+
+      // 1. Agrupar el menú del día por categoría
+      const categoriasMenu = [...new Set(this.menuDelDia.map(i => i.categoria))];
+
+      categoriasMenu.forEach(cat => {
+        // Evitamos repetir la sección de Carnes si ya la vamos a poner abajo de forma especial
+        if (cat.toUpperCase() === 'CARNES') return;
+
+        mensaje += `*${cat.toUpperCase()}*\n`;
+        const items = this.menuDelDia.filter(i => i.categoria === cat);
+        items.forEach(item => {
+          mensaje += `• ${item.nombre} - Bs. ${Math.round(item.precio)}\n`;
+        });
+        mensaje += `\n`;
+      });
+
+      // 2. Añadir sección de Carnes (Cortes de parrilla)
+      const carnesDisponibles = this.todosLosInsumos.filter(i => 
+        (i.categoria || '').toUpperCase() === 'CARNES' && 
+        (i.stock > 0 || i.tipoVenta === 'COMBO' || i.tipoVenta === 'RECETA')
+      );
+
+      if (carnesDisponibles.length > 0) {
+        mensaje += `🔥 *NUESTRAS CARNES A LA PARRILLA* 🔥\n`;
+        carnesDisponibles.forEach(c => {
+          mensaje += `• ${c.nombre} - Bs. ${Math.round(c.precio)}\n`;
+        });
+        mensaje += `\n`;
+      }
+
+      mensaje += `¡Te esperamos en *Botanero*! 🥂✨`;
+
+      const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+      window.open(url, '_blank');
     }
   }
 };

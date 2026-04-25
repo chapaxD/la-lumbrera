@@ -164,6 +164,7 @@
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
                             <div class="mt-2" v-if="puedeAccederOrden(mesa.mesa.idUsuario)">
                                 <b-button v-if="!tienePendiente(mesa.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('LOCAL', mesa.mesa.idMesa)">Entregar al cliente</b-button>
+                                <b-button type="is-info" is-light icon-left="printer" class="mr-2" @click="imprimirComandaMesa(mesa)" title="Reimprimir comanda">Comanda</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="ocuparMesa(mesa)">Agregar más</b-button>
                             </div>
                         </div>
@@ -263,6 +264,7 @@
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
                             <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <b-button v-if="!tienePendiente(del.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('DELIVERY', del.delivery.idDelivery)">Entregar al cliente</b-button>
+                                <b-button type="is-info" is-light icon-left="printer" class="mr-2" @click="imprimirComandaDelivery(del)" title="Reimprimir comanda">Comanda</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="editarDelivery(del)">Agregar más</b-button>
                             </div>
                         </div>
@@ -354,6 +356,7 @@
                             <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
                             <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
                                 <b-button v-if="!tienePendiente(del.insumos)" type="is-success" icon-left="hand-okay" class="mr-2" @click="entregarOrdenPagada('LLEVAR', del.delivery.idDelivery)">Entregar al cliente</b-button>
+                                <b-button type="is-info" is-light icon-left="printer" class="mr-2" @click="imprimirComandaDelivery(del)" title="Reimprimir comanda">Comanda</b-button>
                                 <b-button type="is-info" icon-left="plus" @click="editarParaLlevar(del)">Agregar más</b-button>
                             </div>
                         </div>

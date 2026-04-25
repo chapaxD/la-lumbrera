@@ -205,7 +205,7 @@ export default {
       try {
         const gastos = await HttpService.registrar({ idCaja: caja.id }, 'obtener_gastos_caja.php')
         const ventasEfectivo = parseFloat(caja.ventasTotales) - parseFloat(caja.ventasTarjeta || 0) - parseFloat(caja.ventasQR || 0)
-        ReportesPdfService.generarCierreCaja({
+        ReportesPdfService.imprimirCierreCaja80mm({
           fechaApertura:  caja.fechaApertura,
           fechaCierre:    caja.fechaCierre,
           montoApertura:  caja.montoApertura,

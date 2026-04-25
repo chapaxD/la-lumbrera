@@ -164,6 +164,135 @@ class ReportesPdfService {
 
         doc.save(`corte_caja_${datos.fechaCierre.replace(/[: ]/g, '-')}.pdf`);
     }
+
+    async imprimirCierreCaja80mm(datos) {
+        let datosLocal = null;
+        try {
+            datosLocal = await HttpService.obtener("obtener_datos_local.php");
+        } catch (e) { /* sin membrete */ }
+
+        const nombreLocal = (datosLocal && datosLocal.nombre) || 'Restaurante';
+        const telfLocal = (datosLocal && datosLocal.telefono) || '';
+        const dirLocal = (datosLocal && datosLocal.direccion) || '';
+
+        const esperado = Number(datos.montoApertura) + Number(datos.ventasEfectivo) - Number(datos.gastosTotal);
+        const declarado = Number(datos.montoCierre);
+        const diferencia = declarado - esperado;
+
+        const formatNum = (n) => Math.round(Number(n || 0));
+
+        let gastosHtml = '';
+        if (datos.gastos && datos.gastos.length > 0) {
+            gastosHtml = `
+                <div class="separador"></div>
+                <div class="seccion-titulo">DETALLE DE GASTOS</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th class="right">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${datos.gastos.map(g => `
+                            <tr>
+                                <td>${g.concepto}</td>
+                                <td class="right">Bs. ${formatNum(g.monto)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { 
+                        font-family: 'Courier New', Courier, monospace; 
+                        font-size: 12px; 
+                        width: 72mm; 
+                        margin: 0 auto;
+                        padding: 4mm 2mm;
+                    }
+                    .center { text-align: center; }
+                    .right { text-align: right; }
+                    .bold { font-weight: bold; }
+                    h2 { font-size: 16px; margin: 2px 0; text-transform: uppercase; }
+                    .separador { border-top: 1px dashed #000; margin: 4px 0; }
+                    .info-cierre { font-size: 11px; margin-bottom: 6px; }
+                    .seccion-titulo { font-weight: bold; margin: 6px 0 2px 0; text-align: center; border-bottom: 1px solid #000; }
+                    table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+                    th { border-bottom: 1px solid #000; text-align: left; padding: 2px 0; }
+                    td { padding: 2px 0; vertical-align: top; }
+                    .fila { display: flex; justify-content: space-between; margin: 2px 0; }
+                    .total-box { border: 1px solid #000; padding: 4px; margin-top: 6px; }
+                    .diferencia { font-size: 14px; margin-top: 4px; border-top: 1px double #000; padding-top: 2px; }
+                </style>
+            </head>
+            <body>
+                <div class="center">
+                    <h2>${nombreLocal}</h2>
+                    <p>${dirLocal}</p>
+                    <p>Tel: ${telfLocal}</p>
+                    <div class="separador"></div>
+                    <h3 style="margin:4px 0">CORTE DE CAJA</h3>
+                </div>
+
+                <div class="info-cierre">
+                    <div><b>Apertura:</b> ${datos.fechaApertura}</div>
+                    <div><b>Cierre:</b>   ${datos.fechaCierre}</div>
+                    <div><b>Usuario:</b>  ${datos.usuarioCierre}</div>
+                </div>
+
+                <div class="seccion-titulo">RESUMEN DE CAJA</div>
+                <div class="fila"><span>Fondo Inicial:</span> <span class="bold">Bs. ${formatNum(datos.montoApertura)}</span></div>
+                <div class="fila"><span>Ventas Efectivo:</span> <span class="bold">Bs. ${formatNum(datos.ventasEfectivo)}</span></div>
+                <div class="fila"><span>Ventas Tarjeta:</span> <span class="bold">Bs. ${formatNum(datos.ventasTarjeta)}</span></div>
+                <div class="fila"><span>Ventas QR:</span> <span class="bold">Bs. ${formatNum(datos.ventasQR)}</span></div>
+                <div class="fila"><span>Gastos/Retiros:</span> <span class="bold">-Bs. ${formatNum(datos.gastosTotal)}</span></div>
+                
+                <div class="fila" style="margin-top:4px; border-top:1px solid #000; padding-top:2px">
+                    <span class="bold">TOTAL VENTAS:</span>
+                    <span class="bold">Bs. ${formatNum(datos.ventasTotales)}</span>
+                </div>
+
+                ${gastosHtml}
+
+                <div class="total-box">
+                    <div class="fila"><span>Efectivo Calculado:</span> <span>Bs. ${formatNum(esperado)}</span></div>
+                    <div class="fila"><span>Efectivo Declarado:</span> <span>Bs. ${formatNum(declarado)}</span></div>
+                    <div class="fila diferencia bold">
+                        <span>DIFERENCIA:</span>
+                        <span>Bs. ${formatNum(diferencia)}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; text-align:center; font-size:10px;">
+                    --- FIN DEL REPORTE ---
+                </div>
+            </body>
+            </html>
+        `;
+
+        const ventana = window.open('', '_blank', 'width=400,height=600');
+        if (!ventana) {
+            alert('Por favor, permite las ventanas emergentes para imprimir.');
+            return;
+        }
+        ventana.document.write(html);
+        ventana.document.close();
+        ventana.focus();
+        setTimeout(() => {
+            ventana.print();
+            ventana.close();
+        }, 500);
+    }
 }
 
 export default new ReportesPdfService();

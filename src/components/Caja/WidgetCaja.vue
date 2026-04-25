@@ -214,7 +214,7 @@ export default {
                                 message: msj,
                                 type: diferencia >= 0 ? 'is-success' : 'is-warning'
                             })
-                            ReportesPdfService.generarCierreCaja(resultado)
+                            ReportesPdfService.imprimirCierreCaja80mm(resultado)
                             this.verificarCaja();
                             this.montoApertura = 0;
                         }

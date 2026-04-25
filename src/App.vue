@@ -144,10 +144,10 @@ body {
 }
 
 .navbar {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 1024;
+  position: -webkit-sticky !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1024 !important;
   transition: box-shadow 0.3s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }

@@ -552,12 +552,17 @@ function cancelarMesa($id, $idUsuario = null, $motivo = null)
         $bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('LOCAL', ?, ?, ?, ?, ?)")
             ->execute([(string)$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
-        // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
+        // Solo descontar stock para ítems que ya fueron preparados o entregados
+        // MEJORA: Las bebidas NO se descuentan si solo están 'listas' (porque se pueden devolver al refrigerador)
+        // Solo se descuentan si ya fueron 'entregadas'.
         $stmtItems = $bd->prepare("
             SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
             FROM items_orden io
             LEFT JOIN insumos i ON i.id = io.idInsumo
-            WHERE io.idOrden=? AND io.estado IN ('listo','entregado')
+            WHERE io.idOrden=? AND (
+                io.estado = 'entregado' 
+                OR (io.estado = 'listo' AND io.tipo != 'BEBIDA')
+            )
         ");
         $stmtItems->execute([$idOrden]);
         $items = $stmtItems->fetchAll(PDO::FETCH_OBJ);
@@ -2363,12 +2368,17 @@ function cancelarDelivery($id, $idUsuario = null, $motivo = null)
         $bd->prepare("INSERT INTO cancelaciones (tipo, referencia, idOrden, idUsuario, motivo, fecha) VALUES ('DELIVERY', ?, ?, ?, ?, ?)")
             ->execute([$id, $idOrden, $idUsuario, $motivo, date('Y-m-d H:i:s')]);
 
-        // Solo descontar stock para ítems que ya fueron preparados (cocina los usó pero no se cobró)
+        // Solo descontar stock para ítems que ya fueron preparados o entregados
+        // MEJORA: Las bebidas NO se descuentan si solo están 'listas' (porque se pueden devolver al refrigerador)
+        // Solo se descuentan si ya fueron 'entregadas'.
         $stmtItems = $bd->prepare("
             SELECT io.*, IFNULL(i.tipoVenta, 'NORMAL') AS tipoVenta
             FROM items_orden io
             LEFT JOIN insumos i ON i.id = io.idInsumo
-            WHERE io.idOrden=? AND io.estado IN ('listo','entregado')
+            WHERE io.idOrden=? AND (
+                io.estado = 'entregado' 
+                OR (io.estado = 'listo' AND io.tipo != 'BEBIDA')
+            )
         ");
         $stmtItems->execute([$idOrden]);
         $items = $stmtItems->fetchAll(PDO::FETCH_OBJ);

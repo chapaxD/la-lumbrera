@@ -206,33 +206,78 @@ const Utiles = {
 		const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 		const fecha = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
-		let encabezadoTipo = ''
-		if (orden.tipo === 'LOCAL') encabezadoTipo = `&#x1F4CB; MESA ${orden.id}`
-		else if (orden.tipo === 'LLEVAR') encabezadoTipo = `&#x1F6B6; PARA LLEVAR #${orden.id}`
-		else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
-
 		const esc = (t) => String(t || '')
 			.replace(/&/g, '&amp;')
 			.replace(/</g, '&lt;')
 			.replace(/>/g, '&gt;')
 
-		const itemsHtml = orden.insumos.map(ins => {
-			const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d">[LISTO]</span>' : ''
-			let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
-			if (ins.caracteristicas && ins.caracteristicas.trim()) {
-				html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-size:14px; margin-bottom:4px;"> ${esc(ins.caracteristicas)}</div>`
-			}
-			if (ins.resumenCombo && ins.resumenCombo.trim()) {
-				html += `<div class="carac" style="white-space:pre-line;border-left:3px solid #000;padding-left:8px;margin-top:3px;font-weight:bold;font-size:16px;background:#f9f9f9;">${esc(this.formatearResumenCombo(ins.resumenCombo))}</div>`
-			}
-			return html
-		}).join('')
+		// Agrupar productos:
+		// Para Cocina enviamos TODO (para visibilidad), para Parrilla solo Carnes
+		const cocinaItems = orden.insumos
+		const parrillaItems = orden.insumos.filter(i => (i.categoria || '').toLowerCase() === 'carnes')
+
+		const generarSeccionHtml = (items, destino) => {
+			if (items.length === 0) return ''
+
+			let encabezadoTipo = ''
+			if (orden.tipo === 'LOCAL') encabezadoTipo = `&#x1F4CB; MESA ${orden.id}`
+			else if (orden.tipo === 'LLEVAR') encabezadoTipo = `&#x1F6B6; PARA LLEVAR #${orden.id}`
+			else encabezadoTipo = `&#x1F6F5; DELIVERY #${orden.id}`
+
+			const itemsHtml = items.map(ins => {
+				const esCarnes = (ins.categoria || '').toLowerCase() === 'carnes'
+				const estadoTag = ins.estado === 'listo' ? ' <span style="color:#2d8a2d"></span>' : ''
+
+				// Si es Cocina y el ítem es de Parrilla (Carne), avisamos que es solo para acompañamiento
+				const avisoAcomp = (destino === 'COCINA' && esCarnes)
+					? '<div style="font-weight:bold; color:#000000; font-size:14px; margin-top:-2px; margin-bottom:4px;">*** SOLO ACOMPAÑAMIENTOS ***</div>'
+					: ''
+
+				let html = `<div class="item"><span class="cant">${ins.cantidad}x</span> <span class="nombre">${esc(ins.nombre)}</span>${estadoTag}</div>`
+				html += avisoAcomp
+
+				if (ins.caracteristicas && ins.caracteristicas.trim()) {
+					html += `<div class="carac-instruccion" style="margin-left:8px; border-left:3px solid #000; padding-left:8px; font-size:14px; margin-bottom:4px;"> ${esc(ins.caracteristicas)}</div>`
+				}
+				if (ins.resumenCombo && ins.resumenCombo.trim()) {
+					html += `<div class="carac" style="white-space:pre-line;border-left:3px solid #000;padding-left:8px;margin-top:3px;font-weight:bold;font-size:16px;background:#f9f9f9;">${esc(this.formatearResumenCombo(ins.resumenCombo))}</div>`
+				}
+				return html
+			}).join('')
+
+			return `
+				<div class="ticket-contenido">
+					<h2>--- ${destino} ---</h2>
+					<div class="linea"></div>
+					<div class="tipo">${encabezadoTipo}</div>
+					${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}
+					<div class="meta">${fecha} &bull; ${hora}</div>
+					<div class="linea"></div>
+					${itemsHtml}
+					<div class="linea"></div>
+					<div class="pie">Impreso a las ${hora}</div>
+				</div>
+			`
+		}
 
 		const ventana = window.open('', '_blank', 'width=420,height=640')
 		if (!ventana) {
 			alert('El navegador bloqueó la ventana. Permití las ventanas emergentes.')
 			return
 		}
+
+		let fullBodyHtml = ''
+		if (cocinaItems.length > 0) {
+			fullBodyHtml += generarSeccionHtml(cocinaItems, 'COCINA')
+		}
+		// Si hay de ambos, insertar salto de página para que la impresora corte
+		if (cocinaItems.length > 0 && parrillaItems.length > 0) {
+			fullBodyHtml += '<div style="page-break-after: always; height: 1px;"></div>'
+		}
+		if (parrillaItems.length > 0) {
+			fullBodyHtml += generarSeccionHtml(parrillaItems, 'PARRILLA')
+		}
+
 		ventana.document.write(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -259,18 +304,11 @@ const Utiles = {
     .carac { font-size: 12px; margin-left: 24px; font-style: italic; margin-bottom: 3px; color: #333; }
     .carac-instruccion { text-transform: uppercase; }
     .pie { text-align: center; font-size: 11px; margin-top: 8px; color: #777; }
+    .ticket-contenido { margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <h2>--- COMANDA ---</h2>
-    <div class="linea"></div>
-    <div class="tipo">${encabezadoTipo}</div>
-    ${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}
-    <div class="meta">${fecha} &bull; ${hora}</div>
-    <div class="linea"></div>
-    ${itemsHtml}
-    <div class="linea"></div>
-    <div class="pie">Impreso a las ${hora}</div>
+    ${fullBodyHtml}
 </body>
 </html>`)
 		ventana.document.close()

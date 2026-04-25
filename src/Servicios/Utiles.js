@@ -257,7 +257,16 @@ const Utiles = {
 			return
 		}
 
-		let fullBodyHtml = generarSeccionHtml(orden.insumos, 'COMANDA')
+		// Ordenar: carnes primero
+		const insumosOrdenados = [...orden.insumos].sort((a, b) => {
+			const catA = (a.categoria || '').toLowerCase() === 'carnes'
+			const catB = (b.categoria || '').toLowerCase() === 'carnes'
+			if (catA && !catB) return -1
+			if (!catA && catB) return 1
+			return 0
+		})
+
+		let fullBodyHtml = generarSeccionHtml(insumosOrdenados, 'COMANDA')
 
 		ventana.document.write(`<!DOCTYPE html>
 <html lang="es">

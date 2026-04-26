@@ -11,7 +11,16 @@
     <b-button type="is-primary" icon-left="plus" class="mb-4" @click="abrirNuevo">Nueva plantilla</b-button>
 
     <b-table :data="plantillas" :loading="cargando" striped>
-      <b-table-column field="nombre" label="Nombre" v-slot="p">{{ p.row.nombre }}</b-table-column>
+      <b-table-column field="nombre" label="Nombre de Plantilla" v-slot="p">
+        <strong>{{ p.row.nombre }}</strong>
+        <div v-if="p.row.insumos_vinculados && p.row.insumos_vinculados.length > 0" class="is-size-7 has-text-grey mt-1">
+          <b-icon icon="link" size="is-small"></b-icon>
+          Usada por: <span v-for="(ins, i) in p.row.insumos_vinculados" :key="ins.id">{{ ins.nombre }}{{ i < p.row.insumos_vinculados.length - 1 ? ', ' : '' }}</span>
+        </div>
+        <div v-else class="is-size-7 has-text-danger mt-1">
+          <b-icon icon="alert-circle-outline" size="is-small"></b-icon> Sin asignar a ningún producto
+        </div>
+      </b-table-column>
       <b-table-column field="descuento_pct" label="Dto. %" numeric v-slot="p">{{ p.row.descuento_pct }}</b-table-column>
       <b-table-column field="activo" label="Activa" v-slot="p">
         <b-tag :type="p.row.activo ? 'is-success' : 'is-light'" size="is-small">{{ p.row.activo ? 'Sí' : 'No' }}</b-tag>

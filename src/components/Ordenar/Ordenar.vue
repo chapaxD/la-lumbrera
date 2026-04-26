@@ -61,7 +61,7 @@
           <template v-if="plantillaCombo && !cargandoPlantillaCombo">
             <b-field label="Cantidad de almuerzos a armar" class="mb-5">
               <b-numberinput v-model="comboNumMenus" :min="1" :max="50" controls-position="compact"
-                @input="resetearEleccionesCombo" size="is-medium"></b-numberinput>
+                size="is-medium"></b-numberinput>
             </b-field>
 
             <div class="notification is-info is-light py-2 px-3 mb-4">
@@ -138,21 +138,16 @@
     </div>
 
     <!-- Sugerencias del día en grilla 4 columnas -->
-    <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+    <div class="mt-4 mb-3 is-flex is-justify-content-space-between is-align-items-center">
       <p class="title is-6 has-text-weight-bold has-text-grey mb-0">
         <b-icon icon="silverware-fork-knife" size="is-small" class="mr-1"></b-icon>
         Productos y sugerencias
       </p>
-      <div class="buttons mb-0">
-        <b-button size="is-small" rounded :type="categoriaSeleccionada === null ? 'is-primary' : 'is-light'"
-          @click="seleccionarCategoria(null)">Todos</b-button>
-        <b-button v-for="cat in categorias" :key="cat" size="is-small" rounded
-          :type="categoriaSeleccionada === cat ? 'is-primary' : 'is-light'" @click="seleccionarCategoria(cat)">{{ cat
-          }}</b-button>
-      </div>
+      <b-button size="is-small" type="is-ghost" icon-left="refresh" @click="obtenerMenuHoy" :loading="cargandoMenu" class="has-text-grey">
+        Actualizar menú
+      </b-button>
     </div>
-    <div class="columns is-multiline" style="position: relative; min-height: 200px;">
-      <b-loading :is-full-page="false" :active="cargandoMenu"></b-loading>
+    <div class="columns is-multiline">
       <div class="column is-3-widescreen is-4-desktop is-6-tablet is-12-mobile" v-for="insumo in insumosFiltrados"
         :key="insumo.id">
         <div class="card sugerencia-card"
@@ -238,7 +233,6 @@ export default {
       this.estaAgregandoInsumos = true;
     }
     this.obtenerMenuHoy();
-    this.obtenerCategorias();
 
     // Autofocus en búsqueda después de cargar
     setTimeout(() => {
@@ -438,7 +432,7 @@ export default {
           this.insumos = resultado;
         });
       } else {
-        this.seleccionarCategoria(null);
+        this.insumos = this.insumosMenuDia;
       }
     },
 
@@ -451,45 +445,6 @@ export default {
       ).then((resultado) => {
         this.insumosMenuDia = resultado || [];
         this.insumos = this.insumosMenuDia;
-        this.cargandoMenu = false;
-      });
-    },
-
-    obtenerCategorias() {
-      HttpService.obtener("obtener_categorias.php").then(cats => {
-        this.listaCategorias = cats || [];
-      });
-    },
-
-    seleccionarCategoria(cat) {
-      this.categoriaSeleccionada = cat;
-      if (!cat) {
-        this.insumos = this.insumosMenuDia;
-        return;
-      }
-
-      const catNombre = cat.toUpperCase();
-
-      // Lista de categorías que son "del día" (solo mostrar lo configurado en menú del día)
-      const categoriasDelDia = ['ALMUERZO', 'ALMUERZOS', 'MENU DEL DIA', 'PLATILLOS', 'COMIDA'];
-
-      if (categoriasDelDia.includes(catNombre)) {
-        this.insumos = this.insumosMenuDia.filter(i => (i.categoria || '').toUpperCase() === catNombre);
-        return;
-      }
-
-      const catObj = this.listaCategorias.find(c => c.nombre.toUpperCase() === catNombre);
-      if (!catObj) {
-        this.insumos = this.insumosMenuDia.filter(i => (i.categoria || '').toUpperCase() === catNombre);
-        return;
-      }
-
-      this.cargandoMenu = true;
-      HttpService.registrar({
-        categoria: catObj.id,
-        ajusteStockVenta: true
-      }, "obtener_insumos.php").then(res => {
-        this.insumos = res || [];
         this.cargandoMenu = false;
       });
     },
@@ -721,17 +676,7 @@ export default {
 
   computed: {
     filteredDataObj() {
-      // El servidor ya filtra por nombre; retornamos directo para evitar
-      // que el doble filtrado muestre vacío mientras llega la respuesta async
       return this.insumos;
-    },
-    categorias() {
-      // Retornar todas las categorías disponibles en la base de datos para fácil acceso
-      const cats = new Set();
-      this.listaCategorias.forEach(c => {
-        if (c.nombre) cats.add(c.nombre.toUpperCase());
-      });
-      return Array.from(cats).sort();
     },
     insumosFiltrados() {
       return this.insumos;

@@ -307,6 +307,10 @@ function obtenerPlantillasCombo()
     $plantillas = $bd->query("SELECT * FROM combo_plantilla ORDER BY nombre ASC")->fetchAll(PDO::FETCH_OBJ);
     foreach ($plantillas as $p) {
         _cargarSlotsPlantillaCombo($bd, $p);
+        // Cargar insumos que usan esta plantilla
+        $stI = $bd->prepare("SELECT id, nombre FROM insumos WHERE idComboPlantilla = ?");
+        $stI->execute([$p->id]);
+        $p->insumos_vinculados = $stI->fetchAll();
     }
     return $plantillas;
 }

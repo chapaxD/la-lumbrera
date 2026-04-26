@@ -451,7 +451,12 @@ export default {
       });
     },
     cambiarEstado(reserva) {
-      HttpService.registrar({ id: reserva.id, estado: reserva.estado }, "cambiar_estado_reserva.php").then(resultado => {
+      const payload = { 
+        id: reserva.id, 
+        estado: reserva.estado,
+        idUsuario: localStorage.getItem("idUsuario")
+      };
+      HttpService.registrar(payload, "cambiar_estado_reserva.php").then(resultado => {
         if (resultado) {
           this.$toast({ message: "Estado actualizado", type: "is-info" });
         }
@@ -536,7 +541,12 @@ export default {
       if (!vencidas.length) return;
       vencidas.forEach(reserva => {
         reserva.estado = 'NO-SHOW';
-        HttpService.registrar({ id: reserva.id, estado: 'NO-SHOW' }, 'cambiar_estado_reserva.php');
+        const payload = { 
+          id: reserva.id, 
+          estado: 'NO-SHOW',
+          idUsuario: localStorage.getItem("idUsuario")
+        };
+        HttpService.registrar(payload, 'cambiar_estado_reserva.php');
       });
       this.$toast({ message: `${vencidas.length} reserva(s) marcadas como NO-SHOW por tiempo vencido`, type: 'is-warning' });
     },

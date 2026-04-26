@@ -39,8 +39,8 @@
               </div>
               <div class="level-right">
                 <div class="level-item">
-                  <b-button v-if="menuDelDia.length > 0" type="is-success" icon-left="whatsapp" @click="enviarPorWhatsApp"
-                    class="mr-3">
+                  <b-button v-if="menuDelDia.length > 0" type="is-success" icon-left="whatsapp"
+                    @click="enviarPorWhatsApp" class="mr-3">
                     Enviar por WhatsApp
                   </b-button>
                   <b-field>
@@ -53,7 +53,7 @@
                             <span class="has-text-weight-semibold">{{ props.option.nombre }}</span>
                             <br>
                             <small class="has-text-grey">{{ props.option.categoria }} — ${{ props.option.precio
-                              }}</small>
+                            }}</small>
                             &nbsp;
                             <b-tag
                               :type="props.option.stock <= 0 ? 'is-danger' : props.option.stock <= props.option.stockMinimo ? 'is-warning' : 'is-success'"
@@ -237,8 +237,8 @@ export default {
       });
 
       // 2. Añadir sección de Carnes (Cortes de parrilla)
-      const carnesDisponibles = this.todosLosInsumos.filter(i => 
-        (i.categoria || '').toUpperCase() === 'CARNES' && 
+      const carnesDisponibles = this.todosLosInsumos.filter(i =>
+        (i.categoria || '').toUpperCase() === 'CARNES' &&
         (i.stock > 0 || i.tipoVenta === 'COMBO' || i.tipoVenta === 'RECETA')
       );
 
@@ -250,7 +250,7 @@ export default {
         mensaje += `\n`;
       }
 
-      mensaje += `¡Te esperamos en *Botanero*! 🥂✨`;
+      mensaje += `¡Te esperamos en *La Lumbrera*! 🥂✨`;
 
       const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
       window.open(url, '_blank');

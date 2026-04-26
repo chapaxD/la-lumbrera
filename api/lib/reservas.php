@@ -100,9 +100,38 @@ function eliminarReserva($id)
     return $sentencia->execute([$id]);
 }
 
-function cambiarEstadoReserva($id, $estado)
+function cambiarEstadoReserva($id, $estado, $idUsuario = 1)
 {
     $bd = conectarBaseDatos();
+
+    // Si el nuevo estado es NO-SHOW, cobramos el adelanto si existe
+    if ($estado === 'NO-SHOW') {
+        $stmtCheck = $bd->prepare("SELECT estado, adelanto, nombre_cliente, idMesa FROM reservas WHERE id = ?");
+        $stmtCheck->execute([$id]);
+        $res = $stmtCheck->fetch();
+
+        // Solo cobramos si no estaba ya en NO-SHOW y tiene adelanto > 0
+        if ($res && $res->estado !== 'NO-SHOW' && $res->adelanto > 0) {
+            $ahora = date('Y-m-d H:i:s');
+            // Registrar el adelanto como venta en caja
+            $sqlVenta = "INSERT INTO ventas (idMesa, cliente, fecha, total, pagado, idUsuario, metodoPago, montoEfectivo, montoTarjeta, montoQR, tipo_orden) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+            $bd->prepare($sqlVenta)->execute([
+                $res->idMesa ?? 0,
+                $res->nombre_cliente . " (ADELANTO NO-SHOW)",
+                $ahora,
+                $res->adelanto,
+                $res->adelanto,
+                $idUsuario,
+                'EFECTIVO',
+                $res->adelanto,
+                0,
+                0,
+                'LOCAL'
+            ]);
+        }
+    }
+
     $sentencia = $bd->prepare("UPDATE reservas SET estado = ? WHERE id = ?");
     return $sentencia->execute([$estado, $id]);
 }
+

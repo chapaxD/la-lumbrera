@@ -141,9 +141,7 @@ export default {
       if (!zona) return;
       const html = zona.innerHTML;
       
-      // Número de copias (por defecto 2 para comandas, 1 para tickets normales)
-      const copias = this.venta.metodoPago === 'COMANDA' ? 3 : 1;
-      const htmlFinal = Array(copias).fill(html).join('<div style="page-break-after: always; margin-top: 15px;"></div>');
+      const htmlFinal = html;
 
       const ventana = window.open('', '_blank', 'width=420,height=640');
       if (!ventana) {

@@ -75,7 +75,8 @@
               <span v-else-if="venta.tipo === 'LLEVAR' || venta.tipoOrden === 'LLEVAR'">LLEVAR #{{ venta.id || venta.idDelivery || venta.idVenta }}</span>
               <span v-else-if="venta.tipo === 'DELIVERY' || venta.tipoOrden === 'DELIVERY'">DELIVERY #{{ venta.id || venta.idDelivery || venta.idVenta }}</span>
           </div>
-          <div v-if="venta.cliente" style="text-align: center; font-size: 0.85rem;">Cliente: {{ venta.cliente }}</div>
+          <div v-if="venta.mesa && venta.atendio" style="text-align: center; font-size: 0.85rem;">Mesero: {{ venta.atendio }}</div>
+          <div v-if="(venta.tipo === 'LLEVAR' || venta.tipoOrden === 'LLEVAR') && venta.cliente" style="text-align: center; font-size: 0.85rem;">Cliente: {{ venta.cliente }}</div>
           <div style="text-align: center; font-size: 0.85rem; margin-bottom: 5px;">Hora: {{ venta.fecha | formatFecha }}</div>
           <hr style="border-top: 1px dashed #000; margin: 5px 0;">
           <div v-for="(ins, idx) in insumos" :key="idx" style="margin-bottom: 8px;">

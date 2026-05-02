@@ -241,7 +241,8 @@ const Utiles = {
 					<h2>--- ${destino} ---</h2>
 					<div class="linea"></div>
 					<div class="tipo">${encabezadoTipo}</div>
-					${orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${orden.cliente}</strong></div>` : ''}
+					${orden.tipo === 'LOCAL' && (orden.atiende || orden.mesero) ? `<div class="cliente">Mesero: <strong>${esc(orden.atiende || orden.mesero)}</strong></div>` : ''}
+					${orden.tipo === 'LLEVAR' && orden.cliente && orden.cliente !== 'S/N' ? `<div class="cliente">Cliente: <strong>${esc(orden.cliente)}</strong></div>` : ''}
 					<div class="meta">${fecha} &bull; ${hora}</div>
 					<div class="linea"></div>
 					${itemsHtml}

@@ -1,7 +1,5 @@
 <template>
     <section>
-        <br>
-        <widget-caja class="mb-5" v-if="rol === 'admin'"></widget-caja>
         <div class="columns is-multiline mb-4">
             <!-- Skeletons para carga inicial -->
             <template v-if="cargando">
@@ -222,19 +220,15 @@
                 </div>
             </div>
         </div>
-        <widget-caja v-if="rol === 'admin'"></widget-caja>
 
     </section>
 </template>
 <script>
 import HttpService from '../Servicios/HttpService'
 import Utiles from '../Servicios/Utiles'
-import WidgetCaja from './Caja/WidgetCaja.vue'
-
 
 export default ({
     name: "Inicio",
-    components: { WidgetCaja },
     data: () => ({
         ventasSemana: [],
         ventasHora: [],
@@ -270,17 +264,37 @@ export default ({
         this.filtros.limite = this.limiteSeleccionado
         this.obtenerDatos()
         this.llenarListaAnios()
-        // Polling cada 30 segundos
-        this.timer = setInterval(() => {
-            this.obtenerDatos(true);
-        }, 30000);
+        this.iniciarPolling()
+        document.addEventListener('visibilitychange', this.manejarVisibilidad)
     },
 
     beforeDestroy() {
-        if (this.timer) clearInterval(this.timer);
+        this.detenerPolling()
+        document.removeEventListener('visibilitychange', this.manejarVisibilidad)
     },
 
     methods: {
+        iniciarPolling() {
+            if (!this.timer) {
+                this.timer = setInterval(() => {
+                    this.obtenerDatos(true);
+                }, 30000);
+            }
+        },
+        detenerPolling() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
+        manejarVisibilidad() {
+            if (document.hidden) {
+                this.detenerPolling();
+            } else {
+                this.obtenerDatos(true);
+                this.iniciarPolling();
+            }
+        },
 
         calcularProgreso(arreglo) {
 

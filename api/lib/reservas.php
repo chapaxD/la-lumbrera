@@ -21,8 +21,9 @@ function registrarReserva($reserva)
     $idMesa  = isset($reserva->idMesa) ? $reserva->idMesa : null;
     $esEvento = ($idMesa === null || $idMesa === '');
 
-    // 1. Detectar solapamiento (reservas activas ±2h en el mismo día)
+    // 1. Detectar solapamiento
     if ($esEvento) {
+        // Si es evento total: bloquear si existe CUALQUIER reserva activa ese día
         $check = $bd->prepare("
             SELECT r.*, u.nombre AS usuarioNombre
             FROM reservas r
@@ -32,14 +33,18 @@ function registrarReserva($reserva)
         ");
         $check->execute([$fecha]);
     } else {
+        // Si es mesa específica: bloquear si hay un evento total ese día,
+        // O si hay reserva para la misma mesa dentro de ±2h
         $check = $bd->prepare("
             SELECT r.*, u.nombre AS usuarioNombre
             FROM reservas r
             LEFT JOIN usuarios u ON r.idUsuario = u.id
             WHERE r.fecha = ?
               AND r.estado IN ('PENDIENTE','CONFIRMADA')
-              AND (r.idMesa = ? OR r.idMesa IS NULL)
-              AND ABS(TIMESTAMPDIFF(MINUTE, r.hora, ?)) < 120
+              AND (
+                  r.idMesa IS NULL
+                  OR (r.idMesa = ? AND ABS(TIMESTAMPDIFF(MINUTE, r.hora, ?)) < 120)
+              )
             LIMIT 1
         ");
         $check->execute([$fecha, $idMesa, $hora]);
@@ -65,7 +70,7 @@ function registrarReserva($reserva)
         }
     }
 
-    $sentencia = $bd->prepare("INSERT INTO reservas (nombre_cliente, telefono, fecha, hora, personas, idMesa, notas, adelanto, idUsuario, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')");
+    $sentencia = $bd->prepare("INSERT INTO reservas (nombre_cliente, telefono, fecha, hora, personas, idMesa, notas, menu_evento, costo_total_evento, adelanto, idUsuario, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')");
     $ok = $sentencia->execute([
         $reserva->nombre_cliente,
         $reserva->telefono,
@@ -74,6 +79,8 @@ function registrarReserva($reserva)
         $reserva->personas,
         $esEvento ? null : $idMesa,
         $reserva->notas,
+        isset($reserva->menu_evento) ? $reserva->menu_evento : null,
+        isset($reserva->costo_total_evento) && $reserva->costo_total_evento > 0 ? (float)$reserva->costo_total_evento : 0,
         isset($reserva->adelanto) ? (float)$reserva->adelanto : 0,
         $reserva->idUsuario
     ]);

@@ -55,6 +55,10 @@
                                     v-if="orden.cliente && orden.cliente !== 'S/N'">
                                     {{ orden.cliente }}
                                 </span>
+                                <span class="is-size-7 has-text-info" v-if="orden.mesero">
+                                    <b-icon icon="account" size="is-small"></b-icon>
+                                    {{ orden.mesero }}
+                                </span>
                             </div>
                         </div>
                         <!-- Fila 2: tags de estado -->
@@ -115,7 +119,7 @@
                             </div>
                             <!-- Características / instrucciones especiales -->
                             <p v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
-                                class="is-size-4 has-text-black has-text-weight-bold ml-5 mt-1 mb-2"
+                                class="is-size-5 has-text-black has-text-weight-bold ml-5 mt-1 mb-2"
                                 style="border-left: 5px solid #f5a623; padding-left: 12px; background-color: rgba(245, 166, 35, 0.15); border-radius: 0 4px 4px 0;">
                                 <b-icon icon="note-text-outline" size="is-small" class="mr-1"></b-icon>
                                 {{ insumo.caracteristicas }}
@@ -215,19 +219,41 @@ export default {
     mounted() {
         this.obtenerConfiguracion()
         this.cargarOrdenes()
-        this.intervaloPolling = setInterval(() => {
-            this.ahora = Date.now()
-            this.cargarOrdenes()
-        }, 6000)
+        this.iniciarPolling()
         this.intervaloReloj = setInterval(() => { this.ahora = Date.now() }, 30000)
+        document.addEventListener('visibilitychange', this.manejarVisibilidad)
     },
 
     beforeDestroy() {
-        clearInterval(this.intervaloPolling)
+        this.detenerPolling()
         clearInterval(this.intervaloReloj)
+        document.removeEventListener('visibilitychange', this.manejarVisibilidad)
     },
 
     methods: {
+        iniciarPolling() {
+            if (!this.intervaloPolling) {
+                this.intervaloPolling = setInterval(() => {
+                    this.ahora = Date.now()
+                    this.cargarOrdenes()
+                }, 6000)
+            }
+        },
+        detenerPolling() {
+            if (this.intervaloPolling) {
+                clearInterval(this.intervaloPolling)
+                this.intervaloPolling = null
+            }
+        },
+        manejarVisibilidad() {
+            if (document.hidden) {
+                this.detenerPolling()
+            } else {
+                this.ahora = Date.now()
+                this.cargarOrdenes()
+                this.iniciarPolling()
+            }
+        },
         async obtenerConfiguracion() {
             try {
                 const config = await HttpService.obtener('obtener_datos_local.php')
@@ -266,6 +292,7 @@ export default {
                         id: m.mesa.idMesa,
                         tipo: 'LOCAL',
                         cliente: m.mesa.cliente,
+                        mesero: m.mesa.atiende || '',
                         horaInicio: m.mesa.created_at || null,
                         pagada: m.mesa.estado === 'pagada',
                         insumos,
@@ -287,7 +314,7 @@ export default {
                     id: d.delivery.idDelivery,
                     tipo: d.delivery.tipo_orden || 'DELIVERY',
                     cliente: d.delivery.cliente,
-                    atiende: d.delivery.atiende,
+                    mesero: d.delivery.atiende || '',
                     horaInicio: d.delivery.created_at || null,
                     pagada: d.delivery.estado_orden === 'pagada',
                     insumos,
@@ -345,11 +372,11 @@ export default {
         async marcarListo(orden, insumo) {
             insumo.cargando = true
             // Pausar polling para evitar que revierta el cambio visual
-            clearInterval(this.intervaloPolling)
+            this.detenerPolling()
             const esCarnes = (insumo.categoria || '').toLowerCase() === 'carnes' && this.usaParrilla
             const ok = await HttpService.registrar({
                 tipo: orden.tipo,
-                id: orden.id,
+                id: insumo.itemId,
                 indiceInsumo: insumo._originalIndex,
                 soloAcompanamiento: esCarnes
             }, 'marcar_listo_cocina.php')
@@ -368,10 +395,7 @@ export default {
             // Recargar desde BD después de un momento y reanudar polling
             setTimeout(() => {
                 this.cargarOrdenes()
-                this.intervaloPolling = setInterval(() => {
-                    this.ahora = Date.now()
-                    this.cargarOrdenes()
-                }, 6000)
+                if (!document.hidden) this.iniciarPolling()
             }, 1500)
         },
 

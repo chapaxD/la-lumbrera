@@ -6,21 +6,38 @@
                     <b-icon icon="order-bool-ascending-variant" size="is-large" type="is-primary"></b-icon>
                     Realizar orden
                 </p>
-                <p v-if="!audioListo" class="is-size-7 has-text-info mb-0">
+                <div class="field mt-2 is-flex is-align-items-center" style="gap: 1rem; flex-wrap: wrap;">
+                    <b-field class="mb-0">
+                        <b-radio-button v-model="vistaActual" native-value="mapa" type="is-primary is-light">
+                            <b-icon icon="view-module"></b-icon>
+                            <span>Mapa de Mesas</span>
+                        </b-radio-button>
+                        <b-radio-button v-model="vistaActual" native-value="lista" type="is-primary is-light">
+                            <b-icon icon="view-list"></b-icon>
+                            <span>Lista de Pedidos</span>
+                        </b-radio-button>
+                    </b-field>
+                    <b-button v-if="rol !== 'mesero'" type="is-success is-light" icon-left="cash-register" @click="mostrarModalCaja = true">
+                        Estado de Caja
+                    </b-button>
+                </div>
+                <p v-if="!audioListo" class="is-size-7 has-text-info mt-2 mb-0">
                     Tocá la pantalla una vez para activar el sonido cuando cocina marque un plato listo.
                 </p>
             </div>
             <div class="column is-12-mobile is-6-tablet has-text-right-tablet">
                 <div class="buttons is-right">
+                    <b-button type="is-success" icon-left="table-plus" size="is-medium" class="is-responsive"
+                        @click="abrirMesaRapido">Mesa</b-button>
                     <b-button type="is-warning" icon-left="walk" size="is-medium" class="is-responsive"
-                        @click="nuevoParaLlevar">Para llevar</b-button>
+                        @click="nuevoParaLlevar">Llevar</b-button>
                     <b-button type="is-info" icon-left="truck-delivery" size="is-medium" class="is-responsive"
-                        @click="nuevoDelivery">Nuevo Delivery</b-button>
+                        @click="nuevoDelivery">Delivery</b-button>
                 </div>
             </div>
         </div>
 
-        <div class="columns is-multiline">
+        <div class="columns is-multiline" v-if="vistaActual === 'mapa'">
             <!-- Skeleton Screens para la primera carga -->
             <template v-if="cargando">
                 <div class="column is-4-desktop is-6-tablet" v-for="i in 6" :key="'skel-mesa-' + i">
@@ -38,531 +55,113 @@
 
             <template v-else>
                 <!-- Mesas Locales -->
-                <div class="column is-4-desktop is-6-tablet" v-for="mesa in mesas" :key="'mesa-' + mesa.mesa.idMesa" :id="'mesa-' + mesa.mesa.idMesa">
+                <div class="column is-4-desktop is-6-tablet" v-for="mesa in mesas" :key="'mesa-' + mesa.mesa.idMesa"
+                    :id="'mesa-' + mesa.mesa.idMesa">
 
-                    <div class="box"
-                        :class="{ 'has-background-warning-light': mesa.mesa.reserva, 'orden-lista-pulso': tieneListo(mesa.insumos) }">
-                        <div
-                            class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
-                            <p class="title is-2 has-text-grey mb-0">Mesa #{{ mesa.mesa.idMesa }}</p>
-                            <span class="title is-1 has-text-weight-bold"
-                                v-if="mesa.mesa.total && puedeAccederOrden(mesa.mesa.idUsuario)">
-                                {{ Utiles.formatearDinero(mesa.mesa.total) }}
-                            </span>
-                        </div>
-                        <p v-if="mesa.mesa.atiende">
-                            <strong>Atiende</strong>: {{ mesa.mesa.atiende }}
-                        </p>
-                        <p v-if="mesa.mesa.cliente && puedeAccederOrden(mesa.mesa.idUsuario)">
-                            <strong>Cliente</strong>: {{ mesa.mesa.cliente }}
-                        </p>
-                        <div v-if="mesa.mesa.reserva" class="notification py-2 px-3 mt-2 mb-0"
-                            :class="mesa.mesa.reserva.estado === 'SENTADA' ? 'is-success is-light' : 'is-warning is-light'">
-                            <b-icon :icon="mesa.mesa.reserva.estado === 'SENTADA' ? 'account-check' : 'calendar-clock'"
-                                size="is-small"></b-icon>
-                            <span v-if="mesa.mesa.reserva.idMesa">
-                                {{ mesa.mesa.reserva.estado === 'SENTADA' ? 'Cliente sentado:' : 'Reservada hoy' }}
-                                <b>{{ mesa.mesa.reserva.hora }}</b> - {{ mesa.mesa.reserva.nombre_cliente }}
-                            </span>
-                            <span v-else> <b>EVENTO TOTAL: {{ mesa.mesa.reserva.hora }}</b> </span>
-                        </div>
-                        <b-collapse class="card mt-2" animation="slide" aria-id="contentIdForA11y3"
-                            v-if="mesa.mesa.estado === 'ocupada' || mesa.mesa.estado === 'pagada'">
-                            <template #trigger="props">
-                                <div class="card-header" role="button" aria-controls="contentIdForA11y3"
-                                    :aria-expanded="props.open">
-                                    <p class="card-header-title">
-                                        Insumos en la orden
-                                    </p>
-                                    <a class="card-header-icon">
-                                        <b-icon :icon="props.open ? 'menu-down' : 'menu-up'">
-                                        </b-icon>
-                                    </a>
-                                </div>
-                            </template>
-
-                            <div class="card-content">
-                                <div class="content">
-                                    <b-table :data="mesa.insumos" :checked-rows="checkedRowsMap[mesa.mesa.idMesa] || []"
-                                        @check="(rows) => $set(checkedRowsMap, mesa.mesa.idMesa, rows)"
-                                        :is-row-checkable="(row) => row.estado !== 'entregado'"
-                                        :checkable="puedeAccederOrden(mesa.mesa.idUsuario)" mobile-cards narrow
-                                        custom-row-key="itemId" :checkbox-position="checkboxPosition"
-                                        :checkbox-type="checkboxType">
-
-                                        <b-table-column field="nombre" label="Nombre" v-slot="props">
-                                            {{ props.row.nombre }}
-                                            <p v-if="props.row.resumenCombo"
-                                                class="is-size-6 has-text-dark has-text-weight-bold mt-1"
-                                                style="white-space: pre-line;">
-                                                <b-icon icon="food-variant" size="is-small"></b-icon>
-                                                {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
-                                            </p>
-                                        </b-table-column>
-
-                                        <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                            {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
-                                        </b-table-column>
-
-                                        <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                            {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
-                                        </b-table-column>
-                                        <b-table-column field="estado" label="" v-slot="props">
-                                            <b-icon icon="alert" type="is-danger"
-                                                v-if="props.row.estado === 'pendiente'"></b-icon>
-                                            <b-icon icon="bell-ring" type="is-warning" title="¡Listo! Retirar de cocina"
-                                                v-if="props.row.estado === 'listo'"></b-icon>
-                                            <b-icon icon="check" type="is-success"
-                                                v-if="props.row.estado === 'entregado'"></b-icon>
-                                        </b-table-column>
-                                    </b-table>
-                                </div>
-                            </div>
-                        </b-collapse>
-                        <br>
-                        <div class="has-text-centered">
-                            <!-- Mesa libre sin reserva activa -->
-                            <b-button type="is-primary" icon-left="check" @click="ocuparMesa(mesa)"
-                                v-if="mesa.mesa.estado === 'libre' && !mesa.mesa.reserva">Ocupar</b-button>
-                            <!-- Mesa libre pero con reserva activa: bloqueada -->
-                            <div v-if="mesa.mesa.estado === 'libre' && mesa.mesa.reserva"
-                                class="notification is-danger is-light py-2 px-3">
-                                <b-icon icon="lock" size="is-small"></b-icon>
-                                <b>Mesa {{ mesa.mesa.reserva.estado === 'PENDIENTE' ? 'en espera de confirmación' :
-                                    'confirmada' }}</b> — solo
-                                puede abrirse desde <b>Gestión de Reservas</b>
-                            </div>
-                            <div class="field is-grouped is-grouped-centered is-grouped-multiline"
-                                v-if="mesa.mesa.estado === 'ocupada' && puedeAccederOrden(mesa.mesa.idUsuario)">
-                                <p class="control" v-if="rol !== 'mesero'">
-                                    <b-button type="is-success" icon-left="cash" @click="cobrar(mesa)">Cobrar</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-info" icon-left="printer" is-light
-                                        @click="imprimirPrecuenta(mesa, 'LOCAL')"
-                                        title="Imprimir detalle para el cliente">Detalle</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-info" icon-left="plus"
-                                        @click="ocuparMesa(mesa)">Agregar</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-primary" icon-left="account-multiple-plus"
-                                        @click="compartirMesa(mesa)"
-                                        title="Compartir mesa con otro grupo">Compartir</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-warning" icon-left="check"
-                                        v-if="(checkedRowsMap[mesa.mesa.idMesa] || []).length > 0"
-                                        @click="marcarInsumosEntregados(mesa)">Entregado</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-danger" icon-left="close"
-                                        @click="cancelarOrden(mesa.mesa.idMesa)">Cancelar</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-info" is-light icon-left="printer"
-                                        @click="imprimirComandaMesa(mesa)"
-                                        title="Imprimir comanda para cocina">Comanda</b-button>
-                                </p>
-                                <p class="control">
-                                    <b-button type="is-link" is-light icon-left="swap-horizontal"
-                                        @click="solicitarCambioMesa(mesa, 'LOCAL')"
-                                        title="Cambiar de mesa">Cambiar</b-button>
-                                </p>
-                            </div>
-                            <p class="has-text-danger"
-                                v-if="mesa.mesa.estado === 'ocupada' && !puedeAccederOrden(mesa.mesa.idUsuario)">
-                                Sin acceso a esta orden
-                            </p>
-                            <div class="notification is-success is-light py-2 px-3 mb-0"
-                                v-if="mesa.mesa.estado === 'pagada'">
-                                <b-icon icon="cash-check" type="is-success"></b-icon>
-                                <span v-if="tienePendiente(mesa.insumos)"><strong>Cobrado</strong> — el pedido está en
-                                    preparación en
-                                    cocina</span>
-                                <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                                <div class="mt-2" v-if="puedeAccederOrden(mesa.mesa.idUsuario)">
-                                    <b-button v-if="!tienePendiente(mesa.insumos)" type="is-success"
-                                        icon-left="hand-okay" class="mr-2"
-                                        @click="entregarOrdenPagada('LOCAL', mesa.mesa.idMesa)">Entregar al cliente</b-button>
-                                    <b-button type="is-info" is-light icon-left="printer" class="mr-2"
-                                        @click="imprimirComandaMesa(mesa)" title="Reimprimir comanda">Comanda</b-button>
-                                    <b-button type="is-info" icon-left="plus" @click="ocuparMesa(mesa)">Agregar
-                                        más</b-button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <tarjeta-mesa
+                        :mesa="mesa"
+                        :puede-acceder="puedeAccederOrden(mesa.mesa.idUsuario)"
+                        :checked-rows="checkedRowsMap[mesa.mesa.idMesa] || []"
+                        @update:checked-rows="$set(checkedRowsMap, mesa.mesa.idMesa, $event)"
+                        :checkbox-position="checkboxPosition"
+                        :checkbox-type="checkboxType"
+                        :rol="rol"
+                        :datos="datos"
+                        @ocuparMesa="ocuparMesa"
+                        @cobrar="cobrar"
+                        @imprimirPrecuenta="imprimirPrecuenta"
+                        @compartirMesa="compartirMesa"
+                        @marcarInsumosEntregados="marcarInsumosEntregados"
+                        @cancelarOrden="cancelarOrden"
+                        @imprimirComandaMesa="imprimirComandaMesa"
+                        @solicitarCambioMesa="solicitarCambioMesa"
+                        @entregarOrdenPagada="entregarOrdenPagada"
+                        @liberarMesa="liberarMesa"
+                        @imprimirComprobanteDesdeMesa="imprimirComprobanteDesdeMesa"
+                    />
                 </div>
 
                 <!-- Deliveries Activos -->
                 <div class="column is-4-desktop is-6-tablet" v-for="del in deliveriesNormales"
                     :key="'delivery-' + del.delivery.idDelivery" :id="'delivery-' + del.delivery.idDelivery">
 
-                    <div class="box has-background-info-light" :class="{ 'orden-lista-pulso': tieneListo(del.insumos) }">
-                        <p class="has-text-info has-text-weight-bold mb-1">
-                            <b-icon icon="truck-delivery" size="is-small"></b-icon> DELIVERY
-                        </p>
-                        <div
-                            class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
-                            <p class="title is-3 has-text-grey mb-0">{{ del.delivery.cliente || ('Delivery ' + del.delivery.idDelivery) }}</p>
-                            <span class="title is-1 has-text-weight-bold"
-                                v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
-                                ${{ del.delivery.total }}
-                            </span>
-                        </div>
-                        <p v-if="del.delivery.direccion && puedeAccederOrden(del.delivery.idUsuario)">
-                            <strong>Dirección</strong>: {{
-                            del.delivery.direccion }}</p>
-                        <p v-if="del.delivery.telefono && puedeAccederOrden(del.delivery.idUsuario)">
-                            <strong>Teléfono</strong>: {{
-                            del.delivery.telefono }}</p>
-                        <p><strong>Atiende</strong>: {{ del.delivery.atiende }}</p>
-
-                        <b-collapse class="card mt-2" animation="slide" aria-id="contentIdForA11y3"
-                            v-if="del.insumos.length > 0 && puedeAccederOrden(del.delivery.idUsuario)">
-                            <template #trigger="props">
-                                <div class="card-header" role="button" aria-controls="contentIdForA11y3"
-                                    :aria-expanded="props.open">
-                                    <p class="card-header-title">Insumos en el delivery</p>
-                                    <a class="card-header-icon">
-                                        <b-icon :icon="props.open ? 'menu-down' : 'menu-up'"></b-icon>
-                                    </a>
-                                </div>
-                            </template>
-
-                            <div class="card-content">
-                                <div class="content">
-                                    <b-table :data="del.insumos" mobile-cards narrow>
-                                        <b-table-column field="nombre" label="Nombre" v-slot="props">
-                                            {{ props.row.nombre }}
-                                            <p v-if="props.row.resumenCombo"
-                                                class="is-size-6 has-text-dark has-text-weight-bold mt-1"
-                                                style="white-space: pre-line;">
-                                                <b-icon icon="food-variant" size="is-small"></b-icon>
-                                                {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
-                                            </p>
-                                        </b-table-column>
-                                        <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                            {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
-                                        </b-table-column>
-                                        <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                            {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
-                                        </b-table-column>
-                                        <b-table-column field="estado" label="" v-slot="props">
-                                            <b-icon icon="alert" type="is-danger"
-                                                v-if="props.row.estado === 'pendiente'"></b-icon>
-                                            <b-icon icon="bell-ring" type="is-warning" title="¡Listo! Retirar de cocina"
-                                                v-if="props.row.estado === 'listo'"></b-icon>
-                                            <b-icon icon="check" type="is-success"
-                                                v-if="props.row.estado === 'entregado'"></b-icon>
-                                        </b-table-column>
-                                    </b-table>
-                                </div>
-                            </div>
-                        </b-collapse>
-                        <br>
-                        <div class="has-text-centered">
-                            <template v-if="del.delivery.estado_orden !== 'pagada'">
-                                <div class="field is-grouped is-grouped-centered is-grouped-multiline"
-                                    v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                    <p class="control" v-if="rol !== 'mesero'">
-                                        <b-button type="is-success" icon-left="cash"
-                                            @click="cobrarDelivery(del)">Cobrar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" icon-left="printer" is-light
-                                            @click="imprimirPrecuenta(del, del.delivery.tipo_orden || 'DELIVERY')"
-                                            title="Imprimir detalle para el cliente">Detalle</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" icon-left="plus"
-                                            @click="editarDelivery(del)">Agregar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-danger" icon-left="close"
-                                            @click="cancelarDelivery(del.delivery.idDelivery)">Cancelar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" is-light icon-left="printer"
-                                            @click="imprimirComandaDelivery(del)"
-                                            title="Imprimir comanda para cocina">Comanda</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-link" is-light icon-left="swap-horizontal"
-                                            @click="solicitarCambioMesa(del, 'DELIVERY')"
-                                            title="Asignar a una mesa">Cambiar</b-button>
-                                    </p>
-                                </div>
-                                <p class="has-text-danger" v-else>
-                                    Sin acceso a este delivery
-                                </p>
-                            </template>
-                            <div class="notification is-success is-light py-2 px-3 mb-0"
-                                v-if="del.delivery.estado_orden === 'pagada'">
-                                <b-icon icon="cash-check" type="is-success"></b-icon>
-                                <span v-if="tienePendiente(del.insumos)"><strong>Cobrado</strong> — el pedido está en
-                                    preparación en
-                                    cocina</span>
-                                <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                                <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                    <b-button v-if="!tienePendiente(del.insumos)" type="is-success"
-                                        icon-left="hand-okay" class="mr-2"
-                                        @click="entregarOrdenPagada('DELIVERY', del.delivery.idDelivery)">Entregar al cliente</b-button>
-                                    <b-button type="is-info" is-light icon-left="printer" class="mr-2"
-                                        @click="imprimirComandaDelivery(del)"
-                                        title="Reimprimir comanda">Comanda</b-button>
-                                    <b-button type="is-info" icon-left="plus" @click="editarDelivery(del)">Agregar
-                                        más</b-button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <tarjeta-delivery
+                        :del="del"
+                        :puede-acceder="puedeAccederOrden(del.delivery.idUsuario)"
+                        :rol="rol"
+                        tipo="DELIVERY"
+                        @cobrarDelivery="cobrarDelivery"
+                        @imprimirPrecuenta="imprimirPrecuenta"
+                        @editarDelivery="editarDelivery"
+                        @cancelarDelivery="cancelarDelivery"
+                        @imprimirComandaDelivery="imprimirComandaDelivery"
+                        @solicitarCambioMesa="solicitarCambioMesa"
+                        @entregarOrdenPagada="entregarOrdenPagada"
+                    />
                 </div>
 
                 <!-- Para llevar activos -->
                 <div class="column is-4-desktop is-6-tablet" v-for="del in paraLlevar"
                     :key="'llevar-' + del.delivery.idDelivery" :id="'llevar-' + del.delivery.idDelivery">
-                    <div class="box has-background-warning-light"
-                        :class="{ 'orden-lista-pulso': tieneListo(del.insumos) }">
-                        <p class="has-text-warning-dark has-text-weight-bold mb-1">
-                            <b-icon icon="walk" size="is-small"></b-icon> PARA LLEVAR
-                        </p>
-                        <div
-                            class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap mb-2">
-                            <p class="title is-3 has-text-grey mb-0">{{ del.delivery.cliente || ('Pedido ' + del.delivery.idDelivery) }}</p>
-                            <span class="title is-1 has-text-weight-bold"
-                                v-if="del.delivery.total && puedeAccederOrden(del.delivery.idUsuario)">
-                                ${{ del.delivery.total }}
-                            </span>
-                        </div>
-                        <p v-if="del.delivery.telefono && puedeAccederOrden(del.delivery.idUsuario)">
-                            <strong>Teléfono</strong>: {{
-                            del.delivery.telefono }}</p>
-                        <p><strong>Atiende</strong>: {{ del.delivery.atiende }}</p>
-
-                        <b-collapse class="card mt-2" animation="slide"
-                            v-if="del.insumos.length > 0 && puedeAccederOrden(del.delivery.idUsuario)">
-                            <template #trigger="props">
-                                <div class="card-header" role="button" :aria-expanded="props.open">
-                                    <p class="card-header-title">Insumos del pedido</p>
-                                    <a class="card-header-icon">
-                                        <b-icon :icon="props.open ? 'menu-down' : 'menu-up'"></b-icon>
-                                    </a>
-                                </div>
-                            </template>
-                            <div class="card-content">
-                                <div class="content">
-                                    <b-table :data="del.insumos" mobile-cards narrow>
-                                        <b-table-column field="nombre" label="Nombre" v-slot="props">
-                                            {{ props.row.nombre }}
-                                            <p v-if="props.row.resumenCombo"
-                                                class="is-size-6 has-text-dark has-text-weight-bold mt-1"
-                                                style="white-space: pre-line;">
-                                                <b-icon icon="food-variant" size="is-small"></b-icon>
-                                                {{ Utiles.formatearResumenCombo(props.row.resumenCombo) }}
-                                            </p>
-                                        </b-table-column>
-                                        <b-table-column field="cantidad" label="Cantidad" v-slot="props">
-                                            {{ props.row.cantidad }} X {{ Utiles.formatearDinero(props.row.precio) }}
-                                        </b-table-column>
-                                        <b-table-column field="subtotal" label="Subtotal" v-slot="props">
-                                            {{ Utiles.formatearDinero(props.row.cantidad * props.row.precio) }}
-                                        </b-table-column>
-                                        <b-table-column field="estado" label="" v-slot="props">
-                                            <b-icon icon="alert" type="is-danger"
-                                                v-if="props.row.estado === 'pendiente'"></b-icon>
-                                            <b-icon icon="bell-ring" type="is-warning" title="¡Listo! Retirar de cocina"
-                                                v-if="props.row.estado === 'listo'"></b-icon>
-                                            <b-icon icon="check" type="is-success"
-                                                v-if="props.row.estado === 'entregado'"></b-icon>
-                                        </b-table-column>
-                                    </b-table>
-                                </div>
-                            </div>
-                        </b-collapse>
-                        <br>
-                        <div class="has-text-centered">
-                            <template v-if="del.delivery.estado_orden !== 'pagada'">
-                                <div class="field is-grouped is-grouped-centered is-grouped-multiline"
-                                    v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                    <p class="control" v-if="rol !== 'mesero'">
-                                        <b-button type="is-success" icon-left="cash"
-                                            @click="cobrarDelivery(del)">Cobrar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" icon-left="printer" is-light
-                                            @click="imprimirPrecuenta(del, 'LLEVAR')"
-                                            title="Imprimir detalle para el cliente">Detalle</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" icon-left="plus"
-                                            @click="editarParaLlevar(del)">Agregar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-danger" icon-left="close"
-                                            @click="cancelarDelivery(del.delivery.idDelivery)">Cancelar</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-info" is-light icon-left="printer"
-                                            @click="imprimirComandaDelivery(del)"
-                                            title="Imprimir comanda para cocina">Comanda</b-button>
-                                    </p>
-                                    <p class="control">
-                                        <b-button type="is-link" is-light icon-left="swap-horizontal"
-                                            @click="solicitarCambioMesa(del, 'DELIVERY')"
-                                            title="Asignar a una mesa">Cambiar</b-button>
-                                    </p>
-                                </div>
-                                <p class="has-text-danger" v-else>
-                                    Sin acceso a esta orden
-                                </p>
-                            </template>
-                            <div class="notification is-success is-light py-2 px-3 mb-0"
-                                v-if="del.delivery.estado_orden === 'pagada'">
-                                <b-icon icon="cash-check" type="is-success"></b-icon>
-                                <span v-if="tienePendiente(del.insumos)"><strong>Cobrado</strong> — el pedido está en
-                                    preparación en
-                                    cocina</span>
-                                <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
-                                <div class="mt-2" v-if="puedeAccederOrden(del.delivery.idUsuario)">
-                                    <b-button v-if="!tienePendiente(del.insumos)" type="is-success"
-                                        icon-left="hand-okay" class="mr-2"
-                                        @click="entregarOrdenPagada('LLEVAR', del.delivery.idDelivery)">Entregar al cliente</b-button>
-                                    <b-button type="is-info" is-light icon-left="printer" class="mr-2"
-                                        @click="imprimirComandaDelivery(del)"
-                                        title="Reimprimir comanda">Comanda</b-button>
-                                    <b-button type="is-info" icon-left="plus" @click="editarParaLlevar(del)">Agregar
-                                        más</b-button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <tarjeta-delivery
+                        :del="del"
+                        :puede-acceder="puedeAccederOrden(del.delivery.idUsuario)"
+                        :rol="rol"
+                        tipo="LLEVAR"
+                        @cobrarDelivery="cobrarDelivery"
+                        @imprimirPrecuenta="imprimirPrecuenta"
+                        @editarParaLlevar="editarParaLlevar"
+                        @imprimirComprobanteDesdeDelivery="imprimirComprobanteDesdeDelivery"
+                        @cancelarDelivery="cancelarDelivery"
+                        @imprimirComandaDelivery="imprimirComandaDelivery"
+                        @solicitarCambioMesa="solicitarCambioMesa"
+                        @entregarOrdenPagada="entregarOrdenPagada"
+                    />
                 </div>
             </template>
         </div>
+
+        <!-- Vista de Lista (Componente Extraído) -->
+        <div v-else-if="vistaActual === 'lista' && !cargando && ordenesUnificadas.length === 0"
+            class="has-text-centered py-6 is-flex is-flex-direction-column is-align-items-center" style="animation: fadeIn 0.5s;">
+            <div class="mb-4 p-5" style="border-radius: 50%; background: rgba(200, 230, 255, 0.3); display: inline-block;">
+                <b-icon icon="clipboard-text-off-outline" type="is-info" custom-size="fa-5x" style="font-size: 5rem; opacity: 0.7;"></b-icon>
+            </div>
+            <p class="title is-3 mt-3 has-text-info-dark">¡Sin pedidos activos!</p>
+            <p class="subtitle is-5 has-text-grey mt-2">Todas las mesas están libres.<br><small>Usá los botones de arriba para abrir una mesa, llevar o delivery.</small></p>
+        </div>
+        <lista-ordenes v-else-if="vistaActual === 'lista'" :ordenes="ordenesUnificadas" :cargando="cargando" :rol="rol"
+            :idUsuarioActual="idUsuarioActual" :datos="datos" @entregar="o => entregarOrdenPagada(o.tipoRef, o.idRef)"
+            @servir="servirMesaCompleta" @liberar="o => liberarMesa(o.tipoRef, o.idRef)"
+            @cobrar="o => o.tipoRef === 'LOCAL' ? cobrar(o.dataOriginal) : cobrarDelivery(o.dataOriginal)"
+            @comanda="o => o.tipoRef === 'LOCAL' ? imprimirComandaMesa(o.dataOriginal) : imprimirComandaDelivery(o.dataOriginal)"
+            @ticket="o => o.tipoRef === 'LOCAL' ? imprimirComprobanteDesdeMesa(o.dataOriginal) : imprimirComprobanteDesdeDelivery(o.dataOriginal)"
+            @detalle="o => imprimirPrecuenta(o.dataOriginal, o.tipoRef)"
+            @agregar="o => o.tipoRef === 'LOCAL' ? ocuparMesa(o.dataOriginal) : (o.tipoRef === 'LLEVAR' ? editarParaLlevar(o.dataOriginal) : editarDelivery(o.dataOriginal))"
+            @compartir="o => compartirMesa(o.dataOriginal)"
+            @cambiar="o => solicitarCambioMesa(o.dataOriginal, o.tipoRef)"
+            @cancelar="o => o.tipoRef === 'LOCAL' ? cancelarOrden(o.idRef) : cancelarDelivery(o.idRef)"></lista-ordenes>
         <ticket @impreso="onImpreso" :venta="this.ventaSeleccionada" :insumos="insumosSeleccionados" :datosLocal="datos"
             :logo="logo" v-if="mostrarTicket"></ticket>
 
-        <b-modal :active.sync="mostrarModalCobro" has-modal-card trap-focus>
-            <div class="modal-card" style="width: auto" v-if="elementoCobro">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">
-                        Cobrar {{ tipoCobro === 'LOCAL' ? 'Mesa #' + elementoCobro.mesa.idMesa : (tipoCobro === 'LLEVAR' ? 'Para llevar: ' : 'Delivery: ') + elementoCobro.delivery.cliente }}
-                    </p>
-                </header>
-                <section class="modal-card-body">
-                    <p class="is-size-4 has-text-centered mb-4">
-                        Total a pagar: <strong>{{ Utiles.formatearDinero(totalACobrar) }}</strong>
-                    </p>
+        <modal-ticket-detalle :active="mostrarTicketMesero" modo="TICKET" :nombreLocal="datos.nombre"
+            :venta="ventaSeleccionada" :insumos="insumosSeleccionados"
+            @close="mostrarTicketMesero = false"></modal-ticket-detalle>
 
-                    <b-field label="Método de pago principal">
-                        <b-select v-model="pago.metodo" expanded>
-                            <option value="EFECTIVO">Efectivo 💵</option>
-                            <option value="TARJETA">Tarjeta / Transferencia 💳</option>
-                            <option value="QR">Código QR 📱</option>
-                            <option value="MIXTO">Mixto (Dividir pago) 🧾</option>
-                        </b-select>
-                    </b-field>
+        <modal-ticket-detalle :active="mostrarComandaMesero" modo="COMANDA" :comanda="comandaSeleccionada"
+            @close="mostrarComandaMesero = false"></modal-ticket-detalle>
 
-                    <div v-if="pago.metodo === 'MIXTO'" class="box mt-4">
-                        <p class="has-text-weight-bold mb-2">Desglose de montos:</p>
-                        <b-field label="Efectivo (Bs.)">
-                            <b-input type="number" step="0.01" min="0" v-model="pago.montoEfectivo"></b-input>
-                        </b-field>
-                        <b-field label="Tarjeta/Transf. (Bs.)">
-                            <b-input type="number" step="0.01" min="0" v-model="pago.montoTarjeta"></b-input>
-                        </b-field>
-                        <b-field label="Código QR (Bs.)">
-                            <b-input type="number" step="0.01" min="0" v-model="pago.montoQR"></b-input>
-                        </b-field>
-                        <p class="is-size-6 mt-3"
-                            :class="{ 'has-text-danger': totalDesglose < totalACobrar, 'has-text-success': totalDesglose >= totalACobrar }">
-                            Suma total devengada: {{ Utiles.formatearDinero(totalDesglose) }} / {{
-                                Utiles.formatearDinero(totalACobrar) }}
-                        </p>
-                    </div>
+        <modal-cobro :active="mostrarModalCobro" :elemento="elementoCobro" :tipoCobro="tipoCobro"
+            @close="mostrarModalCobro = false" @confirmar="onConfirmarPago"></modal-cobro>
 
-                    <div v-else class="mt-4">
-                        <b-field label="Monto Recibido en Físico (Bs.)">
-                            <b-input type="number" step="0.01" :min="totalACobrar"
-                                v-model="pago.montoRecibido"></b-input>
-                        </b-field>
-                        <p v-if="cambioIndividual >= 0" class="has-text-success is-size-5 mt-2">
-                            Cambio a devolver: <b>{{ Utiles.formatearDinero(cambioIndividual) }}</b>
-                        </p>
-                    </div>
+        <modal-cliente :active="mostrarModalCliente" :tipoOrden="pendingTipoOrden" @close="mostrarModalCliente = false"
+            @confirmar="onConfirmarCliente"></modal-cliente>
 
-                    <div class="field mt-4">
-                        <b-checkbox v-model="imprimirAlFinal">
-                            Imprimir ticket de venta
-                        </b-checkbox>
-                    </div>
+        <modal-mesero :active="mostrarModalMesero" :meseros="meseros" @close="mostrarModalMesero = false"
+            @confirmar="onConfirmarMesero"></modal-mesero>
 
-                </section>
-                <footer class="modal-card-foot">
-                    <b-button label="Cancelar" type="is-dark" @click="mostrarModalCobro = false" />
-                    <b-button label="Confirmar Pago" type="is-success" icon-left="cash" @click="procesarCobro"
-                        :disabled="!pagoValido" />
-                </footer>
-            </div>
-        </b-modal>
-
-        <!-- Modal cliente para llevar / delivery -->
-        <b-modal :active.sync="mostrarModalCliente" has-modal-card trap-focus :can-cancel="['escape', 'outside']">
-            <div class="modal-card" style="min-width: 420px">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">
-                        <b-icon :icon="pendingTipoOrden === 'DELIVERY' ? 'truck-delivery' : 'walk'"
-                            size="is-small"></b-icon>
-                        &nbsp;{{ pendingTipoOrden === 'DELIVERY' ? 'Nuevo Delivery' : 'Para Llevar' }} — ¿Para quién?
-                    </p>
-                </header>
-                <section class="modal-card-body">
-                    <b-field label="Cliente">
-                        <b-autocomplete v-model="formCliente.nombre" :data="sugerenciasClientes"
-                            placeholder="Escribe nombre o mostrador..." icon="account-search" field="nombre_completo"
-                            :loading="buscandoCliente" @typing="buscarClienteOrden" @select="seleccionarClienteOrden"
-                            clearable>
-                            <template slot="empty">Sin resultados — se usará el nombre escrito</template>
-                        </b-autocomplete>
-                    </b-field>
-                    <b-field label="Teléfono">
-                        <b-input v-model="formCliente.telefono" placeholder="Opcional" icon="phone"></b-input>
-                    </b-field>
-                    <b-field label="Dirección" v-if="pendingTipoOrden === 'DELIVERY'">
-                        <b-input v-model="formCliente.direccion" placeholder="Dirección de entrega"
-                            icon="map-marker"></b-input>
-                    </b-field>
-                </section>
-                <footer class="modal-card-foot">
-                    <b-button label="Cancelar" type="is-dark" @click="mostrarModalCliente = false" />
-                    <b-button label="Continuar" type="is-primary" icon-left="arrow-right"
-                        @click="confirmarClienteOrden" />
-                </footer>
-            </div>
-        </b-modal>
-
-        <!-- Modal asignación de mesero (solo admin) -->
-        <b-modal :active.sync="mostrarModalMesero" has-modal-card trap-focus :can-cancel="['escape', 'outside']">
-            <div class="modal-card" style="width: 380px">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Asignar mesero</p>
-                </header>
-                <section class="modal-card-body">
-                    <b-field label="Selecciona el mesero que atenderá esta orden">
-                        <b-select v-model="meseroAsignadoId" expanded placeholder="-- Seleccionar mesero --">
-                            <option v-for="m in meseros" :key="m.id" :value="m.id">{{ m.nombre }}</option>
-                        </b-select>
-                    </b-field>
-                </section>
-                <footer class="modal-card-foot">
-                    <b-button label="Cancelar" type="is-dark" @click="mostrarModalMesero = false" />
-                    <b-button label="Continuar" type="is-primary" icon-left="arrow-right" :disabled="!meseroAsignadoId"
-                        @click="confirmarAsignacionMesero" />
-                </footer>
-            </div>
+        <b-modal :active.sync="mostrarModalCaja" has-modal-card trap-focus>
+            <widget-caja></widget-caja>
         </b-modal>
     </section>
 </template>
@@ -570,10 +169,18 @@
 import HttpService from '../../Servicios/HttpService'
 import Ticket from '../Ventas/Ticket.vue'
 import Utiles from '../../Servicios/Utiles'
+import ListaOrdenes from './ListaOrdenes.vue'
+import ModalCobro from './ModalCobro.vue'
+import ModalCliente from './ModalCliente.vue'
+import ModalMesero from './ModalMesero.vue'
+import ModalTicketDetalle from './ModalTicketDetalle.vue'
+import WidgetCaja from '../Caja/WidgetCaja.vue'
+import TarjetaMesa from './TarjetaMesa.vue'
+import TarjetaDelivery from './TarjetaDelivery.vue'
 
 export default {
     name: "RealizarOrden",
-    components: { Ticket },
+    components: { Ticket, ListaOrdenes, ModalCobro, ModalCliente, ModalMesero, ModalTicketDetalle, WidgetCaja, TarjetaMesa, TarjetaDelivery },
 
     data() {
         return {
@@ -590,6 +197,7 @@ export default {
             ventaSeleccionada: {},
             insumosSeleccionados: [],
             mostrarModalCobro: false,
+            mostrarModalCaja: false,
             imprimirAlFinal: false,
             elementoCobro: null, // Puede ser mesa o delivery
             tipoCobro: 'LOCAL',
@@ -612,46 +220,123 @@ export default {
             // Modal cliente para llevar / delivery
             mostrarModalCliente: false,
             pendingTipoOrden: 'LLEVAR',
-            formCliente: { nombre: '', telefono: '', direccion: '' },
-            sugerenciasClientes: [],
-            buscandoCliente: false,
             _timerCliente: null,
             audioCampanaListo: null,
             audioListo: false,
             _debounceSonidoListo: null,
             ultimoIdInteractuado: null,
+            vistaActual: localStorage.getItem('pos_vista_preferida') || 'mapa',
+            mostrarTicketMesero: false,
+            mostrarComandaMesero: false,
+            comandaSeleccionada: null,
         }
     },
 
     computed: {
-        totalACobrar() {
-            if (!this.elementoCobro) return 0;
-            const insumos = this.elementoCobro.insumos || [];
-            const noPagados = insumos.filter(i => !i.pagado);
-            if (noPagados.length > 0) {
-                return noPagados.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0);
-            }
-            // Si no hay flag pagado (orden normal sin cobros previos), usar total original
-            return parseFloat(this.tipoCobro === 'LOCAL' ? this.elementoCobro.mesa.total : this.elementoCobro.delivery.total) || 0;
-        },
-        totalDesglose() {
-            return parseFloat(this.pago.montoEfectivo || 0) + parseFloat(this.pago.montoTarjeta || 0) + parseFloat(this.pago.montoQR || 0);
-        },
-        cambioIndividual() {
-            if (!this.elementoCobro) return 0;
-            return parseFloat(this.pago.montoRecibido || 0) - this.totalACobrar;
-        },
-        pagoValido() {
-            if (!this.elementoCobro) return false;
-            let total = this.totalACobrar;
-            if (this.pago.metodo === 'MIXTO') return this.totalDesglose >= total;
-            return parseFloat(this.pago.montoRecibido || 0) >= total;
-        },
         deliveriesNormales() {
-            return this.deliveries.filter(d => (d.delivery.tipo_orden || 'DELIVERY') === 'DELIVERY')
+            let filtrada = this.deliveries.filter(d => (d.delivery.tipo_orden || 'DELIVERY') === 'DELIVERY')
+            if (this.rol === 'mesero') {
+                filtrada = filtrada.filter(d => this.puedeAccederOrden(d.delivery.idUsuario))
+            }
+            return filtrada
         },
         paraLlevar() {
-            return this.deliveries.filter(d => d.delivery.tipo_orden === 'LLEVAR')
+            let filtrada = this.deliveries.filter(d => d.delivery.tipo_orden === 'LLEVAR')
+            if (this.rol === 'mesero') {
+                filtrada = filtrada.filter(d => this.puedeAccederOrden(d.delivery.idUsuario))
+            }
+            return filtrada
+        },
+
+        ordenesUnificadas() {
+            const getPrioridad = (o) => {
+                const insumos = o.insumos || []
+                const esBebida = (i) => {
+                    const t = (i.tipo || '').toUpperCase()
+                    const c = (i.categoria || '').toUpperCase()
+                    return t === 'BEBIDA' || c === 'BEBIDA' || c === 'BEBIDAS'
+                }
+                // El estado de la ORDEN tiene precedencia sobre el estado de los ítems
+                // Prioridad 0: Entregada pero sin cobrar (urgente)
+                if (o.estado === 'entregada' && !o.esPagada) return 0
+                // Prioridad 2: Pagada (por despachar/entregar)
+                if (o.estado === 'pagada') return 2
+                // Prioridad 4: Entregada y cobrada — ya terminó
+                if (o.estado === 'entregada') return 4
+
+                // Solo para órdenes activas (ocupada / pendiente): revisar ítems
+                const itemsCocina = insumos.filter(i => !esBebida(i))
+                const hayListoCocina = itemsCocina.some(i => i.estado === 'listo')
+                const soloBebidasListas = itemsCocina.length === 0 && insumos.length > 0
+                // Prioridad 1: Comida lista en cocina (o pedido solo de bebidas)
+                if (hayListoCocina || soloBebidasListas) return 1
+                // Prioridad 3: En preparación
+                if (insumos.some(i => i.estado === 'pendiente')) return 3
+                return 4
+            }
+
+            const lista = []
+
+                // Procesar Mesas
+                ; (Array.isArray(this.mesas) ? this.mesas : []).forEach(m => {
+                    if (!m || !m.mesa || m.mesa.estado === 'libre') return
+                    const obj = {
+                        idUnique: 'mesa-' + m.mesa.idMesa,
+                        tipoRef: 'LOCAL',
+                        idRef: m.mesa.idMesa,
+                        cliente: m.mesa.cliente,
+                        atiende: m.mesa.atiende,
+                        idUsuario: m.mesa.idUsuario,
+                        total: m.mesa.total,
+                        estado: m.mesa.estado,
+                        created_at: m.mesa.created_at,
+                        insumos: m.insumos || [],
+                        esPagada: (m.insumos || []).length > 0 && (m.insumos || []).every(i => i.pagado == 1),
+                        dataOriginal: m
+                    }
+                    obj.prioridad = getPrioridad(obj)
+                    lista.push(obj)
+                })
+
+                // Procesar Deliveries y Para Llevar
+                ; (Array.isArray(this.deliveries) ? this.deliveries : []).forEach(d => {
+                    if (!d || !d.delivery) return
+                    const obj = {
+                        idUnique: (d.delivery.tipo_orden === 'LLEVAR' ? 'llevar-' : 'delivery-') + d.delivery.idDelivery,
+                        tipoRef: d.delivery.tipo_orden || 'DELIVERY',
+                        idRef: d.delivery.idDelivery,
+                        cliente: d.delivery.cliente,
+                        atiende: d.delivery.atiende,
+                        idUsuario: d.delivery.idUsuario,
+                        total: d.delivery.total,
+                        estado: d.delivery.estado_orden || 'pendiente',
+                        created_at: d.delivery.created_at,
+                        insumos: d.insumos || [],
+                        esPagada: (d.insumos || []).length > 0 && (d.insumos || []).every(i => i.pagado == 1),
+                        dataOriginal: d
+                    }
+                    obj.prioridad = getPrioridad(obj)
+                    lista.push(obj)
+                })
+
+            // Filtrar si es mesero para que no vea órdenes ajenas en la lista
+            let filtrada = lista;
+            if (this.rol === 'mesero') {
+                filtrada = lista.filter(o => this.puedeAccederOrden(o.idUsuario));
+            }
+
+            return filtrada.sort((a, b) => {
+                if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad
+                const fechaA = new Date(a.created_at || 0)
+                const fechaB = new Date(b.created_at || 0)
+                return fechaA - fechaB
+            })
+        }
+    },
+
+    watch: {
+        vistaActual(v) {
+            localStorage.setItem('pos_vista_preferida', v)
         }
     },
 
@@ -661,30 +346,127 @@ export default {
         this.obtenerDatos()
 
         if (this.$route.query.scrollId) {
-            this.ultimoIdInteractuado = (this.$route.query.scrollId.includes('-') || String(this.$route.query.scrollId).length > 5)
-                ? 'delivery-' + this.$route.query.scrollId
-                : 'mesa-' + this.$route.query.scrollId;
-
-            // Para pedidos "para llevar" que vienen de Ordenar
-            if (this.$route.query.tipo === 'LLEVAR') {
-                this.ultimoIdInteractuado = 'llevar-' + this.$route.query.scrollId;
-            }
+            const sid = this.$route.query.scrollId;
+            const tipo = this.$route.query.tipo;
+            if (tipo === 'LLEVAR') this.ultimoIdInteractuado = 'llevar-' + sid;
+            else if (tipo === 'DELIVERY' || sid.includes('-') || String(sid).length > 5) this.ultimoIdInteractuado = 'delivery-' + sid;
+            else this.ultimoIdInteractuado = 'mesa-' + sid;
         }
-        // Polling cada 3 segundos para notificar rápido al mesero cuando cocina marca listo
-        this.timer = setInterval(() => {
-            this.cargarDatos(true);
-            this.verificarCaja();
-        }, 3000);
-        window.addEventListener('keydown', this.manejarAtajos)
+        
+        this.iniciarPolling();
+        window.addEventListener('keydown', this.manejarAtajos);
+        document.addEventListener('visibilitychange', this.manejarVisibilidad);
     },
 
     beforeDestroy() {
-        if (this.timer) clearInterval(this.timer);
+        this.detenerPolling();
         if (this._debounceSonidoListo) clearTimeout(this._debounceSonidoListo)
         window.removeEventListener('keydown', this.manejarAtajos)
+        document.removeEventListener('visibilitychange', this.manejarVisibilidad)
     },
 
     methods: {
+        iniciarPolling() {
+            if (!this.timer) {
+                this.timer = setInterval(() => {
+                    this.cargarDatos(true);
+                    this.verificarCaja();
+                }, 5000);
+            }
+        },
+        detenerPolling() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
+        manejarVisibilidad() {
+            if (document.hidden) {
+                this.detenerPolling();
+            } else {
+                this.cargarDatos(true);
+                this.verificarCaja();
+                this.iniciarPolling();
+            }
+        },
+        ordenarInsumos(insumos) {
+            if (!insumos || !Array.isArray(insumos)) return [];
+            return [...insumos].sort((a, b) => {
+                const catA = (a.categoria || '').toLowerCase() === 'carnes';
+                const catB = (b.categoria || '').toLowerCase() === 'carnes';
+                if (catA && !catB) return -1;
+                if (!catA && catB) return 1;
+                return 0;
+            });
+        },
+        servirMesaCompleta(orden) {
+            const insumosNuevos = orden.insumos.map(i => {
+                // Marcar absolutamente todo como entregado
+                return { ...i, estado: 'entregado' };
+            });
+
+            this.cargando = true;
+            let payload = {
+                id: orden.idRef,
+                insumos: insumosNuevos,
+                total: orden.total,
+                atiende: orden.atiende,
+                idUsuario: orden.idUsuario,
+                cliente: orden.cliente,
+                ...this.payloadAcceso()
+            }
+
+            const api = (orden.tipoRef === 'LOCAL') ? "editar_mesa.php" : "editar_delivery.php";
+
+            HttpService.registrar(payload, api)
+                .then(resultado => {
+                    if (resultado) {
+                        // Después de marcar los ítems como entregados, actualizamos el estado global de la mesa a 'entregada' (Azul)
+                        // Enviamos el payload como POST JSON tal como lo espera el PHP
+                        return HttpService.registrar({ tipo: orden.tipoRef, id: orden.idRef }, "entregar_orden_pagada.php")
+                    }
+                })
+                .then(() => {
+                    this.$toast({ message: 'Mesa servida y marcada como Entregada', type: 'is-success' })
+                    this.cargarDatos(true)
+                    this.cargando = false
+                })
+                .catch(() => { this.cargando = false; this.$toast({ message: 'Error al actualizar', type: 'is-danger' }) })
+        },
+        abrirMesaRapido() {
+            this.$buefy.dialog.prompt({
+                title: 'Nueva Orden en Mesa',
+                message: '¿En qué número de mesa están?',
+                inputAttrs: {
+                    type: 'text',
+                    placeholder: 'Ej: 5 o 10-B',
+                    value: ''
+                },
+                confirmText: 'Abrir',
+                cancelText: 'Cancelar',
+                trapFocus: true,
+                onConfirm: (value) => {
+                    if (!value) return;
+                    // Buscar si la mesa ya existe en el sistema
+                    const mesaExistente = this.mesas.find(m => String(m.mesa.idMesa).toUpperCase() === String(value).toUpperCase());
+
+                    if (mesaExistente) {
+                        this.ocuparMesa(mesaExistente);
+                    } else {
+                        // Crear objeto de mesa virtual si no existe en el mapa base
+                        this.ocuparMesa({
+                            mesa: {
+                                idMesa: value,
+                                estado: 'libre',
+                                cliente: '',
+                                atiende: this.usuario && this.usuario.nombre ? this.usuario.nombre : ''
+                            },
+                            insumos: []
+                        });
+                    }
+                }
+            })
+        },
         manejarAtajos(e) {
             if (e.key === 'F2') {
                 e.preventDefault()
@@ -812,57 +594,109 @@ export default {
         },
 
         imprimirComprobante(venta) {
-            let hoy = new Date();
-            let fechaVenta = hoy.getFullYear() + '-' + (hoy.getMonth() + 1) + '-' + hoy.getDate() + ' ' + hoy.getHours() + ":" + hoy.getMinutes() + ":" + hoy.getSeconds();
+            this.ventaSeleccionada = venta;
+            this.insumosSeleccionados = this.ordenarInsumos(venta.insumos);
 
-            this.ventaSeleccionada = {
-                atendio: venta.atiende || venta.atendio,
-                cliente: venta.cliente,
-                fecha: fechaVenta,
-                pagado: venta.pagado,
-                total: venta.total,
-                metodoPago: venta.metodoPago || 'EFECTIVO',
-                montoEfectivo: venta.montoEfectivo || 0,
-                montoTarjeta: venta.montoTarjeta || 0,
-                montoQR: venta.montoQR || 0,
-                mesa: (venta.idMesa && parseInt(venta.idMesa) > 0) ? String(venta.idMesa) : null,
+            if (this.rol === 'mesero') {
+                this.mostrarTicketMesero = true;
+            } else {
+                this.mostrarTicket = true;
             }
-
-            this.insumosSeleccionados = venta.insumos
-            this.mostrarTicket = true
         },
 
         imprimirPrecuenta(elemento, tipo) {
             const esMesa = tipo === 'LOCAL';
+            const ahora = new Date();
+            const fechaActual = ahora.getFullYear() + '-' + (ahora.getMonth() + 1) + '-' + ahora.getDate() + ' ' + ahora.getHours() + ":" + ahora.getMinutes() + ":" + ahora.getSeconds();
+
             const datosVenta = {
                 atendio: esMesa ? elemento.mesa.atiende : elemento.delivery.atiende,
                 cliente: esMesa ? (elemento.mesa.cliente || 'S/N') : (elemento.delivery.cliente || 'S/N'),
                 idMesa: esMesa ? elemento.mesa.idMesa : (tipo === 'LLEVAR' ? 'PARA LLEVAR' : 'DELIVERY'),
                 total: parseFloat(esMesa ? elemento.mesa.total : elemento.delivery.total) || 0,
-                insumos: elemento.insumos,
-                metodoPago: 'PRE-CUENTA'
+                insumos: this.ordenarInsumos(elemento.insumos),
+                metodoPago: 'PRE-CUENTA',
+                fecha: fechaActual,
+                mesa: esMesa ? elemento.mesa.idMesa : null
             };
             this.imprimirComprobante(datosVenta);
         },
 
+        imprimirComprobanteDesdeMesa(mesa) {
+            const ahora = new Date();
+            const fechaActual = ahora.getFullYear() + '-' + (ahora.getMonth() + 1) + '-' + ahora.getDate() + ' ' + ahora.getHours() + ":" + ahora.getMinutes() + ":" + ahora.getSeconds();
+
+            const payload = {
+                idMesa: mesa.mesa.idMesa,
+                tipo_orden: 'LOCAL',
+                cliente: mesa.mesa.cliente,
+                total: mesa.mesa.total,
+                metodoPago: 'EFECTIVO', // Valor por defecto para re-impresión
+                atiende: mesa.mesa.atiende,
+                insumos: this.ordenarInsumos(mesa.insumos),
+                fecha: fechaActual,
+                mesa: mesa.mesa.idMesa
+            };
+            this.imprimirComprobante(payload);
+        },
+
+        imprimirComprobanteDesdeDelivery(del) {
+            const ahora = new Date();
+            const fechaActual = ahora.getFullYear() + '-' + (ahora.getMonth() + 1) + '-' + ahora.getDate() + ' ' + ahora.getHours() + ":" + ahora.getMinutes() + ":" + ahora.getSeconds();
+
+            const payload = {
+                idDelivery: del.delivery.idDelivery,
+                tipo_orden: del.delivery.tipo_orden || 'DELIVERY',
+                cliente: del.delivery.cliente,
+                total: del.delivery.total,
+                metodoPago: 'EFECTIVO',
+                atiende: del.delivery.atiende,
+                insumos: this.ordenarInsumos(del.insumos),
+                fecha: fechaActual
+            };
+            this.imprimirComprobante(payload);
+        },
+
         imprimirComandaMesa(mesa) {
+            const ahora = new Date();
+            const fechaActual = ahora.getFullYear() + '-' + (ahora.getMonth() + 1) + '-' + ahora.getDate() + ' ' + ahora.getHours() + ":" + ahora.getMinutes() + ":" + ahora.getSeconds();
+
             const orden = {
-                id: mesa.mesa.idMesa,
+                mesa: mesa.mesa.idMesa,
                 tipo: 'LOCAL',
                 cliente: mesa.mesa.cliente,
-                insumos: mesa.insumos
+                atendio: mesa.mesa.atiende || 'N/A',
+                insumos: this.ordenarInsumos(mesa.insumos),
+                metodoPago: 'COMANDA',
+                fecha: fechaActual
             }
-            this.Utiles.imprimirComanda(orden)
+            if (this.rol === 'mesero') {
+                this.comandaSeleccionada = orden;
+                this.mostrarComandaMesero = true;
+            } else {
+                this.imprimirComprobante(orden)
+            }
         },
 
         imprimirComandaDelivery(del) {
+            const ahora = new Date();
+            const fechaActual = ahora.getFullYear() + '-' + (ahora.getMonth() + 1) + '-' + ahora.getDate() + ' ' + ahora.getHours() + ":" + ahora.getMinutes() + ":" + ahora.getSeconds();
+
             const orden = {
-                id: del.delivery.idDelivery,
+                idDelivery: del.delivery.idDelivery,
                 tipo: del.delivery.tipo_orden || 'DELIVERY',
                 cliente: del.delivery.cliente,
-                insumos: del.insumos
+                atendio: del.delivery.atiende || 'N/A',
+                insumos: this.ordenarInsumos(del.insumos),
+                metodoPago: 'COMANDA',
+                fecha: fechaActual
             }
-            this.Utiles.imprimirComanda(orden)
+            if (this.rol === 'mesero') {
+                this.comandaSeleccionada = orden;
+                this.mostrarComandaMesero = true;
+            } else {
+                this.imprimirComprobante(orden)
+            }
         },
 
         marcarInsumosEntregados(mesa) {
@@ -939,15 +773,22 @@ export default {
             }
             const totalACobrar = insumosACobrar.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0)
             const pendientes = insumosACobrar.filter(i => {
-                const esCarnes = (i.categoria || '').toLowerCase() === 'carnes'
-                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
-                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+                if ((i.tipo || '').toUpperCase() === 'BEBIDA') return false
+                if (i.estado === 'entregado') return false // Si ya se entregó, no importa la cocina
+                
+                const esCarnes = (i.categoria || '').toLowerCase().trim() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla || 0) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina || 0) !== 0
 
-                // Si la parrilla está activa, las carnes se bloquean si no tienen acompañamiento listo
-                if (esCarnes && usaParrilla) return i.acompanamiento_listo === 0
+                const faltaParrilla = esCarnes && usaParrilla && i.estado === 'pendiente'
+                const faltaCocina = usaCocina && (esCarnes ? i.acompanamiento_listo === 0 : i.estado === 'pendiente')
 
-                // En cualquier otro caso (item normal, o carne con parrilla apagada), solo bloquea si cocina está activa
-                return usaCocina && i.estado === 'pendiente'
+                if (faltaParrilla || faltaCocina) {
+                    // Guardamos la razón para mostrarla en el mensaje
+                    i._razonPendiente = (faltaParrilla && faltaCocina) ? 'Parrilla y Cocina' : (faltaParrilla ? 'Parrilla' : 'Cocina')
+                    return true
+                }
+                return false
             })
             const abrirCobro = () => {
                 this.elementoCobro = mesa
@@ -958,7 +799,7 @@ export default {
             if (pendientes.length > 0) {
                 this.$buefy.dialog.confirm({
                     title: 'Ítems pendientes en cocina',
-                    message: `<b>${pendientes.length} ítem(s)</b> de esta mesa aún <b>no fueron marcados listos por cocina</b>:<br><ul>${pendientes.map(p => `<li>${p.cantidad}x ${p.nombre}</li>`).join('')}</ul>¿Deseas cobrar igual?`,
+                    message: `<b>${pendientes.length} ítem(s)</b> aún no han sido terminados:<br><ul>${pendientes.map(p => `<li>${p.cantidad}x ${p.nombre} <small class="has-text-danger">(Falta: ${p._razonPendiente})</small></li>`).join('')}</ul>¿Deseas cobrar igual?`,
                     confirmText: 'Sí, cobrar igual',
                     cancelText: 'Esperar',
                     type: 'is-warning',
@@ -984,12 +825,21 @@ export default {
             }
             const totalACobrar = insumosACobrar.reduce((s, i) => s + parseFloat(i.precio) * parseFloat(i.cantidad), 0)
             const pendientes = insumosACobrar.filter(i => {
-                const esCarnes = (i.categoria || '').toLowerCase() === 'carnes'
-                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla) !== 0
-                const usaCocina = parseInt(this.datos.usa_pantalla_cocina) !== 0
+                if ((i.tipo || '').toUpperCase() === 'BEBIDA') return false
+                if (i.estado === 'entregado') return false
+                
+                const esCarnes = (i.categoria || '').toLowerCase().trim() === 'carnes'
+                const usaParrilla = parseInt(this.datos.usa_pantalla_parrilla || 0) !== 0
+                const usaCocina = parseInt(this.datos.usa_pantalla_cocina || 0) !== 0
 
-                if (esCarnes && usaParrilla) return i.acompanamiento_listo === 0
-                return usaCocina && i.estado === 'pendiente'
+                const faltaParrilla = esCarnes && usaParrilla && i.estado === 'pendiente'
+                const faltaCocina = usaCocina && (esCarnes ? i.acompanamiento_listo === 0 : i.estado === 'pendiente')
+
+                if (faltaParrilla || faltaCocina) {
+                    i._razonPendiente = (faltaParrilla && faltaCocina) ? 'Parrilla y Cocina' : (faltaParrilla ? 'Parrilla' : 'Cocina')
+                    return true
+                }
+                return false
             })
             const abrirCobro = () => {
                 this.elementoCobro = del
@@ -1000,7 +850,7 @@ export default {
             if (pendientes.length > 0) {
                 this.$buefy.dialog.confirm({
                     title: 'Ítems pendientes en cocina',
-                    message: `<b>${pendientes.length} ítem(s)</b> de esta orden aún <b>no fueron marcados listos por cocina</b>:<br><ul>${pendientes.map(p => `<li>${p.cantidad}x ${p.nombre}</li>`).join('')}</ul>¿Deseas cobrar igual?`,
+                    message: `<b>${pendientes.length} ítem(s)</b> aún no han sido terminados:<br><ul>${pendientes.map(p => `<li>${p.cantidad}x ${p.nombre} <small class="has-text-danger">(Falta: ${p._razonPendiente})</small></li>`).join('')}</ul>¿Deseas cobrar igual?`,
                     confirmText: 'Sí, cobrar igual',
                     cancelText: 'Esperar',
                     type: 'is-warning',
@@ -1035,6 +885,13 @@ export default {
             };
         },
 
+        onConfirmarPago({ pago, imprimir }) {
+            this.pago = pago;
+            this.imprimirAlFinal = imprimir;
+            this.mostrarModalCobro = false;
+            this.procesarCobro();
+        },
+
         procesarCobro() {
             // Solo cobrar ítems no pagados previamente
             const todosInsumos = this.elementoCobro.insumos || []
@@ -1056,7 +913,7 @@ export default {
                 direccion: this.tipoCobro === 'DELIVERY' ? this.elementoCobro.delivery.direccion : '',
                 telefono: this.tipoCobro === 'DELIVERY' ? this.elementoCobro.delivery.telefono : '',
                 total: total,
-                pagado: this.pago.metodo === 'MIXTO' ? this.totalDesglose : parseFloat(this.pago.montoRecibido),
+                pagado: this.pago.metodo === 'MIXTO' ? (parseFloat(this.pago.montoEfectivo || 0) + parseFloat(this.pago.montoTarjeta || 0) + parseFloat(this.pago.montoQR || 0)) : parseFloat(this.pago.montoRecibido),
                 metodoPago: this.pago.metodo,
                 montoEfectivo: 0,
                 montoTarjeta: 0,
@@ -1089,19 +946,19 @@ export default {
                                 cancelText: 'Cerrar',
                                 type: 'is-info',
                                 onConfirm: () => {
-                                    this.Utiles.imprimirComanda({
-                                        id: payload.idDelivery,
-                                        tipo: payload.tipo_orden,
-                                        cliente: payload.cliente,
-                                        insumos: payload.insumos
-                                    });
+                                    this.imprimirComandaDelivery(this.elementoCobro);
                                 }
                             })
                         } else {
-                            this.$buefy.dialog.alert({
+                            this.$buefy.dialog.confirm({
                                 title: 'Venta registrada',
-                                message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b>',
-                                confirmText: 'OK'
+                                message: 'Pago procesado: <b>$' + payload.pagado.toFixed(2) + '</b><br>Cambio: <b>$' + cambio.toFixed(2) + '</b><br><br>¿Deseas imprimir la <b>Comanda</b> para cocina?',
+                                confirmText: 'Imprimir Comanda',
+                                cancelText: 'Cerrar',
+                                type: 'is-info',
+                                onConfirm: () => {
+                                    this.imprimirComandaMesa(this.elementoCobro);
+                                }
                             })
                         }
                         if (this.imprimirAlFinal) {
@@ -1248,6 +1105,14 @@ export default {
                     insumosEnLista: mesa.insumos || [],
                     cliente: mesa.mesa.cliente || (mesa.mesa.reserva ? mesa.mesa.reserva.nombre_cliente : "")
                 };
+
+                // Si la mesa ya tiene un mesero asignado (ej: al Agregar insumos), no pedirlo de nuevo
+                if (mesa.mesa.idUsuario) {
+                    params.meseroAsignado = { id: mesa.mesa.idUsuario, nombre: mesa.mesa.atiende };
+                    this.$router.push({ name: "Ordenar", params });
+                    return;
+                }
+
                 this._pendingOcuparMesa = 'mesa';
                 this._pendingOcuparParams = params;
                 this.meseroAsignadoId = null;
@@ -1317,8 +1182,13 @@ export default {
             return "Z2";
         },
 
-        confirmarAsignacionMesero() {
+        onConfirmarMesero(idMesero) {
+            this.meseroAsignadoId = idMesero;
             this.mostrarModalMesero = false;
+            this.confirmarAsignacionMesero();
+        },
+
+        confirmarAsignacionMesero() {
             const mesero = this.meseros.find(m => m.id === this.meseroAsignadoId);
             const params = Object.assign({}, this._pendingOcuparParams, {
                 meseroAsignado: mesero ? { id: mesero.id, nombre: mesero.nombre } : null
@@ -1328,48 +1198,26 @@ export default {
 
         nuevoDelivery() {
             this.pendingTipoOrden = 'DELIVERY';
-            this.formCliente = { nombre: '', telefono: '', direccion: '' };
-            this.sugerenciasClientes = [];
             this.mostrarModalCliente = true;
         },
 
         nuevoParaLlevar() {
             this.pendingTipoOrden = 'LLEVAR';
-            this.formCliente = { nombre: '', telefono: '', direccion: '' };
-            this.sugerenciasClientes = [];
             this.mostrarModalCliente = true;
         },
 
-        buscarClienteOrden(q) {
-            clearTimeout(this._timerCliente);
-            if (!q || q.length < 2) { this.sugerenciasClientes = []; return; }
-            this._timerCliente = setTimeout(() => {
-                this.buscandoCliente = true;
-                HttpService.obtener('obtener_clientes.php?q=' + encodeURIComponent(q)).then(datos => {
-                    this.sugerenciasClientes = (datos || []).map(c => ({
-                        ...c,
-                        nombre_completo: c.nombre + (c.apellido ? ' ' + c.apellido : '')
-                    }));
-                    this.buscandoCliente = false;
-                });
-            }, 350);
-        },
-
-        seleccionarClienteOrden(cliente) {
-            if (!cliente) return;
-            this.formCliente.nombre = cliente.nombre + (cliente.apellido ? ' ' + cliente.apellido : '');
-            if (cliente.telefono) this.formCliente.telefono = cliente.telefono;
-            if (cliente.direccion) this.formCliente.direccion = cliente.direccion;
-        },
-
-        confirmarClienteOrden() {
+        onConfirmarCliente(datos) {
             this.mostrarModalCliente = false;
+            this.confirmarClienteOrden(datos);
+        },
+
+        confirmarClienteOrden(datos) {
             const params = {
                 id: 'DELIVERY',
                 insumosEnLista: [],
-                cliente: this.formCliente.nombre,
-                telefono: this.formCliente.telefono,
-                direccion: this.formCliente.direccion,
+                cliente: datos.nombre,
+                telefono: datos.telefono,
+                direccion: datos.direccion,
                 tipo_orden: this.pendingTipoOrden
             };
             if (this.rol === 'admin') {
@@ -1466,7 +1314,10 @@ export default {
         },
 
         tieneListo(insumos) {
-            return (insumos || []).some(i => i.estado === 'listo' && (i.tipo || '').toUpperCase() !== 'BEBIDA')
+            return (insumos || []).some(i => i.estado === 'listo' &&
+                (i.tipo || '').toUpperCase() !== 'BEBIDA' &&
+                (i.categoria || '').toUpperCase() !== 'BEBIDA' &&
+                (i.categoria || '').toUpperCase() !== 'BEBIDAS')
         },
 
         tienePendiente(insumos) {
@@ -1483,13 +1334,31 @@ export default {
         async entregarOrdenPagada(tipo, id) {
             const ok = await HttpService.registrar({ tipo, id }, 'entregar_orden_pagada.php')
             if (ok) {
-                this.$toast({ message: 'Orden entregada al cliente', type: 'is-success' })
+                this.$toast({ message: 'Orden marcada como entregada', type: 'is-success' })
                 this.ultimoIdInteractuado = (tipo === 'LOCAL' ? 'mesa-' : (tipo === 'DELIVERY' ? 'delivery-' : 'llevar-')) + id;
                 this.cargarDatos()
             } else {
                 this.$toast({ message: 'Error al entregar', type: 'is-danger' })
             }
         },
+
+        async liberarMesa(tipo, id) {
+            this.$buefy.dialog.confirm({
+                title: 'Liberar Mesa',
+                message: '¿Estás seguro de que deseas liberar esta mesa? La orden desaparecerá del sistema.',
+                confirmText: 'Sí, liberar',
+                cancelText: 'Cancelar',
+                type: 'is-dark',
+                onConfirm: async () => {
+                    const ok = await HttpService.registrar({ tipo, id }, 'liberar_mesa.php')
+                    if (ok) {
+                        this.$toast({ message: 'Mesa liberada', type: 'is-success' })
+                        this.cargarDatos()
+                    }
+                }
+            })
+        },
+
 
         solicitarCambioMesa(elemento, tipo) {
             const refActual = tipo === 'LOCAL' ? elemento.mesa.idMesa : elemento.delivery.idDelivery;
@@ -1516,6 +1385,7 @@ export default {
                         .then(res => {
                             if (res.ok) {
                                 this.$toast({ message: 'Mesa cambiada con éxito', type: 'is-success' });
+                                this.ultimoIdInteractuado = 'mesa-' + nuevaMesa.trim();
                                 this.cargarDatos();
                             } else {
                                 const msg = res.error === 'MESA_OCUPADA' ? 'La mesa destino ya está ocupada' : 'Error al cambiar mesa';
@@ -1552,6 +1422,21 @@ export default {
     animation: parpadeo-listo 1.4s ease-in-out infinite;
     border: 2px solid #f5a623 !important;
 }
+
+.box-glass {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.box-glass:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
 @keyframes pulso-resaltar {
     0% {
         box-shadow: 0 0 0 0 rgba(72, 199, 142, 0.7);

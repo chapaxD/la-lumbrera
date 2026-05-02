@@ -304,7 +304,8 @@ export default ({
         ddParrilla: false,
         ddVentas: false,
         ddOperacion: false,
-        ddAdmin: false
+        ddAdmin: false,
+        timer: null
     }),
 
     computed: {
@@ -321,11 +322,38 @@ export default ({
         this.logo = Utiles.generarUrlImagen(this.datosLocal.logo)
         if (this.rol === 'admin') {
             this.obtenerReportesCocina()
-            setInterval(this.obtenerReportesCocina, 30000)
+            this.iniciarPolling()
+            document.addEventListener('visibilitychange', this.manejarVisibilidad)
+        }
+    },
+
+    beforeDestroy() {
+        if (this.rol === 'admin') {
+            this.detenerPolling()
+            document.removeEventListener('visibilitychange', this.manejarVisibilidad)
         }
     },
 
     methods: {
+        iniciarPolling() {
+            if (!this.timer) {
+                this.timer = setInterval(this.obtenerReportesCocina, 30000)
+            }
+        },
+        detenerPolling() {
+            if (this.timer) {
+                clearInterval(this.timer)
+                this.timer = null
+            }
+        },
+        manejarVisibilidad() {
+            if (document.hidden) {
+                this.detenerPolling()
+            } else {
+                this.obtenerReportesCocina()
+                this.iniciarPolling()
+            }
+        },
         obtenerAlertas() {
             HttpService.obtener("obtener_alertas_stock.php")
                 .then(resultado => {

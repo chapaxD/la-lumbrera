@@ -53,7 +53,7 @@
                             <span class="has-text-weight-semibold">{{ props.option.nombre }}</span>
                             <br>
                             <small class="has-text-grey">{{ props.option.categoria }} — ${{ props.option.precio
-                            }}</small>
+                              }}</small>
                             &nbsp;
                             <b-tag
                               :type="props.option.stock <= 0 ? 'is-danger' : props.option.stock <= props.option.stockMinimo ? 'is-warning' : 'is-success'"
@@ -219,7 +219,7 @@ export default {
     enviarPorWhatsApp() {
       if (this.menuDelDia.length === 0) return;
 
-      let mensaje = `🍽️ *MENÚ DEL DÍA: ${this.nombreDiaSeleccionado.toUpperCase()}* 🍽️\n\n`;
+      let mensaje = `*MENÚ DEL DÍA: ${this.nombreDiaSeleccionado.toUpperCase()}*\n\n`;
 
       // 1. Agrupar el menú del día por categoría
       const categoriasMenu = [...new Set(this.menuDelDia.map(i => i.categoria))];
@@ -243,17 +243,17 @@ export default {
       );
 
       if (carnesDisponibles.length > 0) {
-        mensaje += `🔥 *NUESTRAS CARNES A LA PARRILLA* 🔥\n`;
+        mensaje += `*NUESTRAS CARNES A LA PARRILLA*\n`;
         carnesDisponibles.forEach(c => {
           mensaje += `• ${c.nombre} - Bs. ${Math.round(c.precio)}\n`;
         });
         mensaje += `\n`;
       }
 
-      mensaje += `¡Te esperamos en *La Lumbrera*! 🥂✨`;
+      mensaje += `¡Te esperamos en *La Lumbrera*!`;
 
       const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-      window.open(url, '_blank');
+      window.open(url, 'whatsapp_window');
     }
   }
 };

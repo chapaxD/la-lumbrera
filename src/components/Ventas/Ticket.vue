@@ -1,80 +1,93 @@
 <template>
-  <section style="display:none">
-    <div id="comprobante">
-      <div v-if="venta.metodoPago === 'PRE-CUENTA'" class="header-nota">--- DETALLE DE PEDIDO ---</div>
-      <h2>{{ datosLocal.nombre }}</h2>
-      <div v-if="venta.mesa" class="num-mesa">MESA #{{ venta.mesa }}</div>
-
-      <div class="separador"></div>
-
-      <div class="datos-venta">
-        <div>Fecha: {{ venta.fecha | formatFecha }}</div>
-        <div>Atiende: {{ venta.atendio }}</div>
-        <div>Cliente: {{ venta.cliente || 'MOSTRADOR' }}</div>
-        <div v-if="venta.adelanto && venta.adelanto > 0" class="has-text-info" style="font-weight:bold;">RESERVA</div>
+  <section :style="noImprimir ? '' : 'display:none'">
+    <div id="comprobante" :class="{ 'vista-previa': noImprimir }" style="background: #fff; font-family: monospace; width: 300px; margin: 0 auto; color: #000; line-height: 1.2; text-align: left;">
+      <!-- MODO TICKET / PRECUENTA -->
+      <div v-if="venta.metodoPago !== 'COMANDA'">
+        <div class="has-text-centered" style="text-align: center;">
+          <h3 class="has-text-weight-bold is-size-5" style="font-size: 1.25rem; font-weight: bold; margin: 0;">{{ datosLocal.nombre }}</h3>
+          <div v-if="venta.metodoPago === 'PRE-CUENTA'" class="is-size-7"
+              style="border: 1px dashed #000; margin: 5px 0; font-size: 0.75rem;">--- DETALLE DE PEDIDO ---</div>
+          <div v-if="venta.mesa" class="is-size-4 has-text-weight-bold" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">MESA #{{ venta.mesa }}</div>
+          <div v-else-if="venta.tipo === 'LLEVAR' || venta.tipoOrden === 'LLEVAR'" class="is-size-4 has-text-weight-bold" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">PARA LLEVAR #{{ venta.id || venta.idDelivery || venta.idVenta }}</div>
+          <div v-else-if="venta.tipo === 'DELIVERY' || venta.tipoOrden === 'DELIVERY'" class="is-size-4 has-text-weight-bold" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">DELIVERY #{{ venta.id || venta.idDelivery || venta.idVenta }}</div>
+        </div>
+        <hr style="border-top: 1px dashed #000; margin: 8px 0;">
+        <div class="is-size-7" style="font-size: 0.75rem;">
+            <div>Fecha: {{ venta.fecha | formatFecha }}</div>
+            <div>Atiende: {{ venta.atendio }}</div>
+            <div>Cliente: {{ venta.cliente || 'MOSTRADOR' }}</div>
+            <div v-if="venta.adelanto && venta.adelanto > 0" style="font-weight:bold;">RESERVA</div>
+        </div>
+        <hr style="border-top: 1px dashed #000; margin: 8px 0;">
+        <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th style="text-align: left;">Prod.</th>
+                    <th style="text-align: center;">Cant</th>
+                    <th style="text-align: right;">Sub.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(ins, idx) in insumos" :key="idx">
+                    <td style="font-weight: bold; text-transform: uppercase; padding: 2px 0;">
+                        {{ ins.nombre }}
+                        <div v-if="ins.caracteristicas" style="font-size: 11px; border-left: 1px solid #000; padding-left: 4px; font-weight: normal; font-style: italic; margin-top: 2px;">
+                            {{ ins.caracteristicas }}
+                        </div>
+                        <div v-if="ins.resumenCombo" style="font-size: 11px; border-left: 1px solid #000; padding-left: 4px; white-space: pre-line; font-weight: bold; margin-top: 2px;">
+                            {{ Utiles.formatearResumenCombo(ins.resumenCombo) }}
+                        </div>
+                    </td>
+                    <td style="text-align: center; padding: 2px 0;">{{ ins.cantidad }}</td>
+                    <td style="text-align: right; padding: 2px 0;">{{ Math.round(ins.cantidad * ins.precio) }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <hr style="border-top: 1px dashed #000; margin: 8px 0;">
+        
+        <div style="font-size: 1.5rem; font-weight: bold; display: flex; justify-content: space-between;">
+            <span>TOTAL</span>
+            <span>Bs. {{ Math.round(venta.total + (venta.adelanto || 0)) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px;" v-if="venta.adelanto">
+          <span>Adelanto</span>
+          <span>- Bs. {{ Math.round(venta.adelanto) }}</span>
+        </div>
+        
+        <div v-if="venta.metodoPago !== 'PRE-CUENTA'" style="font-size: 0.75rem; margin-top: 8px;">
+            <div v-if="venta.metodoPago !== 'MIXTO'">MÉTODO: {{ venta.metodoPago }}</div>
+            <div v-if="venta.metodoPago === 'MIXTO'">
+                <div style="font-weight:bold">PAGO MIXTO:</div>
+                <div>Efectivo: Bs. {{ Math.round(venta.montoEfectivo) }}</div>
+                <div>Tarjeta: Bs. {{ Math.round(venta.montoTarjeta) }}</div>
+                <div>QR: Bs. {{ Math.round(venta.montoQR) }}</div>
+            </div>
+        </div>
+        <hr style="border-top: 1px dashed #000; margin: 8px 0;">
       </div>
 
-      <div class="separador"></div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th class="col-cant">Cant</th>
-            <th class="col-sub">Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(insumo, index) in insumos" :key="index">
-            <td>
-              {{ insumo.nombre }}
-              <div v-if="insumo.resumenCombo" class="carac-combo">
-                {{ Utiles.formatearResumenCombo(insumo.resumenCombo) }}
+      <!-- MODO COMANDA -->
+      <div v-if="venta.metodoPago === 'COMANDA'">
+          <h2 style="text-align: center; font-weight: bold; font-size: 1.5rem; margin: 0;">--- COMANDA ---</h2>
+          <hr style="border-top: 1px dashed #000; margin: 5px 0;">
+          <div style="text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">
+              <span v-if="venta.mesa">MESA #{{ venta.mesa }}</span>
+              <span v-else-if="venta.tipo === 'LLEVAR' || venta.tipoOrden === 'LLEVAR'">LLEVAR #{{ venta.id || venta.idDelivery || venta.idVenta }}</span>
+              <span v-else-if="venta.tipo === 'DELIVERY' || venta.tipoOrden === 'DELIVERY'">DELIVERY #{{ venta.id || venta.idDelivery || venta.idVenta }}</span>
+          </div>
+          <div v-if="venta.cliente" style="text-align: center; font-size: 0.85rem;">Cliente: {{ venta.cliente }}</div>
+          <div style="text-align: center; font-size: 0.85rem; margin-bottom: 5px;">Hora: {{ venta.fecha | formatFecha }}</div>
+          <hr style="border-top: 1px dashed #000; margin: 5px 0;">
+          <div v-for="(ins, idx) in insumos" :key="idx" style="margin-bottom: 8px;">
+              <div style="font-size: 1.25rem;"><span style="font-weight: bold;">{{ ins.cantidad }}x</span> <span style="font-weight: bold; text-transform: uppercase;">{{ ins.nombre }}</span></div>
+              <div v-if="ins.caracteristicas" style="font-size: 1.1rem; margin-left: 1rem; border-left: 2px solid #000; padding-left: 5px; text-transform: uppercase;">{{ ins.caracteristicas }}</div>
+              <div v-if="ins.resumenCombo" style="font-size: 1.1rem; margin-left: 1rem; font-weight: bold; border-left: 2px solid #000; padding-left: 5px; white-space: pre-line; text-transform: uppercase;">
+                  {{ Utiles.formatearResumenCombo(ins.resumenCombo) }}
               </div>
-            </td>
-            <td class="col-cant">{{ insumo.cantidad }}</td>
-            <td class="col-sub">Bs. {{ formatNum(insumo.cantidad * insumo.precio) }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="separador"></div>
-
-      <div class="totales">
-        <div class="fila-total grande">
-          <span>TOTAL</span>
-          <span>Bs. {{ formatNum(venta.total + (venta.adelanto || 0)) }}</span>
-        </div>
-        <div class="fila-total" v-if="venta.adelanto">
-          <span>Adelanto aplicado</span>
-          <span>- Bs. {{ formatNum(venta.adelanto) }}</span>
-        </div>
-        <div class="fila-total"
-          v-if="venta.total === 0 && venta.adelanto && venta.adelanto > (venta.total + (venta.adelanto || 0))">
-          <span class="has-text-success">A devolver al cliente</span>
-          <span class="has-text-success">Bs. {{ formatNum(venta.adelanto - (venta.total + (venta.adelanto || 0))) }}</span>
-        </div>
-
-        <div class="separador"></div>
-        <div class="fila-total" v-if="venta.metodoPago && venta.metodoPago !== 'MIXTO'">
-          <span>METODO PAGO:</span>
-          <span>{{ venta.metodoPago }}</span>
-        </div>
-        <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span style="font-weight:bold">PAGO MIXTO:</span>
-        </div>
-        <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>Efectivo</span><span>Bs. {{ formatNum(venta.montoEfectivo) }}</span>
-        </div>
-        <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>Tarjeta</span><span>Bs. {{ formatNum(venta.montoTarjeta) }}</span>
-        </div>
-        <div class="fila-total" v-if="venta.metodoPago === 'MIXTO'">
-          <span>QR</span><span>Bs. {{ formatNum(venta.montoQR) }}</span>
-        </div>
+          </div>
+          <hr style="border-top: 1px dashed #000; margin: 5px 0;">
       </div>
 
-      <div class="separador"></div>
     </div>
   </section>
 </template>
@@ -84,7 +97,7 @@ import Utiles from "../../Servicios/Utiles";
 
 export default {
   name: "Ticket",
-  props: ["venta", "insumos", "datosLocal", "logo"],
+  props: ["venta", "insumos", "datosLocal", "logo", "noImprimir"],
 
   computed: {
     cambio() {
@@ -104,7 +117,6 @@ export default {
         margin: 0; 
         padding: 0; 
         font-family: 'Courier New', Courier, monospace; 
-        font-size: 12px; 
         width: 72mm; 
         margin-left: auto;
         margin-right: auto;
@@ -112,44 +124,15 @@ export default {
         padding-right: 2mm;
         padding-top: 4mm;
         -webkit-print-color-adjust: exact;
-      }
-      #comprobante {
-        width: 100%;
-        text-align: center;
-      }
-      h2 { font-size: 17px; font-weight: bold; margin: 3px 0; letter-spacing: 1px; }
-      .header-nota { font-size: 15px; font-weight: bold; border-bottom: 1px double #000; margin-bottom: 5px; padding-bottom: 2px; }
-      .num-mesa { font-size: 22px; font-weight: bold; margin: 5px 0; }
-      .info { font-size: 12px; margin: 2px 0; }
-      .separador { border-top: 1px dashed #000; margin: 6px 0; }
-      .datos-venta { text-align: left; font-size: 12px; line-height: 1.4; margin-bottom: 4px; }
-      table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0; }
-      th { border-bottom: 1px solid #000; padding: 3px 2px; text-align: left; font-weight: bold; }
-      td { padding: 4px 2px; vertical-align: top; text-align: left; font-weight: bold; text-transform: uppercase; word-wrap: break-word; }
-      .col-cant { text-align: center; width: 10mm; }
-      .col-sub  { text-align: right;  width: 25mm; }
-      .carac-combo {
-        font-size: 12px;
-        font-weight: bold;
-        text-transform: none;
-        margin-top: 2px;
-        white-space: pre-line;
-        border-left: 2px solid #000;
-        padding-left: 5px;
-        font-style: italic;
-      }
-      .totales { text-align: left; font-size: 13px; line-height: 1.6; margin-top: 6px; }
-      .fila-total { display: flex; justify-content: space-between; padding: 1px 0; }
-      .fila-total.grande {
-        font-size: 16px; font-weight: bold;
-        border-top: 1px solid #000; border-bottom: 1px solid #000;
-        padding: 4px 0; margin: 4px 0;
+        color: #000;
       }
     `,
   }),
 
   mounted() {
-    this.imprimir();
+    if (!this.noImprimir) {
+      this.imprimir();
+    }
   },
 
   methods: {
@@ -157,6 +140,11 @@ export default {
       const zona = document.getElementById("comprobante");
       if (!zona) return;
       const html = zona.innerHTML;
+      
+      // Número de copias (por defecto 2 para comandas, 1 para tickets normales)
+      const copias = this.venta.metodoPago === 'COMANDA' ? 3 : 1;
+      const htmlFinal = Array(copias).fill(html).join('<div style="page-break-after: always; margin-top: 15px;"></div>');
+
       const ventana = window.open('', '_blank', 'width=420,height=640');
       if (!ventana) {
           alert('El navegador bloqueó la ventana emergente. Por favor, actívalas para poder imprimir.');
@@ -172,7 +160,7 @@ export default {
             <style>${this.cssText}</style>
           </head>
           <body>
-            ${html}
+            ${htmlFinal}
           </body>
         </html>
       `);

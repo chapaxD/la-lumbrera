@@ -9,5 +9,11 @@ include_once "encabezado.php";
 include_once "funciones.php";
 
 $payload = json_decode(file_get_contents("php://input"));
-$resultado = marcarItemListoCocina($payload);
+
+if (isset($payload->soloAcompanamiento) && $payload->soloAcompanamiento) {
+    $resultado = marcarAcompanamientoListo($payload->id);
+} else {
+    $resultado = marcarItemListoCocina($payload);
+}
+
 echo json_encode(["resultado" => $resultado]);

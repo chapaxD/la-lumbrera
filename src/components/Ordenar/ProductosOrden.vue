@@ -5,7 +5,7 @@
         :bordered="true"
         :narrowed="true">
             <b-table-column field="nombre" label="Nombre" v-slot="props">
-            {{ props.row.nombre }}
+            <span class="has-text-weight-bold has-text-primary is-size-5">{{ props.row.nombre }}</span>
             <span v-if="(props.row.tipoVenta || '') === 'COMBO'" class="is-size-7 has-text-grey"><br>Menú ({{ props.row.cantidad }} u.)</span>
             <p v-if="props.row.resumenCombo" class="is-size-6 has-text-dark has-text-weight-bold mt-1" style="white-space: pre-line;">
               <b-icon icon="food-variant" size="is-small"></b-icon>

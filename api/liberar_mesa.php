@@ -16,15 +16,15 @@ $id   = $payload->id;
 $tipoDb = ($tipo === 'LLEVAR') ? 'DELIVERY' : $tipo;
 
 $bd = conectarBaseDatos();
-$stmt = $bd->prepare("SELECT id, estado FROM ordenes_activas WHERE tipo=? AND referencia=?");
+$stmt = $bd->prepare("SELECT id FROM ordenes_activas WHERE tipo=? AND referencia=?");
 $stmt->execute([$tipoDb, (string)$id]);
 $orden = $stmt->fetch();
 
-if (!$orden || ($orden->estado !== 'pagada' && $orden->estado !== 'ocupada')) {
+if (!$orden) {
     echo json_encode(false);
     exit;
 }
 
-// Actualizar el estado a 'entregada' en lugar de eliminar
-$ok = $bd->prepare("UPDATE ordenes_activas SET estado='entregada' WHERE id=?")->execute([$orden->id]);
+// Eliminar la orden (CASCADE borra items_orden)
+$ok = $bd->prepare("DELETE FROM ordenes_activas WHERE id=?")->execute([$orden->id]);
 echo json_encode($ok);

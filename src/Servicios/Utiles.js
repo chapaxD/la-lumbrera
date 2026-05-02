@@ -313,6 +313,30 @@ const Utiles = {
 		if (valor === undefined || valor === null) return '0';
 		const n = Number(valor);
 		return n.toString(); // Number().toString() ya elimina ceros innecesarios
+	},
+	obtenerTiempoTranscurrido(fecha) {
+		if (!fecha) return '0m';
+		// Forzar interpretación como fecha local si no tiene zona horaria
+		const f = fecha.includes('T') ? fecha : fecha.replace(' ', 'T');
+		const inicio = new Date(f);
+		const ahora = new Date();
+
+		let diffMs = ahora - inicio;
+
+		// Si la diferencia es muy grande o negativa (por desfase de zona horaria), 
+		// intentamos compensar el offset local
+		if (diffMs < 0 || diffMs > 24 * 60 * 60 * 1000) {
+			const offset = ahora.getTimezoneOffset() * 60000;
+			diffMs = ahora - (inicio.getTime() - offset);
+		}
+
+		if (diffMs < 0) return 'Recién';
+
+		const diffMin = Math.floor(diffMs / 60000);
+		if (diffMin < 1) return 'Recién';
+		if (diffMin < 60) return `${diffMin}m`;
+		const diffHoras = Math.floor(diffMin / 60);
+		return `${diffHoras}h ${diffMin % 60}m`;
 	}
 }
 

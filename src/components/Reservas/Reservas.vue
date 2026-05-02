@@ -145,6 +145,36 @@
           <template #detail="props">
             <div class="content">
               <p><b>Notas:</b> {{ props.row.notas || 'Sin observaciones' }}</p>
+              <template v-if="!props.row.idMesa">
+                <hr class="my-2">
+                <p class="has-text-weight-bold has-text-danger mb-1">🏢 Evento — Restaurante Completo</p>
+                <p><b>Personas:</b> {{ props.row.personas }}</p>
+                <template v-if="props.row.menu_evento">
+                  <p><b>Menú a servir:</b></p>
+                  <table class="table is-narrow is-size-7" v-if="parsearMenu(props.row.menu_evento).length > 0">
+                    <thead><tr><th>Plato</th><th class="has-text-centered">Cant.</th><th class="has-text-right">Subtotal</th></tr></thead>
+                    <tbody>
+                      <tr v-for="(item, i) in parsearMenu(props.row.menu_evento)" :key="i">
+                        <td>{{ item.nombre }}</td>
+                        <td class="has-text-centered">{{ item.cantidad }}</td>
+                        <td class="has-text-right">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p v-else><span style="white-space:pre-line">{{ props.row.menu_evento }}</span></p>
+                </template>
+                <p v-if="props.row.costo_total_evento > 0">
+                  <b>Costo total del evento:</b>
+                  <b-tag type="is-danger" size="is-medium" class="ml-2">Bs. {{ Number(props.row.costo_total_evento).toFixed(2) }}</b-tag>
+                </p>
+                <p v-if="props.row.adelanto > 0">
+                  <b>Adelanto recibido:</b>
+                  <b-tag type="is-success" size="is-medium" class="ml-2">Bs. {{ Math.round(props.row.adelanto) }}</b-tag>
+                  <span v-if="props.row.costo_total_evento > 0" class="has-text-grey ml-2">
+                    (Saldo: Bs. {{ (Number(props.row.costo_total_evento) - Number(props.row.adelanto)).toFixed(2) }})
+                  </span>
+                </p>
+              </template>
             </div>
           </template>
         </b-table>
@@ -175,6 +205,17 @@
             <p><b>Personas:</b> {{ reservaASentar.personas }}</p>
             <p v-if="reservaASentar.adelanto > 0"><b>Adelanto:</b> <b-tag type="is-success">Bs. {{ Math.round(reservaASentar.adelanto) }}</b-tag></p>
             <p v-if="reservaASentar.notas"><b>Notas:</b> {{ reservaASentar.notas }}</p>
+            <template v-if="!reservaASentar.idMesa">
+              <hr class="my-2">
+              <p v-if="reservaASentar.menu_evento" class="mb-1"><b>Menú:</b><br><span style="white-space:pre-line;font-size:0.9em">{{ reservaASentar.menu_evento }}</span></p>
+              <p v-if="reservaASentar.costo_total_evento > 0">
+                <b>Total evento:</b>
+                <b-tag type="is-danger" class="ml-1">Bs. {{ Number(reservaASentar.costo_total_evento).toFixed(2) }}</b-tag>
+                <span v-if="reservaASentar.adelanto > 0" class="has-text-grey ml-2">
+                  Saldo pendiente: Bs. {{ (Number(reservaASentar.costo_total_evento) - Number(reservaASentar.adelanto)).toFixed(2) }}
+                </span>
+              </p>
+            </template>
           </div>
           <b-field label="Asignar mesero">
             <b-select v-model="meseroSeleccionado"
@@ -280,6 +321,68 @@
                      placeholder="Número de mesa"
                      :required="!esEventoTotal"></b-input>
           </b-field>
+
+          <!-- Campos especiales para evento total -->
+          <template v-if="esEventoTotal">
+            <div class="notification is-danger is-light py-3 px-4 mb-3">
+              <b-icon icon="store" size="is-small"></b-icon>
+              <strong> Evento — Restaurante Completo</strong>: bloquea toda la agenda de ese día. No se podrán crear otras reservas.
+            </div>
+
+            <b-field label="Buscar platos / insumos">
+              <b-autocomplete
+                v-model="busquedaInsumoEvento"
+                :data="insumosFiltrados"
+                placeholder="Escribe el nombre del plato..."
+                icon="magnify"
+                field="nombre"
+                :loading="cargandoInsumos"
+                @select="agregarInsumoEvento"
+                clearable>
+                <template slot-scope="props">
+                  <div class="is-flex is-justify-content-space-between">
+                    <span>{{ props.option.nombre }}</span>
+                    <span class="has-text-grey">Bs. {{ Number(props.option.precio).toFixed(2) }}</span>
+                  </div>
+                </template>
+                <template slot="empty">Sin resultados</template>
+              </b-autocomplete>
+            </b-field>
+
+            <div v-if="itemsEvento.length > 0" class="box p-3 mb-3">
+              <table class="table is-fullwidth is-narrow is-size-7">
+                <thead>
+                  <tr>
+                    <th>Plato</th>
+                    <th class="has-text-right">Precio</th>
+                    <th class="has-text-centered">Cant.</th>
+                    <th class="has-text-right">Subtotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in itemsEvento" :key="idx">
+                    <td>{{ item.nombre }}</td>
+                    <td class="has-text-right">{{ Number(item.precio).toFixed(2) }}</td>
+                    <td class="has-text-centered" style="width:100px">
+                      <div class="field has-addons" style="justify-content:center">
+                        <p class="control"><b-button size="is-small" @click="item.cantidad > 1 ? item.cantidad-- : null">-</b-button></p>
+                        <p class="control"><b-input size="is-small" v-model.number="item.cantidad" type="number" min="1" style="width:48px" custom-class="has-text-centered"></b-input></p>
+                        <p class="control"><b-button size="is-small" @click="item.cantidad++">+</b-button></p>
+                      </div>
+                    </td>
+                    <td class="has-text-right has-text-weight-bold">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</td>
+                    <td><b-button size="is-small" type="is-danger is-light" icon-left="close" @click="itemsEvento.splice(idx, 1)"></b-button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="has-text-right is-size-5 has-text-weight-bold has-text-primary mt-2">
+                Total evento: Bs. {{ totalEvento.toFixed(2) }}
+              </div>
+            </div>
+            <p v-else class="has-text-grey has-text-centered mb-3">Busca y agrega los platos que se van a servir</p>
+          </template>
+
           <b-field label="Notas / Observaciones">
             <b-input type="textarea"
                      v-model="form.notas"
@@ -321,6 +424,10 @@ export default {
     reservaASentar: null,
     meseroSeleccionado: null,
     esEventoTotal: false,
+    itemsEvento: [],
+    insumosDisponibles: [],
+    busquedaInsumoEvento: '',
+    cargandoInsumos: false,
     sugerenciasClientes: [],
     buscandoCliente: false,
     _timerCliente: null,
@@ -336,6 +443,21 @@ export default {
       adelanto: 0
     }
   }),
+  computed: {
+    totalEvento() {
+      return this.itemsEvento.reduce((s, i) => s + (parseFloat(i.precio) || 0) * (parseInt(i.cantidad) || 1), 0)
+    },
+    insumosFiltrados() {
+      if (!this.busquedaInsumoEvento || this.busquedaInsumoEvento.length < 2) return []
+      const q = this.busquedaInsumoEvento.toLowerCase()
+      return this.insumosDisponibles.filter(i => i.nombre.toLowerCase().includes(q)).slice(0, 15)
+    }
+  },
+  watch: {
+    esEventoTotal(val) {
+      if (val && this.insumosDisponibles.length === 0) this.cargarInsumosEvento()
+    }
+  },
   mounted() {
     this.obtenerReservas();
     HttpService.obtener('obtener_meseros.php').then(d => { this.meseros = d || []; });
@@ -345,6 +467,23 @@ export default {
     clearInterval(this._intervalNoShow);
   },
   methods: {
+    cargarInsumosEvento() {
+      this.cargandoInsumos = true
+      HttpService.obtenerConDatos({ tipo: 'PLATILLO', categoria: '', nombre: '' }, 'obtener_insumos.php').then(d => {
+        this.insumosDisponibles = (d || []).filter(i => parseFloat(i.precio) > 0)
+        this.cargandoInsumos = false
+      })
+    },
+    agregarInsumoEvento(insumo) {
+      if (!insumo) return
+      const existente = this.itemsEvento.find(i => i.id === insumo.id)
+      if (existente) {
+        existente.cantidad++
+      } else {
+        this.itemsEvento.push({ id: insumo.id, nombre: insumo.nombre, precio: parseFloat(insumo.precio) || 0, cantidad: 1 })
+      }
+      this.busquedaInsumoEvento = ''
+    },
     buscarCliente(q) {
       clearTimeout(this._timerCliente);
       if (!q || q.length < 2) { this.sugerenciasClientes = []; return; }
@@ -382,6 +521,8 @@ export default {
         notas: "",
         adelanto: 0
       };
+      this.itemsEvento = [];
+      this.busquedaInsumoEvento = '';
       this.sugerenciasClientes = [];
       this.esEventoTotal = false;
       this.mostrarModal = true;
@@ -413,6 +554,8 @@ export default {
         fecha: fechaLocal,
         hora: horaLocal,
         idMesa: this.esEventoTotal ? null : this.form.idMesa,
+        menu_evento: this.esEventoTotal ? JSON.stringify(this.itemsEvento) : null,
+        costo_total_evento: this.esEventoTotal ? this.totalEvento : 0,
         idUsuario: localStorage.getItem("idUsuario")
       };
 
@@ -549,6 +692,13 @@ export default {
         HttpService.registrar(payload, 'cambiar_estado_reserva.php');
       });
       this.$toast({ message: `${vencidas.length} reserva(s) marcadas como NO-SHOW por tiempo vencido`, type: 'is-warning' });
+    },
+    parsearMenu(raw) {
+      if (!raw) return []
+      try {
+        const data = JSON.parse(raw)
+        return Array.isArray(data) ? data : []
+      } catch (e) { return [] }
     },
     estaVencida(reserva) {
       if (reserva.estado !== 'PENDIENTE' && reserva.estado !== 'CONFIRMADA') return false;

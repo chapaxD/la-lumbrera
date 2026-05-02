@@ -57,12 +57,6 @@
         </div>
       </div>
       <div class="column">
-        <div class="notification is-primary is-light py-4 has-text-centered">
-          <p class="heading">Total recaudado</p>
-          <p class="title is-3 has-text-primary-dark">{{ Utiles.formatearDinero(totalVentas) }}</p>
-        </div>
-      </div>
-      <div class="column">
         <div class="notification is-info is-light py-4 has-text-centered">
           <p class="heading">Ventas locales</p>
           <p class="title is-3 has-text-info-dark">{{ ventasLocales }}</p>
@@ -72,6 +66,12 @@
         <div class="notification is-warning is-light py-4 has-text-centered">
           <p class="heading">Deliveries</p>
           <p class="title is-3 has-text-warning-dark">{{ ventasDelivery }}</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="notification is-primary is-light py-4 has-text-centered">
+          <p class="heading">Total recaudado</p>
+          <p class="title is-3 has-text-primary-dark">{{ Utiles.formatearDinero(totalVentas) }}</p>
         </div>
       </div>
     </div>
@@ -115,7 +115,8 @@
 
         <b-table-column field="metodoPago" label="Método" sortable v-slot="props">
           <b-tag type="is-info is-light" v-if="props.row.metodoPago === 'EFECTIVO'">{{ props.row.metodoPago }}</b-tag>
-          <b-tag type="is-success is-light" v-else-if="props.row.metodoPago === 'TARJETA'">{{ props.row.metodoPago }}</b-tag>
+          <b-tag type="is-success is-light" v-else-if="props.row.metodoPago === 'TARJETA'">{{ props.row.metodoPago
+            }}</b-tag>
           <b-tag type="is-warning is-light" v-else-if="props.row.metodoPago === 'QR'">{{ props.row.metodoPago }}</b-tag>
           <b-tag type="is-link is-light" v-else>{{ props.row.metodoPago }}</b-tag>
         </b-table-column>
@@ -134,8 +135,6 @@
 
         <b-table-column label="Acciones" v-slot="props">
           <div class="buttons">
-            <b-button size="is-small" type="is-info" icon-left="printer" title="Imprimir ticket"
-              @click="imprimirComprobante(props.row)"></b-button>
             <b-button size="is-small" type="is-warning" icon-left="file-document-outline" title="Emitir nota de venta"
               @click="generarFactura(props.row)"></b-button>
           </div>
@@ -147,7 +146,8 @@
             <b-table-column field="codigo" label="Código" v-slot="p">{{ p.row.codigo }}</b-table-column>
             <b-table-column field="nombre" label="Producto" v-slot="p">{{ p.row.nombre }}</b-table-column>
             <b-table-column field="cantidad" label="Cant." numeric v-slot="p">{{ p.row.cantidad }}</b-table-column>
-            <b-table-column field="precio" label="Precio unit." numeric v-slot="p">{{ Utiles.formatearDinero(p.row.precio) }}</b-table-column>
+            <b-table-column field="precio" label="Precio unit." numeric v-slot="p">{{
+              Utiles.formatearDinero(p.row.precio) }}</b-table-column>
             <b-table-column field="subtotal" label="Subtotal" numeric v-slot="p">
               <strong>{{ Utiles.formatearDinero(p.row.cantidad * p.row.precio) }}</strong>
             </b-table-column>
@@ -179,7 +179,7 @@
           <b-table :data="topInsumos" narrowed bordered striped hoverable>
             <b-table-column field="nombre" label="Producto" v-slot="props">{{ props.row.nombre }}</b-table-column>
             <b-table-column field="categoria" label="Categoría" v-slot="props">{{ props.row.categoria
-              }}</b-table-column>
+            }}</b-table-column>
             <b-table-column field="totalVendidos" label="Cant. vendida" centered numeric v-slot="props">
               {{ props.row.totalVendidos }}
             </b-table-column>

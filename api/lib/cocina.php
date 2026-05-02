@@ -21,9 +21,14 @@ function entregarItem($payload)
 function obtenerInsumosPendientes($estacion = 'cocina')
 {
     $bd = conectarBaseDatos();
-    // Si la estación es 'parrilla', filtramos por categoría 'Carnes'
-    // Si es 'cocina', todo lo que NO sea 'Carnes'
-    $filtroCategoria = ($estacion === 'parrilla') ? "c.nombre = 'Carnes'" : "c.nombre != 'Carnes'";
+    if ($estacion === 'parrilla') {
+        $filtro = "c.nombre = 'Carnes' AND io.estado = 'pendiente'";
+    } else {
+        // Para cocina: todo lo que no sea Carnes que esté pendiente, 
+        // MAS las Carnes que tengan el acompañamiento pendiente (aunque la carne ya esté lista en parrilla)
+        $filtro = "((c.nombre != 'Carnes' OR c.nombre IS NULL) AND io.estado = 'pendiente') 
+                   OR (c.nombre = 'Carnes' AND io.acompanamiento_listo = 0)";
+    }
 
     $sql = "
         SELECT io.*, oa.referencia AS mesa, oa.tipo AS tipoOrden, IFNULL(c.nombre, 'NO DEFINIDA') AS nombreCategoria
@@ -31,7 +36,7 @@ function obtenerInsumosPendientes($estacion = 'cocina')
         INNER JOIN ordenes_activas oa ON oa.id = io.idOrden
         LEFT JOIN insumos i ON i.id = io.idInsumo
         LEFT JOIN categorias c ON c.id = i.categoria
-        WHERE io.estado = 'pendiente' AND $filtroCategoria
+        WHERE $filtro
         ORDER BY oa.created_at ASC, io.id ASC
     ";
     $stmt = $bd->query($sql);

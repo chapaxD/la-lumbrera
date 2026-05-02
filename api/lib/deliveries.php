@@ -89,6 +89,7 @@ function leerArchivoDelivery($idDelivery, $idUsuario = null, $rol = null)
             "estado"          => $item['estado'] ?? 'pendiente',
             "pagado"          => (int)($item['pagado'] ?? 0),
             "acompanamiento_listo" => (int)($item['acompanamiento_listo'] ?? 0),
+            "tipo"            => $item['tipo'] ?? 'PLATILLO',
             "categoria"       => $item['nombreCategoria'] ?? 'NO DEFINIDA',
             "tipoVenta"       => $item['insumoTipoVenta'] ?? 'NORMAL',
             "detalleJson"     => $detalleJson,

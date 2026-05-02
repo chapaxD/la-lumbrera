@@ -47,77 +47,16 @@
     <b-field>
       <b-autocomplete size="is-large" v-model="nombre" placeholder="Nombre del platillo o bebida"
         :data="filteredDataObj" field="nombre" @input="buscarInsumo" @select="(option) => agregarInsumoAOrden(option)"
-        :clearable="true" keep-first id="busqueda">
+        :clearable="true" keep-first id="busqueda" open-on-focus>
       </b-autocomplete>
     </b-field>
 
-    <b-modal :active.sync="modalCombo" has-modal-card trap-focus aria-close-label="Cerrar">
-      <div class="modal-card" style="width: 100%; max-width: 900px">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Armar menú: {{ insumoComboPendiente ? insumoComboPendiente.nombre : '' }}</p>
-        </header>
-        <section class="modal-card-body" style="position: relative; min-height: 120px; overflow-x: hidden;">
-          <b-loading :is-full-page="false" :active="cargandoPlantillaCombo"></b-loading>
-          <template v-if="plantillaCombo && !cargandoPlantillaCombo">
-            <b-field label="Cantidad de almuerzos a armar" class="mb-5">
-              <b-numberinput v-model="comboNumMenus" :min="1" :max="50" controls-position="compact"
-                size="is-medium"></b-numberinput>
-            </b-field>
-
-            <div class="notification is-info is-light py-2 px-3 mb-4">
-              <b-icon icon="information" size="is-small" class="mr-1"></b-icon>
-              Selecciona el total de platos para los <strong>{{ comboNumMenus }}</strong> almuerzos.
-            </div>
-
-            <div v-for="slot in plantillaCombo.slots || []" :key="'sl' + slot.id" class="mb-5">
-              <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
-                <h3 class="title is-5 mb-0 has-text-primary">
-                  {{ slot.etiqueta }}
-                </h3>
-                <b-tag :type="totalElegidoEnSlot(slot.id) === comboNumMenus ? 'is-success' : 'is-warning'"
-                  size="is-medium" rounded>
-                  {{ totalElegidoEnSlot(slot.id) }} / {{ comboNumMenus }}
-                </b-tag>
-              </div>
-
-              <div class="columns is-multiline">
-                <div v-for="op in slot.opciones" :key="'op' + op.id" class="column is-6-tablet is-12-mobile">
-                  <div class="box p-3 is-flex is-justify-content-space-between is-align-items-center"
-                    :style="obtenerCantidadElegida(slot.id, op.id_insumo) > 0 ? 'border: 2px solid #48c78e; background: #f6fffa;' : ''">
-                    <div style="flex: 1;">
-                      <p class="has-text-weight-bold is-size-6">{{ op.nombre_insumo }}</p>
-                      <p class="is-size-7 has-text-grey">
-                        Disp: {{ obtenerStockDisponible(op.id_insumo, op.stock, slot.id) }}
-                      </p>
-                    </div>
-                    <div class="is-flex is-align-items-center">
-                      <b-button size="is-small" icon-left="minus"
-                        :disabled="obtenerCantidadElegida(slot.id, op.id_insumo) <= 0"
-                        @click="ajustarCantidadOpcion(slot.id, op, -1)"></b-button>
-                      <span class="mx-3 has-text-weight-bold is-size-5" style="min-width: 20px; text-align: center;">
-                        {{ obtenerCantidadElegida(slot.id, op.id_insumo) }}
-                      </span>
-                      <b-button type="is-primary" size="is-small" icon-left="plus"
-                        :disabled="totalElegidoEnSlot(slot.id) >= comboNumMenus || (op.stock !== undefined && (op.stock - obtenerCantidadElegida(slot.id, op.id_insumo) <= 0))"
-                        @click="ajustarCantidadOpcion(slot.id, op, 1)"></b-button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <hr class="my-4">
-            </div>
-          </template>
-        </section>
-        <footer class="modal-card-foot is-justify-content-flex-end">
-          <b-button @click="modalCombo = false" size="is-medium">Cancelar</b-button>
-          <b-button type="is-primary" icon-left="check" size="is-medium"
-            :disabled="!plantillaCombo || cargandoPlantillaCombo" @click="confirmarComboAlPedido">Agregar al
-            pedido</b-button>
-        </footer>
-      </div>
-    </b-modal>
-
-    <div class="columns is-desktop">
+    <modal-armar-combo
+      :active.sync="modalCombo"
+      :insumo="insumoComboPendiente"
+      @confirmar="onConfirmarCombo"
+    />
+    <div class="columns is-desktop is-hidden-mobile">
       <div class="column" v-if="insumosOrden.length > 0 || insumosAnteriores.length > 0">
         <p class="has-text-primary size-is-4" v-if="insumosOrden.length > 0">
           <b-icon icon="plus"></b-icon>
@@ -143,9 +82,27 @@
         <b-icon icon="silverware-fork-knife" size="is-small" class="mr-1"></b-icon>
         Productos y sugerencias
       </p>
-      <b-button size="is-small" type="is-ghost" icon-left="refresh" @click="obtenerMenuHoy" :loading="cargandoMenu" class="has-text-grey">
+      <b-button type="is-info is-light" icon-left="refresh" @click="obtenerMenuHoy" :loading="cargandoMenu">
         Actualizar menú
       </b-button>
+    </div>
+
+    <!-- Pestañas de Categorías -->
+    <div class="tabs is-toggle is-small is-fullwidth mb-4" v-if="listaCategorias.length > 0">
+      <ul class="scroll-horizontal-tabs" style="border-bottom: none;">
+        <li :class="{'is-active': categoriaSeleccionada === null}">
+          <a @click="filtrarPorCategoria(null)">
+            <b-icon icon="star" size="is-small"></b-icon>
+            <span>Menú del Día</span>
+          </a>
+        </li>
+        <li v-for="cat in listaCategorias" :key="cat.id" :class="{'is-active': categoriaSeleccionada === cat.id}">
+          <a @click="filtrarPorCategoria(cat.id)">
+            <b-icon :icon="cat.tipo === 'BEBIDA' ? 'glass-cocktail' : 'food'" size="is-small"></b-icon>
+            <span>{{ cat.nombre }}</span>
+          </a>
+        </li>
+      </ul>
     </div>
     <div class="columns is-multiline">
       <div class="column is-3-widescreen is-4-desktop is-6-tablet is-12-mobile" v-for="insumo in insumosFiltrados"
@@ -180,14 +137,80 @@
           </div>
       </div>
     </div>
+
+    <!-- Sidebar para carrito en móviles -->
+    <b-sidebar
+      type="is-light"
+      :fullheight="true"
+      :fullwidth="true"
+      :overlay="true"
+      :right="true"
+      v-model="mostrarCarritoMobile"
+      class="is-hidden-tablet"
+    >
+      <div class="p-4" style="height: 100%; display: flex; flex-direction: column;">
+        <p class="title is-4 mb-4">
+          <b-icon icon="basket"></b-icon> Carrito
+        </p>
+        
+        <div style="flex: 1; overflow-y: auto;">
+          <p class="has-text-primary size-is-4 mt-2" v-if="insumosOrden.length > 0">
+            <b-icon icon="plus"></b-icon> Insumos agregados
+          </p>
+          <productos-orden :lista="insumosOrden" :tipo="'nuevo'" @modificado="onProductoModificado" @quitar="eliminar"
+            v-if="insumosOrden.length > 0" />
+
+          <p class="has-text-primary size-is-4 mt-4" v-if="insumosAnteriores.length > 0">
+            <b-icon icon="basket"></b-icon> Insumos servidos
+          </p>
+          <productos-orden :lista="insumosAnteriores" :tipo="'entregado'" v-if="insumosAnteriores.length > 0" />
+          
+          <div v-if="insumosOrden.length === 0 && insumosAnteriores.length === 0" class="has-text-centered py-5">
+            <p class="has-text-grey">El carrito está vacío</p>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-4" style="border-top: 1px solid #ddd; margin-bottom: 20px;">
+          <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+            <span class="has-text-weight-bold is-size-4">Total:</span>
+            <span class="has-text-weight-bold has-text-primary is-size-3">${{ total }}</span>
+          </div>
+          <b-button type="is-primary" size="is-large" expanded icon-left="basket-check"
+            @click="realizarOrden(); mostrarCarritoMobile = false" v-if="!estaAgregandoInsumos" :disabled="insumosOrden.length === 0">
+            Ordenar
+          </b-button>
+          <b-button type="is-primary" size="is-large" expanded icon-left="basket-check"
+            @click="editarOrden(); mostrarCarritoMobile = false" v-if="estaAgregandoInsumos" :disabled="insumosOrden.length === 0">
+            Añadir
+          </b-button>
+        </div>
+      </div>
+    </b-sidebar>
+
+    <!-- Botón Flotante (FAB) para Móviles -->
+    <div class="is-hidden-tablet" v-if="insumosOrden.length > 0 || insumosAnteriores.length > 0">
+      <b-button 
+        type="is-primary" 
+        rounded 
+        size="is-large" 
+        class="fab-carrito"
+        @click="mostrarCarritoMobile = true"
+      >
+        <b-icon icon="basket" size="is-medium"></b-icon>
+        <span class="ml-2 has-text-weight-bold">${{ total }}</span>
+        <span class="fab-badge">{{ insumosOrden.length + insumosAnteriores.length }}</span>
+      </b-button>
+    </div>
   </section>
 </template>
 <script>
 import HttpService from "../../Servicios/HttpService";
 import ProductosOrden from "./ProductosOrden.vue";
+import ModalArmarCombo from "./ModalArmarCombo.vue";
+
 export default {
   name: "Ordenar",
-  components: { ProductosOrden },
+  components: { ProductosOrden, ModalArmarCombo },
   data: () => ({
     idMesa: "",
     idDelivery: null,
@@ -196,7 +219,6 @@ export default {
     nombre: "",
     insumosAnteriores: [],
     insumosOrden: [],
-    total: 0,
     cliente: "",
     direccion: "",
     telefono: "",
@@ -206,16 +228,12 @@ export default {
     buscandoCliente: false,
     _timerCliente: null,
     modalCombo: false,
-    cargandoPlantillaCombo: false,
     insumoComboPendiente: null,
-    plantillaCombo: null,
-    comboNumMenus: 1,
-    comboElecciones: [],
-    eleccionesBulk: {}, // Estructura: { [slotId]: { [idInsumo]: cantidad, ... } }
     categoriaSeleccionada: null,
     listaCategorias: [],
     insumosMenuDia: [],
     cargandoMenu: false,
+    mostrarCarritoMobile: false,
   }),
 
   mounted() {
@@ -229,9 +247,9 @@ export default {
     this.meseroAsignado = this.$route.params.meseroAsignado || null;
 
     if (this.insumosAnteriores.length > 0) {
-      this.calcularTotal();
       this.estaAgregandoInsumos = true;
     }
+    this.obtenerCategorias();
     this.obtenerMenuHoy();
 
     // Autofocus en búsqueda después de cargar
@@ -299,7 +317,7 @@ export default {
       if (cliente.direccion && !this.direccion) this.direccion = cliente.direccion;
     },
     onProductoModificado() {
-      this.calcularTotal()
+      // El total se calcula con la computed property
     },
     editarOrden() {
       let insumos = this.insumosAnteriores.concat(this.insumosOrden);
@@ -401,25 +419,6 @@ export default {
 
     eliminar(lineKey) {
       this.insumosOrden = this.insumosOrden.filter((r) => (r._lineId || r.id) !== lineKey);
-      this.calcularTotal();
-    },
-
-    calcularTotal() {
-      let total = 0;
-      let totalAnterior = 0;
-      if (this.insumosAnteriores.length > 0) {
-        this.insumosAnteriores.forEach((insumo) => {
-          // No sumar ítems ya pagados previamente
-          if (!insumo.pagado) {
-            totalAnterior +=
-              parseFloat(insumo.cantidad) * parseFloat(insumo.precio);
-          }
-        });
-      }
-      this.insumosOrden.forEach((insumo) => {
-        total += parseFloat(insumo.cantidad) * parseFloat(insumo.precio);
-      });
-      this.total = total + totalAnterior;
     },
 
     buscarInsumo() {
@@ -449,6 +448,29 @@ export default {
       });
     },
 
+    obtenerCategorias() {
+      HttpService.obtener("obtener_categorias.php").then(cats => {
+        this.listaCategorias = cats || [];
+      });
+    },
+
+    filtrarPorCategoria(idCategoria) {
+      if (idCategoria === null) {
+        this.categoriaSeleccionada = null;
+        this.insumos = this.insumosMenuDia;
+        return;
+      }
+      this.categoriaSeleccionada = idCategoria;
+      this.cargandoMenu = true;
+      HttpService.obtenerConDatos(
+        { categoria: idCategoria, tipo: "", nombre: "", ajusteStockVenta: true },
+        "obtener_insumos.php"
+      ).then(resultado => {
+        this.insumos = resultado || [];
+        this.cargandoMenu = false;
+      });
+    },
+
     agregarInsumoAOrden(insumo) {
       if (insumo) {
         // Combo: el stock del insumo padre no aplica; la validación es por componentes al armar el menú y en el servidor.
@@ -458,7 +480,8 @@ export default {
             setTimeout(() => (this.nombre = ''), 10)
             return
           }
-          this.iniciarModalCombo(insumo)
+          this.insumoComboPendiente = insumo;
+          this.modalCombo = true;
           setTimeout(() => (this.nombre = ''), 10)
           return
         }
@@ -471,7 +494,7 @@ export default {
         if (indice >= 0) {
           this.aumentarCantidad(indice);
         } else {
-          this.insumosOrden.push({
+          this.insumosOrden.unshift({
             _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
             id: insumo.id,
             codigo: insumo.codigo,
@@ -486,149 +509,14 @@ export default {
           });
         }
         setTimeout(() => (this.nombre = ""), 10);
-        this.calcularTotal();
       }
     },
 
-    async iniciarModalCombo(insumo) {
-      this.insumoComboPendiente = insumo
-      this.modalCombo = true
-      this.cargandoPlantillaCombo = true
-      this.plantillaCombo = null
-      try {
-        const pl = await HttpService.obtenerConDatos({ id: insumo.idComboPlantilla }, 'obtener_plantilla_combo_id.php')
-        if (!pl || !pl.slots || !pl.slots.length) {
-          this.$toast({ message: 'Plantilla de combo vacía o inexistente', type: 'is-danger' })
-          this.modalCombo = false
-          this.cargandoPlantillaCombo = false
-          return
-        }
-        this.plantillaCombo = pl
-        this.comboNumMenus = 1
-        // Inicializar eleccionesBulk
-        const bulk = {}
-        pl.slots.forEach(s => {
-          bulk[String(s.id)] = {}
-        })
-        this.eleccionesBulk = bulk
-        // this.$nextTick(() => this.sincronizarMatricesCombo()) // Ya no es necesario
-      } catch (e) {
-        this.$toast({ message: 'No se pudo cargar la plantilla del combo', type: 'is-danger' })
-        this.modalCombo = false
-      }
-      this.cargandoPlantillaCombo = false
-    },
+    onConfirmarCombo(evento) {
+      const { n, detalleJson, resumenCombo } = evento;
+      const ins = this.insumoComboPendiente;
 
-    resetearEleccionesCombo() {
-      if (!this.plantillaCombo || !this.plantillaCombo.slots) return
-      const bulk = {}
-      this.plantillaCombo.slots.forEach(s => {
-        bulk[String(s.id)] = {}
-      })
-      this.eleccionesBulk = bulk
-    },
-
-    obtenerStockDisponible(idInsumo, stockBase, slotId) {
-      if (stockBase === undefined) return 999;
-      let consumidoEnEsteId = 0;
-      const slotChoices = this.eleccionesBulk[String(slotId)] || {};
-      Object.keys(slotChoices).forEach(id => {
-        if (String(id) === String(idInsumo)) consumidoEnEsteId = slotChoices[id];
-      });
-      return stockBase - consumidoEnEsteId;
-    },
-
-    ajustarCantidadOpcion(slotId, opcion, delta) {
-      const sid = String(slotId);
-      const oid = String(opcion.id_insumo);
-      const actual = this.eleccionesBulk[sid][oid] || 0;
-      const nuevo = actual + delta;
-
-      if (nuevo < 0) return;
-      if (delta > 0) {
-        // Validar stock
-        if (opcion.stock !== undefined && actual >= opcion.stock) return;
-        // Validar que no pase del total de menus
-        if (this.totalElegidoEnSlot(slotId) >= this.comboNumMenus) return;
-      }
-
-      this.$set(this.eleccionesBulk[sid], oid, nuevo);
-    },
-
-    totalElegidoEnSlot(slotId) {
-      const choices = this.eleccionesBulk[String(slotId)] || {};
-      return Object.values(choices).reduce((sum, val) => sum + val, 0);
-    },
-
-    obtenerCantidadElegida(slotId, idInsumo) {
-      const slot = this.eleccionesBulk[String(slotId)];
-      return (slot && slot[String(idInsumo)]) || 0;
-    },
-
-    confirmarComboAlPedido() {
-      const ins = this.insumoComboPendiente
-      const n = this.comboNumMenus
-      if (!ins || !this.plantillaCombo) return
-      const slots = this.plantillaCombo.slots || []
-
-      // 1. Validar que todos los slots estén completos
-      for (const s of slots) {
-        if (this.totalElegidoEnSlot(s.id) !== n) {
-          this.$buefy.toast.open({
-            message: `Por favor completa la selección de ${s.etiqueta} (${this.totalElegidoEnSlot(s.id)}/${n})`,
-            type: 'is-warning'
-          })
-          return
-        }
-      }
-
-      // 2. Transformar eleccionesBulk en Array de Menús (Legado)
-      // Generar listas planas de IDs por slot
-      const listasPorSlot = {}
-      slots.forEach(s => {
-        const sid = String(s.id)
-        const lista = []
-        const choices = this.eleccionesBulk[sid] || {}
-        Object.keys(choices).forEach(oid => {
-          for (let i = 0; i < choices[oid]; i++) {
-            lista.push(oid)
-          }
-        })
-        listasPorSlot[sid] = lista
-      })
-
-      // Reconstruir comboElecciones
-      const menusTraducidos = []
-      for (let i = 0; i < n; i++) {
-        const row = {}
-        slots.forEach(s => {
-          row[String(s.id)] = listasPorSlot[String(s.id)][i]
-        })
-        menusTraducidos.push(row)
-      }
-
-      // 3. Generar Resumen y Detalle
-      const conteos = {}
-      const ordenComponentes = []
-
-      menusTraducidos.forEach((row) => {
-        slots.forEach(s => {
-          const val = row[String(s.id)]
-          const op = s.opciones.find(o => String(o.id_insumo) === String(val))
-          const nombre = op ? op.nombre_insumo : ('#' + val)
-          if (!conteos[nombre]) {
-            conteos[nombre] = 0
-            ordenComponentes.push(nombre)
-          }
-          conteos[nombre]++
-        })
-      })
-
-      const menus = menusTraducidos.map((row) => ({ slots: { ...row } }))
-      const detalleJson = { menus }
-      const resumenCombo = ordenComponentes.map(nom => `${conteos[nom]} ${nom}`).join('\n')
-
-      this.insumosOrden.push({
+      this.insumosOrden.unshift({
         _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
         id: ins.id,
         codigo: ins.codigo,
@@ -642,9 +530,9 @@ export default {
         cantidad: n,
         estado: 'pendiente',
         _stock: ins.stock,
-      })
-      this.modalCombo = false
-      this.calcularTotal()
+      });
+      this.modalCombo = false;
+      this.insumoComboPendiente = null;
     },
 
     verificarSiExisteEnLista(insumo) {
@@ -669,12 +557,29 @@ export default {
 
       insumo.cantidad++;
 
-      lista[indice] = insumo;
+      // Mover el elemento al principio de la lista para que se vea más rápido
+      lista.splice(indice, 1);
+      lista.unshift(insumo);
+
       this.insumosOrden = lista;
     },
   },
 
   computed: {
+    total() {
+      let calc = 0;
+      if (this.insumosAnteriores && this.insumosAnteriores.length > 0) {
+        this.insumosAnteriores.forEach((insumo) => {
+          if (!insumo.pagado) calc += parseFloat(insumo.cantidad || 0) * parseFloat(insumo.precio || 0);
+        });
+      }
+      if (this.insumosOrden && this.insumosOrden.length > 0) {
+        this.insumosOrden.forEach((insumo) => {
+          calc += parseFloat(insumo.cantidad || 0) * parseFloat(insumo.precio || 0);
+        });
+      }
+      return calc;
+    },
     filteredDataObj() {
       return this.insumos;
     },
@@ -704,5 +609,47 @@ export default {
 .sugerencia-card.sin-stock {
   opacity: 0.55;
   border-color: #e0e0e0;
+}
+
+/* FAB Styles */
+.fab-carrito {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 40;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+.fab-carrito:active {
+  transform: scale(0.95);
+}
+.fab-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff3860;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Horizontal Scroll Tabs */
+.scroll-horizontal-tabs {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  white-space: nowrap;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  padding-bottom: 5px;
+}
+.scroll-horizontal-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+.scroll-horizontal-tabs li {
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
 }
 </style>

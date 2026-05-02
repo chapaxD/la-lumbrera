@@ -9,14 +9,6 @@
       </div>
       <div class="column is-12-mobile has-text-right-tablet">
         <div class="buttons is-right">
-          <b-button
-            v-if="mostrarRegistrarDespiece"
-            tag="router-link"
-            to="/registrar-despiece-parrilla"
-            type="is-info"
-            icon-left="clipboard-text-outline">
-            Registrar despiece
-          </b-button>
           <b-button type="is-warning" icon-left="alert-circle-outline" @click="abrirModalReporte">
             Reportar faltante
           </b-button>
@@ -54,9 +46,15 @@
                   <span v-else-if="orden.tipo === 'LLEVAR'">Para llevar #{{ orden.id }}</span>
                   <span v-else>Delivery #{{ orden.id }}</span>
                 </span>
+                
                 <span class="is-size-6 has-text-grey cocina-cliente" v-if="orden.cliente && orden.cliente !== 'S/N'">
                   {{ orden.cliente }}
                 </span>
+                <span class="is-size-9 has-text-info" v-if="orden.mesero">
+                  <b-icon icon="account" size="is-small"></b-icon>
+                  {{ orden.mesero }}
+                </span>
+              
               </div>
             </div>
             <div class="cocina-card-tags">
@@ -95,8 +93,9 @@
                 </b-tag>
               </div>
               <p v-if="insumo.caracteristicas && insumo.caracteristicas.trim() !== ''"
-                class="is-size-6 has-text-dark ml-5 mt-1" style="border-left: 3px solid #f5a623; padding-left: 8px;">
-                <b-icon icon="note-text-outline" size="is-small"></b-icon>
+                class="is-size-5 has-text-black has-text-weight-bold ml-5 mt-1 mb-2"
+                style="border-left: 5px solid #f5a623; padding-left: 12px; background-color: rgba(245, 166, 35, 0.15); border-radius: 0 4px 4px 0;">
+                <b-icon icon="note-text-outline" size="is-small" class="mr-1"></b-icon>
                 {{ insumo.caracteristicas }}
               </p>
             </div>
@@ -184,12 +183,6 @@ export default {
     clearInterval(this.intervaloPolling)
     clearInterval(this.intervaloReloj)
   },
-  computed: {
-    mostrarRegistrarDespiece() {
-      const r = typeof localStorage !== 'undefined' ? localStorage.getItem('rol') : ''
-      return r === 'parrillero' || r === 'admin'
-    }
-  },
   methods: {
     getAudioCampana() {
       if (!this.audioCampana) {
@@ -259,6 +252,7 @@ export default {
             id: m.mesa.idMesa,
             tipo: 'LOCAL',
             cliente: m.mesa.cliente,
+            mesero: m.mesa.atiende || '',
             horaInicio: m.mesa.created_at || null,
             pagada: m.mesa.estado === 'pagada',
             insumos,
@@ -275,6 +269,7 @@ export default {
           id: d.delivery.idDelivery,
           tipo: 'DELIVERY',
           cliente: d.delivery.cliente,
+          mesero: d.delivery.atiende || '',
           horaInicio: d.delivery.created_at || null,
           pagada: d.delivery.estado_orden === 'pagada',
           insumos,
@@ -286,19 +281,28 @@ export default {
     },
     async marcarListo(orden, insumo) {
       insumo.cargando = true
-      try {
-        await HttpService.registrar({
-          tipo: orden.tipo,
-          id: orden.id,
-          indiceInsumo: insumo._originalIndex,
-          soloAcompanamiento: false
-        }, 'marcar_listo_cocina.php')
+      // Pausar polling para evitar que revierta el cambio visual
+      clearInterval(this.intervaloPolling)
+      const ok = await HttpService.registrar({
+        tipo: orden.tipo,
+        id: insumo.itemId,
+        indiceInsumo: insumo._originalIndex,
+        soloAcompanamiento: false
+      }, 'marcar_listo_cocina.php')
+      if (ok) {
         insumo.estado = 'listo'
         orden.pendientes = orden.insumos.filter(i => i.estado === 'pendiente').length
         orden.todoListo = orden.insumos.length > 0 && orden.insumos.every(i => i.estado === 'listo')
-      } finally {
-        insumo.cargando = false
       }
+      insumo.cargando = false
+      // Recargar desde BD y reanudar polling
+      setTimeout(() => {
+        this.cargarOrdenes()
+        this.intervaloPolling = setInterval(() => {
+          this.ahora = Date.now()
+          this.cargarOrdenes()
+        }, 6000)
+      }, 1500)
     },
     minutosEspera(horaInicio) {
       if (!horaInicio) return 0

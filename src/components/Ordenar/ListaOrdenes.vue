@@ -139,8 +139,8 @@
                                         Cobrar
                                     </b-button>
 
-                                    <b-button type="is-info"
-                                        :class="{ 'is-light': !(orden.tipoRef !== 'LOCAL' && orden.estado === 'pendiente'), 'btn-comanda-pulso': (orden.tipoRef !== 'LOCAL' && orden.estado === 'pendiente') }"
+                                    <b-button type="is-primary"
+                                        :class="{ 'btn-comanda-pulso': (orden.tipoRef !== 'LOCAL' && orden.estado === 'pendiente') }"
                                         icon-left="printer" @click="$emit('comanda', orden)">
                                         Comanda
                                     </b-button>

@@ -38,8 +38,8 @@
                             {{ Utiles.formatearResumenCombo(ins.resumenCombo) }}
                         </div>
                     </td>
-                    <td style="text-align: center; padding: 2px 0;">{{ ins.cantidad }}</td>
-                    <td style="text-align: right; padding: 2px 0;">{{ Math.round(ins.cantidad * ins.precio) }}</td>
+                    <td style="text-align: center; padding: 2px 0; font-weight: bold;">{{ ins.cantidad }}</td>
+                    <td style="text-align: right; padding: 2px 0; font-weight: bold;">{{ Math.round(ins.cantidad * ins.precio) }}</td>
                 </tr>
             </tbody>
         </table>

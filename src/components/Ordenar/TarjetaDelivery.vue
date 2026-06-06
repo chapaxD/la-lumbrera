@@ -97,11 +97,20 @@
         <span v-else><strong>Cobrado y listo</strong> — entregar al cliente</span>
       </div>
 
+      <!-- Estado ENTREGADA para llevar: esperando que retiren -->
+      <div v-if="del.delivery.estado_orden === 'entregada' && isLlevar" class="notification is-link is-light py-2 px-3 mb-2">
+        <b-icon icon="walk" size="is-small"></b-icon>
+        <span><strong>Entregado</strong> — esperando que el cliente retire</span>
+        <div class="mt-2" v-if="puedeAcceder">
+          <b-button type="is-dark" icon-left="check-all"
+            @click="$emit('entregarOrdenPagada', 'LLEVAR', del.delivery.idDelivery)">Finalizar y cerrar</b-button>
+        </div>
+      </div>
+
       <div class="field is-grouped is-grouped-centered is-grouped-multiline" v-if="del.delivery.estado_orden === 'pagada' && puedeAcceder && isLlevar">
           <p class="control">
-              <b-button type="is-success" icon-left="hand-okay" v-if="!tienePendiente(del.insumos)"
-                  @click="$emit('entregarOrdenPagada', del.delivery.tipo_orden || 'DELIVERY', del.delivery.idDelivery)">Entregar</b-button>
-              <b-button v-else type="is-success" icon-left="cash-check" disabled>Cobrado</b-button>
+              <b-button type="is-success" icon-left="hand-okay"
+                  @click="$emit('entregarOrdenPagada', 'LLEVAR', del.delivery.idDelivery)">Entregar</b-button>
           </p>
           <p class="control">
               <b-button type="is-info" icon-left="printer" is-light @click="$emit('imprimirPrecuenta', del, del.delivery.tipo_orden || 'DELIVERY')" title="Imprimir detalle para el cliente">Detalle</b-button>

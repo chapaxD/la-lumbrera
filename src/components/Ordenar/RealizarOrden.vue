@@ -1332,10 +1332,24 @@ export default {
         },
 
         async entregarOrdenPagada(tipo, id) {
+            // Si ya está entregada (segunda llamada desde LLEVAR), liberar directamente
+            if (tipo === 'LLEVAR') {
+                const delData = this.deliveries.find(d => d && d.delivery && String(d.delivery.idDelivery) === String(id))
+                if (delData && delData.delivery.estado_orden === 'entregada') {
+                    const ok = await HttpService.registrar({ tipo, id }, 'liberar_mesa.php')
+                    if (ok) {
+                        this.$toast({ message: 'Pedido finalizado y cerrado', type: 'is-success' })
+                        this.cargarDatos()
+                    } else {
+                        this.$toast({ message: 'Error al finalizar el pedido', type: 'is-danger' })
+                    }
+                    return
+                }
+            }
             const ok = await HttpService.registrar({ tipo, id }, 'entregar_orden_pagada.php')
             if (ok) {
                 this.$toast({ message: 'Orden marcada como entregada', type: 'is-success' })
-                this.ultimoIdInteractuado = (tipo === 'LOCAL' ? 'mesa-' : (tipo === 'DELIVERY' ? 'delivery-' : 'llevar-')) + id;
+                this.ultimoIdInteractuado = (tipo === 'LOCAL' ? 'mesa-' : (tipo === 'LLEVAR' ? 'llevar-' : 'delivery-')) + id;
                 this.cargarDatos()
             } else {
                 this.$toast({ message: 'Error al entregar', type: 'is-danger' })

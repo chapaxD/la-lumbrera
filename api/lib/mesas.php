@@ -264,7 +264,8 @@ function ocuparMesa($mesa)
     foreach ($mesa->insumos as $insumo) {
         $i = is_object($insumo) ? get_object_vars($insumo) : (array)$insumo;
         $tipoInsumo = isset($i['tipo']) ? strtoupper($i['tipo']) : 'PLATILLO';
-        $estadoInicial = ($tipoInsumo === 'BEBIDA') ? 'listo' : ($i['estado'] ?? 'pendiente');
+        $estadoEnviado = $i['estado'] ?? 'pendiente';
+        $estadoInicial = ($tipoInsumo === 'BEBIDA' && $estadoEnviado !== 'entregado') ? 'listo' : $estadoEnviado;
         $pagado = isset($i['pagado']) ? (int)$i['pagado'] : 0;
         $detJson = _encodeDetalleJsonParaDb($i['detalleJson'] ?? $i['detalle_json'] ?? null);
         $bd->prepare("INSERT INTO items_orden (idOrden, idInsumo, codigo, nombre, precio, caracteristicas, cantidad, estado, tipo, pagado, detalle_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)")

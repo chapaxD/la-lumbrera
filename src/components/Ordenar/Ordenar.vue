@@ -59,16 +59,16 @@
     <div class="columns is-desktop is-hidden-mobile">
       <div class="column" v-if="insumosOrden.length > 0 || insumosAnteriores.length > 0">
         <p class="has-text-primary size-is-4" v-if="insumosOrden.length > 0">
-          <b-icon icon="plus"></b-icon>
-          Insumos agregados
+          <b-icon icon="pencil"></b-icon>
+          {{ estaAgregandoInsumos ? 'En pedido (podés quitar o cambiar)' : 'Insumos agregados' }}
         </p>
 
         <productos-orden :lista="insumosOrden" :tipo="'nuevo'" @modificado="onProductoModificado" @quitar="eliminar"
           v-if="insumosOrden.length > 0" />
 
         <p class="has-text-primary size-is-4" v-if="insumosAnteriores.length > 0">
-          <b-icon icon="basket"></b-icon>
-          Insumos servidos
+          <b-icon icon="chef-hat"></b-icon>
+          Ya en cocina (no editables)
         </p>
         <productos-orden :lista="insumosAnteriores" :tipo="'entregado'" v-if="insumosAnteriores.length > 0" />
 
@@ -155,13 +155,13 @@
         
         <div style="flex: 1; overflow-y: auto;">
           <p class="has-text-primary size-is-4 mt-2" v-if="insumosOrden.length > 0">
-            <b-icon icon="plus"></b-icon> Insumos agregados
+            <b-icon icon="pencil"></b-icon> {{ estaAgregandoInsumos ? 'En pedido (podés quitar o cambiar)' : 'Insumos agregados' }}
           </p>
           <productos-orden :lista="insumosOrden" :tipo="'nuevo'" @modificado="onProductoModificado" @quitar="eliminar"
             v-if="insumosOrden.length > 0" />
 
           <p class="has-text-primary size-is-4 mt-4" v-if="insumosAnteriores.length > 0">
-            <b-icon icon="basket"></b-icon> Insumos servidos
+            <b-icon icon="chef-hat"></b-icon> Ya en cocina (no editables)
           </p>
           <productos-orden :lista="insumosAnteriores" :tipo="'entregado'" v-if="insumosAnteriores.length > 0" />
           
@@ -243,11 +243,21 @@ export default {
     this.cliente = this.$route.params.cliente || "";
     this.direccion = this.$route.params.direccion || "";
     this.telefono = this.$route.params.telefono || "";
-    this.insumosAnteriores = this.$route.params.insumosEnLista || [];
+    const todosLosInsumos = this.$route.params.insumosEnLista || [];
     this.meseroAsignado = this.$route.params.meseroAsignado || null;
 
-    if (this.insumosAnteriores.length > 0) {
+    if (todosLosInsumos.length > 0) {
       this.estaAgregandoInsumos = true;
+      // Ítems ya preparados o entregados → solo lectura
+      this.insumosAnteriores = todosLosInsumos.filter(i => i.estado === 'listo' || i.estado === 'entregado');
+      // Ítems pendientes → editables (se pueden quitar, cambiar cantidad, etc.)
+      this.insumosOrden = todosLosInsumos
+        .filter(i => i.estado === 'pendiente')
+        .map(i => ({
+          ...i,
+          _lineId: 'L' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+          _stock: 0
+        }));
     }
     this.obtenerCategorias();
     this.obtenerMenuHoy();

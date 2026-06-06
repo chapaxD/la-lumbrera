@@ -40,7 +40,7 @@
         <div class="content">
           <b-table :data="mesa.insumos" :checked-rows="checkedRows"
             @check="(rows) => $emit('update:checked-rows', rows)"
-            :is-row-checkable="(row) => row.estado === 'listo' || (parseInt(datos.usa_pantalla_cocina || 0) === 0 && parseInt(datos.usa_pantalla_parrilla || 0) === 0)"
+            :is-row-checkable="(row) => row.estado !== 'entregado'"
             :checkable="puedeAcceder" mobile-cards narrow custom-row-key="itemId"
             :checkbox-position="checkboxPosition" :checkbox-type="checkboxType">
 
@@ -148,7 +148,7 @@
           <b-button type="is-info" icon-left="printer" is-light @click="$emit('imprimirPrecuenta', mesa, 'LOCAL')"
             title="Imprimir detalle para el cliente">Detalle</b-button>
         </p>
-        <p class="control" v-if="mesa.mesa.estado === 'pagada'">
+        <p class="control" v-if="mesa.mesa.estado === 'pagada' || mesa.mesa.estado === 'entregada'">
           <b-button type="is-info" icon-left="plus" @click="$emit('ocuparMesa', mesa)">Agregar</b-button>
         </p>
         <p class="control" v-if="mesa.mesa.estado === 'pagada' || mesa.mesa.estado === 'entregada'">

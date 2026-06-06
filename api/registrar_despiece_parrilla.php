@@ -4,6 +4,7 @@ include_once "funciones.php";
 
 // Asegurar columnas nuevas (idempotente — solo corre 1 vez por proceso)
 _asegurarColumnasDespieceLinea();
+_asegurarColumnaSobranteLote();
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!is_array($data)) {
@@ -21,6 +22,8 @@ if (!empty($data['id_usuario'])) {
 }
 $materiaPrimaLote = isset($data['materia_prima'])          ? trim((string) $data['materia_prima'])       : '';
 $totalKg          = isset($data['total_kg_recibido'])      ? (float) $data['total_kg_recibido']          : 0;
+$sobranteKg       = isset($data['sobrante_kg'])            ? (float) $data['sobrante_kg']                : 0;
+if ($sobranteKg < 0) $sobranteKg = 0;
 $lineas           = isset($data['lineas']) && is_array($data['lineas']) ? $data['lineas'] : [];
 
 if ($fecha === '' || $usuario === '') {
@@ -143,11 +146,13 @@ foreach ($lineas as $i => $ln) {
     ];
 }
 
-if (abs($sumaKgAsignados - $totalKg) > $tolKgTotal) {
+// El total debe cuadrar: suma(líneas) + sobrante_kg = total_kg_recibido
+$totalAsignadoMasSobrante = $sumaKgAsignados + $sobranteKg;
+if (abs($totalAsignadoMasSobrante - $totalKg) > $tolKgTotal) {
     http_response_code(400);
     echo json_encode([
         "ok"    => false,
-        "error" => "Los kg asignados por línea (" . round($sumaKgAsignados, 3) . " kg) no coinciden con el total recibido (" . round($totalKg, 3) . " kg)."
+        "error" => "Los kg de cortes (" . round($sumaKgAsignados, 3) . " kg) + sobrante (" . round($sobranteKg, 3) . " kg) = " . round($totalAsignadoMasSobrante, 3) . " kg, pero el total declarado es " . round($totalKg, 3) . " kg."
     ]);
     exit;
 }
@@ -168,9 +173,9 @@ $bd->beginTransaction();
 try {
     // Insertar lote
     $stLote = $bd->prepare(
-        "INSERT INTO despiece_parrilla_lote (fecha, usuario, materia_prima, total_kg_recibido) VALUES (?, ?, ?, ?)"
+        "INSERT INTO despiece_parrilla_lote (fecha, usuario, materia_prima, total_kg_recibido, sobrante_kg) VALUES (?, ?, ?, ?, ?)"
     );
-    $stLote->execute([$fecha, $usuario, $materiaPrimaLote, $totalKg]);
+    $stLote->execute([$fecha, $usuario, $materiaPrimaLote, $totalKg, $sobranteKg]);
     $idLote = (int) $bd->lastInsertId();
 
     // Insertar líneas con las nuevas columnas

@@ -177,3 +177,16 @@ function _asegurarColumnasDespieceLinea() {
         ");
     } catch (\Exception $e) { /* silencioso — si ya existen no falla */ }
 }
+
+function _asegurarColumnaSobranteLote() {
+    static $verificado = false;
+    if ($verificado) return;
+    $verificado = true;
+    try {
+        $bd = conectarBaseDatos();
+        $bd->exec("
+            ALTER TABLE despiece_parrilla_lote
+              ADD COLUMN IF NOT EXISTS sobrante_kg DECIMAL(8,3) NOT NULL DEFAULT 0
+        ");
+    } catch (\Exception $e) { /* silencioso — si ya existe no falla */ }
+}

@@ -34,6 +34,49 @@
       </div>
     </div>
 
+    <!-- ── Banner sobrantes disponibles ── -->
+    <div v-if="sobrantesPendientes.length > 0" class="mb-5">
+      <div v-for="sob in sobrantesPendientes" :key="sob.id_lote"
+        class="notification is-warning is-light py-3 px-4 mb-2"
+        style="border-left: 4px solid #f5a623; border-radius: 8px">
+        <div class="is-flex is-align-items-center is-justify-content-space-between is-flex-wrap-wrap" style="gap:8px">
+          <div class="is-flex is-align-items-flex-start" style="flex:1; min-width:0">
+            <b-icon icon="package-variant" type="is-warning" class="mr-3 mt-1" style="flex-shrink:0"></b-icon>
+            <div>
+              <p class="mb-1 has-text-weight-bold is-size-6">
+                Sobrante del {{ formatearFechaSobrante(sob.fecha) }}:
+                <span class="has-text-warning-dark">{{ sob.materia_prima }}</span>
+              </p>
+              <p class="is-size-7 mb-1 has-text-grey-dark">
+                <template v-if="sob.sobrante_lote_kg > 0">
+                  🥩 Pieza sin cortar: <strong>{{ sob.sobrante_lote_kg.toFixed(3) }} kg</strong>
+                </template>
+                <template v-if="sob.sobrante_lote_kg > 0 && sob.sobras_lineas_kg > 0">
+                  &nbsp;+&nbsp;
+                </template>
+                <template v-if="sob.sobras_lineas_kg > 0">
+                  ✂️ Sobras de cortes: <strong>{{ sob.sobras_lineas_kg.toFixed(3) }} kg</strong>
+                </template>
+                &nbsp;→&nbsp;
+                <strong class="has-text-success-dark">Total: {{ sob.total_reutilizable_kg.toFixed(3) }} kg</strong>
+              </p>
+              <p v-if="sob.lineas_con_sobras.length > 0" class="is-size-7 mb-0 has-text-grey">
+                Cortes con sobras:
+                <span v-for="(ln, i) in sob.lineas_con_sobras" :key="i">
+                  {{ ln.materia_prima }} ({{ ln.sobras_g }}g)<span v-if="i < sob.lineas_con_sobras.length - 1">, </span>
+                </span>
+              </p>
+            </div>
+          </div>
+          <b-button type="is-warning" size="is-small" icon-left="arrow-right-circle"
+            class="has-text-weight-bold" style="flex-shrink:0"
+            @click="cargarSobrante(sob)">
+            Usar este sobrante
+          </b-button>
+        </div>
+      </div>
+    </div>
+
     <form @submit.prevent="registrarDespiece">
       <!-- General Info Card -->
       <div class="card mb-5 general-info-card shadow-sm">
@@ -66,6 +109,25 @@
             </div>
           </div>
 
+          <!-- Sobrante sin cortar -->
+          <div class="columns is-multiline mt-2">
+            <div class="column is-4-desktop is-6-tablet">
+              <b-field label="Sobrante sin cortar hoy (kg)"
+                :message="form.sobrante_lote_kg > 0 ? 'Se guardará como remanente reutilizable para mañana' : 'Dejá en 0 si se corta toda la materia prima'"
+                :type="form.sobrante_lote_kg > 0 ? 'is-info' : ''">
+                <b-input type="number" step="0.001" min="0" v-model.number="form.sobrante_lote_kg"
+                  icon="package-variant" placeholder="0.000"></b-input>
+              </b-field>
+            </div>
+            <div v-if="form.sobrante_lote_kg > 0" class="column is-8-desktop is-6-tablet is-flex is-align-items-center">
+              <div class="notification is-info is-light py-2 px-3 mb-0 w-100" style="border-radius:8px">
+                <b-icon icon="information" size="is-small" class="mr-2"></b-icon>
+                <strong>{{ form.sobrante_lote_kg.toFixed ? numSobrante.toFixed(3) : '0.000' }} kg</strong>
+                quedarán sin procesar hoy. Recordá separar esta pieza y usárla mañana.
+              </div>
+            </div>
+          </div>
+
           <!-- Cuadre Total -->
           <div
             class="notification py-2 px-4 mt-2 mb-0 is-flex is-align-items-center is-justify-content-space-between cuadre-total-kg"
@@ -74,13 +136,16 @@
               <b-icon :icon="cuadreTotalOk ? 'check-circle' : 'alert'"
                 :type="cuadreTotalOk ? 'is-success' : 'is-warning'" class="mr-2"></b-icon>
               <strong>Cuadre Total:</strong>
-              Suma líneas = <strong>{{ sumaKgLineas.toFixed(3) }}</strong> kg
+              Cortes = <strong>{{ sumaKgLineas.toFixed(3) }}</strong> kg
+              <template v-if="numSobrante > 0">
+                <span class="mx-1">+</span> Sobrante = <strong class="has-text-info">{{ numSobrante.toFixed(3) }}</strong> kg
+              </template>
               <span class="mx-2 has-text-grey-light">|</span>
               Total declarado = <strong>{{ numTotalKg.toFixed(3) }}</strong> kg
             </div>
             <div v-if="!cuadreTotalOk"
               class="has-text-danger has-text-weight-bold is-size-7 ml-3 bg-white px-2 py-1 rounded">
-              Diferencia: {{ Math.abs(sumaKgLineas - numTotalKg).toFixed(3) }} kg
+              Diferencia: {{ Math.abs(sumaKgLineas + numSobrante - numTotalKg).toFixed(3) }} kg
             </div>
           </div>
         </div>
@@ -274,6 +339,34 @@
         </div>
       </transition-group>
 
+      <!-- Resumen reutilizable mañana -->
+      <div v-if="totalReutilizableMañanaKg > 0" class="card mb-4 shadow-sm" style="border-left: 4px solid #48c78e">
+        <div class="card-content py-3">
+          <p class="title is-6 mb-2 has-text-success-dark is-flex is-align-items-center">
+            <b-icon icon="calendar-arrow-right" class="mr-2"></b-icon>
+            Disponible para mañana
+          </p>
+          <div class="columns is-mobile is-multiline">
+            <div v-if="numSobrante > 0" class="column is-narrow">
+              <div class="has-text-grey is-size-7 mb-1">Pieza sin cortar</div>
+              <div class="has-text-weight-bold is-size-5 has-text-info">{{ numSobrante.toFixed(3) }} kg</div>
+            </div>
+            <div v-if="sobrasLineasKg > 0" class="column is-narrow">
+              <div class="has-text-grey is-size-7 mb-1">Sobras de cortes</div>
+              <div class="has-text-weight-bold is-size-5 has-text-warning-dark">{{ sobrasLineasKg.toFixed(3) }} kg</div>
+            </div>
+            <div class="column is-narrow">
+              <div class="has-text-grey is-size-7 mb-1">Total reutilizable</div>
+              <div class="has-text-weight-bold is-size-4 has-text-success">{{ totalReutilizableMañanaKg.toFixed(3) }} kg</div>
+            </div>
+          </div>
+          <p class="is-size-7 has-text-grey mt-1 mb-0">
+            <b-icon icon="information" size="is-small"></b-icon>
+            Usá este valor como <strong>"Total Recibido"</strong> en el próximo despiece.
+          </p>
+        </div>
+      </div>
+
       <div
         class="mt-5 is-flex is-align-items-center is-justify-content-flex-end form-actions p-4 box bg-white-ter has-background-white-ter shadow-sm">
         <span v-if="mensaje" class="mr-4 has-text-weight-bold is-size-6"
@@ -323,13 +416,15 @@ export default {
         materia_prima: '',
         usuario: '',
         total_kg_recibido: '',
+        sobrante_lote_kg: 0,
         lineas: [lineaVacia(), lineaVacia()]
       },
       insumosPlatillos: [],
       cargandoInsumos: false,
       enviando: false,
       mensaje: '',
-      exito: false
+      exito: false,
+      sobrantesPendientes: []
     };
   },
   computed: {
@@ -343,6 +438,10 @@ export default {
       const t = parseFloat(this.form.total_kg_recibido);
       return Number.isFinite(t) ? t : 0;
     },
+    numSobrante() {
+      const s = parseFloat(this.form.sobrante_lote_kg);
+      return Number.isFinite(s) && s > 0 ? s : 0;
+    },
     sumaKgLineas() {
       return this.form.lineas.reduce((acc, ln) => {
         const k = parseFloat(ln.kg_asignado);
@@ -350,13 +449,24 @@ export default {
       }, 0);
     },
     cuadreTotalOk() {
-      return Math.abs(this.sumaKgLineas - this.numTotalKg) <= 0.02;
+      return Math.abs(this.sumaKgLineas + this.numSobrante - this.numTotalKg) <= 0.02;
     },
     puedeEnviar() {
       if (!this.cuadreTotalOk || this.numTotalKg <= 0) return false;
       return this.form.lineas.every((ln, i) =>
         this.lineaCuadra(i) && ln.id_insumo && ln.gramos_porcion > 0
       );
+    },
+    // Suma de sobras de todas las líneas (g → kg)
+    sobrasLineasKg() {
+      return this.form.lineas.reduce((acc, _, i) => {
+        const s = this.sobrasLinea(i);
+        return acc + (s > 0 ? s / 1000 : 0);
+      }, 0);
+    },
+    // Total disponible para mañana: sobrante sin cortar + sobras de cortes
+    totalReutilizableMañanaKg() {
+      return this.numSobrante + this.sobrasLineasKg;
     }
   },
   mounted() {
@@ -364,8 +474,40 @@ export default {
     const nombre = typeof localStorage !== 'undefined' ? localStorage.getItem('nombreUsuario') : '';
     if (nombre) this.form.usuario = nombre;
     this.cargarInsumos();
+    this.cargarSobrantes();
   },
   methods: {
+    async cargarSobrantes() {
+      try {
+        const res = await fetch('/api/obtener_sobrantes_pendientes.php?dias=7');
+        const data = await res.json();
+        this.sobrantesPendientes = (data.ok && Array.isArray(data.datos)) ? data.datos : [];
+      } catch (e) {
+        this.sobrantesPendientes = [];
+      }
+    },
+    formatearFechaSobrante(fechaStr) {
+      if (!fechaStr) return '';
+      const d = new Date(fechaStr.replace(' ', 'T'));
+      const hoy = new Date();
+      const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
+      if (d.toDateString() === hoy.toDateString()) return 'hoy';
+      if (d.toDateString() === ayer.toDateString()) return 'ayer';
+      return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    },
+    cargarSobrante(sob) {
+      this.form.materia_prima = sob.materia_prima;
+      this.form.total_kg_recibido = parseFloat(sob.total_reutilizable_kg.toFixed(3));
+      this.form.sobrante_lote_kg = 0;
+      this.form.lineas = [lineaVacia(), lineaVacia()];
+      if (this.$buefy && this.$buefy.toast) {
+        this.$buefy.toast.open({
+          message: `Cargado: ${sob.total_reutilizable_kg.toFixed(3)} kg de "${sob.materia_prima}". Completá los cortes del día.`,
+          type: 'is-info',
+          duration: 5000
+        });
+      }
+    },
     async cargarInsumos() {
       this.cargandoInsumos = true;
       try {
@@ -512,6 +654,7 @@ export default {
         usuario: String(this.form.usuario || '').trim(),
         materia_prima: String(this.form.materia_prima || '').trim(),
         total_kg_recibido: this.numTotalKg,
+        sobrante_kg: this.numSobrante,
         id_usuario: Number.isFinite(idUsuario) && idUsuario > 0 ? idUsuario : undefined,
         lineas
       };
@@ -533,6 +676,7 @@ export default {
           const u = this.form.usuario;
           this.form.materia_prima = '';
           this.form.total_kg_recibido = '';
+          this.form.sobrante_lote_kg = 0;
           this.form.lineas = [lineaVacia(), lineaVacia()];
           this.form.fecha = fechaLocalParaInput();
           this.form.usuario = u || (typeof localStorage !== 'undefined' ? localStorage.getItem('nombreUsuario') || '' : '');

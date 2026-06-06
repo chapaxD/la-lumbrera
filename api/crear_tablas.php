@@ -250,7 +250,8 @@ $tablas = [
         fecha DATETIME NOT NULL,
         usuario VARCHAR(100) NOT NULL,
         materia_prima VARCHAR(120) NOT NULL DEFAULT '',
-        total_kg_recibido DECIMAL(8,3) NOT NULL
+        total_kg_recibido DECIMAL(8,3) NOT NULL,
+        sobrante_kg DECIMAL(8,3) NOT NULL DEFAULT 0
     ) ENGINE=InnoDB;",
 
     "despiece_parrilla_linea" => "CREATE TABLE IF NOT EXISTS despiece_parrilla_linea(

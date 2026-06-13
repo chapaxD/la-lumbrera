@@ -252,8 +252,13 @@ function ocuparMesa($mesa)
 
     if ($existing) {
         $idOrden = $existing->id;
-        $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado='ocupada', cliente=? WHERE id=?")
-            ->execute([$mesa->atiende, $mesa->idUsuario, $mesa->total, $cliente, $idOrden]);
+        // Preservar el estado si ya está pagada o entregada, para no perderlo al marcar ítems como entregados
+        $stmtEstado = $bd->prepare("SELECT estado FROM ordenes_activas WHERE id=?");
+        $stmtEstado->execute([$idOrden]);
+        $estadoActual = $stmtEstado->fetchColumn();
+        $nuevoEstado = in_array($estadoActual, ['pagada', 'entregada']) ? $estadoActual : 'ocupada';
+        $bd->prepare("UPDATE ordenes_activas SET atiende=?, idUsuario=?, total=?, estado=?, cliente=? WHERE id=?")
+            ->execute([$mesa->atiende, $mesa->idUsuario, $mesa->total, $nuevoEstado, $cliente, $idOrden]);
         $bd->prepare("DELETE FROM items_orden WHERE idOrden=?")->execute([$idOrden]);
     } else {
         $bd->prepare("INSERT INTO ordenes_activas (tipo, referencia, atiende, idUsuario, total, estado, cliente) VALUES ('LOCAL',?,?,?,?,'ocupada',?)")
